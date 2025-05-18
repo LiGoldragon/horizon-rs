@@ -11,7 +11,7 @@ pub struct Horizon {
     #[serde(rename = "astra")]
     node: Node,
     #[serde(rename = "exAstriz")]
-    nodes: HashMap<Node>,
+    nodes: HashMap<String, Node>,
     users: Users,
 }
 
@@ -24,6 +24,7 @@ pub struct Cluster {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Node {
     #[serde(rename = "neim")]
     name: String,
@@ -50,30 +51,31 @@ pub struct Node {
     #[serde(rename = "eseseitcPreCriome")]
     ssh_precriom: String,
     #[serde(rename = "nixPreCriome")]
-    nixPreCriome: String,
+    nix_pre_criome: String,
     #[serde(rename = "nixCacheDomain")]
-    nixCacheDomain: String,
+    nix_cache_domain: String,
     #[serde(rename = "nixUrl")]
-    nixUrl: String,
+    nix_url: String,
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeMethods {
-    izFullyTrusted: String,
-    saizAtList: String,
-    izBildyr: String,
-    izDispatcyr: String,
-    izNiksKac: String,
-    izNiksCriodaizd: String,
-    izYggCriodaizd: String,
-    izNeksisCriodaizd: String,
-    izEseseitcCriodaizd: String,
-    hazWireguardPreCriome: String,
-    izCriodaizd: String,
-    eseseitcPreCriome: String,
-    nixPreCriome: String,
-    nixCacheDomain: String,
-    nixUrl: String,
+    iz_fully_trusted: String,
+    saiz_at_list: String,
+    iz_bildyr: String,
+    iz_dispatcyr: String,
+    iz_niks_kac: String,
+    iz_niks_criodaizd: String,
+    iz_ygg_criodaizd: String,
+    iz_neksis_criodaizd: String,
+    iz_eseseitc_criodaizd: String,
+    haz_wireguard_pre_criome: String,
+    iz_criodaizd: String,
+    eseseitc_pre_criome: String,
+    nix_pre_criome: String,
+    nix_cache_domain: String,
+    nix_url: String,
 }
 
 impl TryFrom<&StructuredAttrs> for Horizon {
