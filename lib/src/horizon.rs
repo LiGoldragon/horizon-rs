@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Horizon {
     cluster: Cluster,
     node: Node,
@@ -11,6 +12,7 @@ pub struct Horizon {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Cluster {
     name: String,
     methods: ClusterMethods,
@@ -76,6 +78,8 @@ impl TryFrom<(&Data, String)> for Horizon {
     type Error = &'static str;
 
     fn try_from(value: (&Data, String)) -> Result<Self, Self::Error> {
-        Ok(Horizon::new())
+        Ok(Horizon {
+            cluster: Cluster {},
+        })
     }
 }
