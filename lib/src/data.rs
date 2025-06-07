@@ -5,6 +5,18 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Data {
+    node_name: String,
+    cluster_name: String,
+    criosphere: Criosphere,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Criosphere(HashMap<String, Cluster>);
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Node {
     species: Species,
     machine: Machine,
     pre_criomes: PreCriomes,
@@ -12,6 +24,21 @@ pub struct Data {
     link_local_ips: String,
     trust: String,
 }
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Species {
+    Center,
+    Hybrid,
+    Edge,
+    EdgeTesting,
+    MediaBroadcast,
+    Router,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Machine {}
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

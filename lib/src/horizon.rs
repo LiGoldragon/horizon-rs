@@ -60,6 +60,9 @@ pub struct NodeMethods {
     nix_url: String,
 }
 
+#[derive(Default, Serialize, Deserialize)]
+struct Users(Hashmap<String, User>);
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
