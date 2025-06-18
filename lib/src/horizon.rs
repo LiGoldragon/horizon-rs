@@ -1,4 +1,5 @@
-use crate::data::Data;
+pub use crate::request::Request;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -77,7 +78,7 @@ pub struct User {
     methods: Methods,
 }
 
-impl TryFrom<(&Data, String)> for Horizon {
+impl TryFrom<(&Request)> for Horizon {
     type Error = &'static str;
 
     fn try_from(value: (&Data, String)) -> Result<Self, Self::Error> {

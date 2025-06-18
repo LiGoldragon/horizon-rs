@@ -1,17 +1,14 @@
+use horizon_lib::horizon::{Horizon, Request};
 use horizon_lib::nix::{OutputFile, StructuredAttrs};
-use horizon_lib::{
-    data::Data,
-    horizon::{Data, Horizon},
-};
 use serde_json;
 use std::io::{Error, Write};
 
 fn main() -> Result<(), Error> {
     let struct_attrs: StructuredAttrs = StructuredAttrs::from_cwd();
 
-    let horizon_data = Data::try_from(&struct_attrs);
+    let horizon_request = Request::try_from(&struct_attrs);
 
-    let horizon: Horizon = Horizon::try_from(horizon_data);
+    let horizon: Horizon = Horizon::try_from(horizon_request);
 
     let reserialized_data: String = serde_json::to_string(&struct_attrs.attrs.get("horizon-data"))
         .expect("Error Serializing Data");
