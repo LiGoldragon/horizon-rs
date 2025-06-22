@@ -1,6 +1,7 @@
-use crate::nix::StructuredAttrs;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use crate::horizon::{Cluster, Node, User};
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

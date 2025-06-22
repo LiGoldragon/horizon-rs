@@ -1,8 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Serialize, Deserialize)]
-struct Users(Hashmap<String, User>);
-
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
@@ -14,5 +11,10 @@ pub struct User {
     trust: Trust,
     pre_criomes: PreCriomes,
     github_id: GithubID,
-    methods: Methods,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserMethods {
+    pre_criomes: PreCriomes,
 }

@@ -10,7 +10,7 @@ pub struct Node {
     wireguard_pre_criome: String,
     node_ip: String,
     link_local_ips: String,
-    trust: String,
+    trust: Trust,
     ssh: String,
     ygg_pre_criome: String,
     ygg_address: String,
@@ -25,11 +25,11 @@ pub struct Node {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeMethods {
-    is_fully_trusted: Trust,
-    is_size_at_least: Size,
-    is_builder: String,
-    is_dispatcher: String,
-    is_nix_cache: String,
+    is_fully_trusted: bool,
+    is_size_at_least: bool,
+    is_builder: bool,
+    is_dispatcher: bool,
+    is_nix_cache: bool,
     has_nix_precriad: String,
     has_ygg_precriad: String,
     has_ssh_precriad: String,
