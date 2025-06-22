@@ -2,11 +2,11 @@
   "nodes": {
     "atom": {
       "locked": {
-        "lastModified": 1745611759,
-        "narHash": "sha256-bXb5J2AXjq8u3wqA5LbTRDaYto9QmHNUH7kJ5ZTGDRI=",
+        "lastModified": 1746231566,
+        "narHash": "sha256-JoxyS4MTrw3oKcjSyeK4qmNgEBGIlZ5e5YnltRw3CGY=",
         "owner": "LiGoldragon",
         "repo": "atom",
-        "rev": "5f85c3548627a7806963a757bcd24aa58824e5fb",
+        "rev": "b04470227089e8379acd57c411d1f48e55038d74",
         "type": "github"
       },
       "original": {
@@ -128,14 +128,14 @@
         "make-atom": "make-atom",
         "nixpkgs": "nixpkgs",
         "rust-atom": "rust-atom",
-        "system": "system_4"
+        "system": "system_5"
       },
       "locked": {
-        "lastModified": 1745882370,
-        "narHash": "sha256-sACouUt4OMoKqX//fR0Tm8XgasUMwZnj+Jq8tFTNH1c=",
+        "lastModified": 1751393161,
+        "narHash": "sha256-sEEynCXeKnmTmvuXUC4yky2FcmjlxX2kvCl06D7fPh4=",
         "owner": "criome",
         "repo": "horizon-cli",
-        "rev": "87813eebb43473084a4c61141f9531c567ebe62d",
+        "rev": "b83e39b2679b62fc56c15ceb870b9f7b8cae374a",
         "type": "github"
       },
       "original": {
@@ -148,11 +148,11 @@
     "horizon-rs": {
       "flake": false,
       "locked": {
-        "lastModified": 1745788460,
-        "narHash": "sha256-NpALOvCIQ6tzQtlmGVmNxBrH/NKDzJwsvu+55nLPFQ8=",
+        "lastModified": 1746220063,
+        "narHash": "sha256-COMUGEVCreCXk59F4YIOH3Rbaij8W51MH4HMTZ08x9s=",
         "owner": "criome",
         "repo": "horizon-rs",
-        "rev": "8c7465e2fcd73d9c5385702e01c77991c491ef66",
+        "rev": "a1cba6c5b13b07d407a02550b17ca1d419d2e2fa",
         "type": "github"
       },
       "original": {
@@ -185,14 +185,15 @@
         "nixpkgs": [
           "horizon-cli",
           "nixpkgs"
-        ]
+        ],
+        "system": "system_3"
       },
       "locked": {
-        "lastModified": 1745618134,
-        "narHash": "sha256-LVjdx+0iLrhmggH2CRyvsPYFgr6mBDtlFFPd8QGM6s4=",
+        "lastModified": 1746373801,
+        "narHash": "sha256-Zr6z+V2PTdW3d0OsKvnUDLGS95KNCE5qyquiYiGw8e8=",
         "owner": "criome",
         "repo": "make-atom",
-        "rev": "a5ea4413f85068290353d07322c159f717fd1b56",
+        "rev": "13a58c2cc71027004e1859ab845adcbeb7a6bafc",
         "type": "github"
       },
       "original": {
@@ -204,24 +205,22 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1734649271,
-        "narHash": "sha256-4EVBRhOjMDuGtMaofAIqzJbg4Ql7Ai0PSeuVZTHjyKQ=",
-        "owner": "NixOS",
+        "lastModified": 1748727990,
+        "narHash": "sha256-dEAycxK0k2adFOB75TDniBTksA9I5k5BH13xzN154zs=",
+        "owner": "criome",
         "repo": "nixpkgs",
-        "rev": "d70bd19e0a38ad4790d3913bf08fcbfc9eeca507",
+        "rev": "f680c938e74df308e5c957791613b7d20b90578b",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
+        "id": "nixpkgs",
+        "type": "indirect"
       }
     },
     "root": {
       "inputs": {
         "horizon-cli": "horizon-cli",
-        "system": "system_5"
+        "system": "system_6"
       }
     },
     "rust-atom": {
@@ -237,7 +236,7 @@
         ],
         "rust-overlay": "rust-overlay_2",
         "src": "src_2",
-        "system": "system_3"
+        "system": "system_4"
       },
       "locked": {
         "lastModified": 1745618150,
@@ -394,6 +393,21 @@
       }
     },
     "system_5": {
+      "locked": {
+        "lastModified": 1741520211,
+        "narHash": "sha256-xHifvvYmRbOeUwQfo3D9mTHbh4oBmhg9iNhNGCuK8fk=",
+        "owner": "criome",
+        "repo": "system",
+        "rev": "ddffaa28acbcf95373bd8ed2d142ec9e6f6becbf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "criome",
+        "repo": "system",
+        "type": "github"
+      }
+    },
+    "system_6": {
       "locked": {
         "lastModified": 1741520211,
         "narHash": "sha256-xHifvvYmRbOeUwQfo3D9mTHbh4oBmhg9iNhNGCuK8fk=",

@@ -1,14 +1,15 @@
 {
-  inputs.horizon-cli.url = "github:criome/horizon-cli/testing";
-  inputs.system.url = "github:criome/system";
+  description = "horizon-rs — horizon schema, type-check, and method-computation CLI for CriomOS";
 
-  outputs =
-    {
-      self,
-      horizon-cli,
-      system,
-    }:
-    {
-      devShells.${system.value}.default = horizon-cli.devShell;
-    };
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
+
+    blueprint.url = "github:numtide/blueprint";
+    blueprint.inputs.nixpkgs.follows = "nixpkgs";
+
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
+  };
+
+  outputs = inputs: inputs.blueprint { inherit inputs; };
 }
