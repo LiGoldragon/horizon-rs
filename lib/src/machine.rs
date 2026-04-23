@@ -9,6 +9,7 @@ use crate::species::{Arch, MachineSpecies, MotherBoard};
 /// (virtual) machines defer it to their super-node; resolution into
 /// a concrete arch happens at projection time.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Machine {
     pub species: MachineSpecies,
     pub arch: Option<Arch>,

@@ -14,6 +14,7 @@ use crate::proposal::ClusterProposal;
 use crate::user::{User, UserProjection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Horizon {
     pub cluster: Cluster,
     pub node: Node,

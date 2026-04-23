@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 pub enum Magnitude {
     None,
     Min,
@@ -38,6 +38,7 @@ impl Magnitude {
 /// Three-bit decomposition of a `Magnitude` for downstream consumers
 /// that want named flags rather than ordinal comparisons.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AtLeast {
     pub min: bool,
     pub med: bool,

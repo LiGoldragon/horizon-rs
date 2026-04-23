@@ -6,10 +6,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum NodeSpecies {
     Center,
+    /// `"largeAI"` — acronym preserved.
+    #[serde(rename = "largeAI")]
     LargeAi,
+    /// `"largeAIRouter"` — acronym preserved.
+    #[serde(rename = "largeAIRouter")]
     LargeAiRouter,
     Hybrid,
     Edge,
@@ -20,7 +24,7 @@ pub enum NodeSpecies {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum UserSpecies {
     Code,
     Multimedia,
@@ -28,28 +32,28 @@ pub enum UserSpecies {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum MachineSpecies {
     Metal,
     Pod,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum Keyboard {
     Qwerty,
     Colemak,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum Style {
     Vim,
     Emacs,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum Bootloader {
     Uefi,
     Mbr,
@@ -58,7 +62,7 @@ pub enum Bootloader {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Arch {
-    #[serde(rename = "x86-64")]
+    #[serde(rename = "x86_64")]
     X86_64,
     #[serde(rename = "arm64")]
     Arm64,
@@ -87,13 +91,13 @@ impl Arch {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum MotherBoard {
     Ondyfaind,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum DomainSpecies {
     Cloudflare,
 }

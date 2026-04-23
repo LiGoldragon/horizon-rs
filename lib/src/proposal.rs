@@ -19,6 +19,7 @@ use crate::address::{YggAddress, YggSubnet};
 
 /// The proposal a cluster owner emits.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClusterProposal {
     #[serde(default)]
     pub nodes: BTreeMap<NodeName, NodeProposal>,
@@ -30,6 +31,7 @@ pub struct ClusterProposal {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeProposal {
     pub species: NodeSpecies,
     #[serde(default = "Magnitude::default_none")]
@@ -54,6 +56,7 @@ pub struct NodeProposal {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodePubKeys {
     pub ssh: SshPubKey,
     #[serde(default)]
@@ -63,6 +66,7 @@ pub struct NodePubKeys {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct YggPubKeyEntry {
     pub pub_key: YggPubKey,
     pub address: YggAddress,
@@ -70,6 +74,7 @@ pub struct YggPubKeyEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserProposal {
     pub species: UserSpecies,
     #[serde(default = "Magnitude::default_none")]
@@ -86,17 +91,20 @@ pub struct UserProposal {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserPubKeyEntry {
     pub ssh: SshPubKey,
     pub keygrip: Keygrip,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DomainProposal {
     pub species: DomainSpecies,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClusterTrust {
     pub cluster: Magnitude,
     #[serde(default)]
@@ -111,6 +119,7 @@ pub struct ClusterTrust {
 /// peer on the `wgProxies` interface; downstream nix module routes
 /// `0.0.0.0/0` through it. One per VPN connection (NordVPN, etc.).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WireguardProxy {
     pub pub_key: WireguardPubKey,
     /// `host:port` form.

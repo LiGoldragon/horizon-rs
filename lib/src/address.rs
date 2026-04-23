@@ -127,6 +127,7 @@ impl std::fmt::Display for Iface {
 /// Raw input form of a link-local address: an interface plus a
 /// 64-bit suffix. Renders as `fe80::<suffix>%<iface>`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LinkLocalIp {
     pub iface: Iface,
     pub suffix: String,

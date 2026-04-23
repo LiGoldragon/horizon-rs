@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::species::{Bootloader, Keyboard};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Io {
     pub keyboard: Keyboard,
     pub bootloader: Bootloader,
@@ -52,6 +53,7 @@ impl DevicePath {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Disk {
     pub device: DevicePath,
     pub fs_type: FsType,
@@ -60,6 +62,7 @@ pub struct Disk {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SwapDevice {
     pub device: DevicePath,
 }
@@ -68,7 +71,7 @@ pub struct SwapDevice {
 /// realistically use as a root, boot, or data filesystem. Add a
 /// variant when a new one shows up in real config.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "camelCase")]
 pub enum FsType {
     Ext2,
     Ext3,

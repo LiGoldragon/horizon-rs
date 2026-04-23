@@ -12,6 +12,7 @@ use crate::pub_key::SshPubKeyLine;
 use crate::species::{Keyboard, Style, UserSpecies};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     // input pass-through
     pub name: UserName,
