@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "horizon",
+  "project_id": "e1cf5f38-790f-412f-a940-4b57d9a21f1f"
+}
