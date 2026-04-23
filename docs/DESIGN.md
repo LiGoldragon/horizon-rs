@@ -27,18 +27,17 @@ JSON is gone.
 - **Clean break.** No `preCriome` anywhere; no `methods.` sub-namespace;
   no `*Methods` / `*Details` / `*Local` companion types; no serde
   rename shims for legacy field names.
-- **Every derived field is always present.** Derived fields are not
-  `Option`. If a derived value is logically empty for a node, the
-  field is empty (`""`, `[]`, etc.) — never absent. The field's
-  presence in the output is never gated on "did horizon-rs decide to
-  fill this in" — horizon-rs fills everything.
-- **Genuine optionality follows the input.** A field that is `Option`
-  in the proposal stays `Option` in the output (e.g. `nix_pub_key`,
-  `ygg_address`).
-- **Per-node derived fields live on `Node`.** Cross-node roll-ups
-  (lists computed across the whole cluster from the viewpoint) live on
-  `Horizon`. Nothing on `Node` is "viewpoint-only" — every `Node` is
-  the same shape.
+- **Derived fields can never be populated by input.** The
+  proposal types (input deserialization targets) carry only raw
+  data. Derived fields exist only on the output types and are filled
+  exclusively by horizon-rs's projection logic.
+- **`Option` is fine for genuine optionality.** A field is `Option<T>`
+  when its absence has a real meaning — it doesn't apply to this node,
+  it doesn't apply from this viewpoint, etc. Examples: `nix_pub_key`
+  (not every node has one), `nix_cache_domain` (only when this node is
+  a cache), `Node`'s viewpoint-only roll-ups (`builder_configs`,
+  `admin_ssh_pub_keys`, …) which are `Some(...)` for `horizon.node` and
+  `None` for entries in `horizon.ex_nodes`.
 
 ## Crate shape
 
@@ -261,15 +260,6 @@ pub struct Horizon {
     pub node:     Node,
     pub ex_nodes: HashMap<NodeName, Node>,
     pub users:    HashMap<UserName, User>,
-
-    // Cross-node roll-ups computed from the viewpoint.
-    // Always derived; not optional.
-    pub builder_configs:           Vec<BuilderConfig>,
-    pub cache_urls:                Vec<String>,            // each is `http://nix.<criomeDomain>`
-    pub ex_nodes_ssh_pub_keys:     Vec<SshPubKeyLine>,     // empty entries kept for index alignment
-    pub dispatchers_ssh_pub_keys:  Vec<SshPubKeyLine>,
-    pub admin_ssh_pub_keys:        Vec<SshPubKeyLine>,     // dedup'd
-    pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
 }
 
 pub struct Cluster {
@@ -278,19 +268,17 @@ pub struct Cluster {
 }
 
 pub struct Node {
-    // input pass-through
+    // input pass-through (always present)
     pub name:                NodeName,
     pub species:             NodeSpecies,
     pub size:                Magnitude,
     pub trust:               Magnitude,
     pub machine:             Machine,
-    pub io:                  Io,
     pub link_local_ips:      Vec<LinkLocalAddress>,    // already rendered "fe80::…%iface"
     pub node_ip:             Option<NodeIp>,
     pub wireguard_pub_key:   Option<WireguardPubKey>,
     pub nordvpn:             bool,
     pub wifi_cert:           bool,
-    pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
 
     // identity / connectivity (derived)
     pub criome_domain_name:  CriomeDomainName,
@@ -304,7 +292,7 @@ pub struct Node {
     pub ygg_address:         Option<YggAddress>,
     pub ygg_subnet:          Option<YggSubnet>,
 
-    // computed booleans (always derived)
+    // computed booleans
     pub is_fully_trusted:    bool,
     pub sized_at_least:      AtLeast,
     pub is_builder:          bool,
@@ -320,18 +308,27 @@ pub struct Node {
     pub has_video_output:    bool,
     pub chip_is_intel:       bool,
     pub model_is_thinkpad:   bool,
-    pub use_colemak:         bool,                       // io.keyboard == Colemak
 
     // computed strings (empty when not applicable)
     pub ssh_pub_key_line:    SshPubKeyLine,              // "ssh-ed25519 <key>"
     pub nix_pub_key_line:    NixPubKeyLine,              // "<criomeDomain>:<key>" or ""
-    pub nix_cache_domain:    Option<CriomeDomainName>,   // genuinely Option: only when is_nix_cache
-    pub nix_url:             Option<String>,             // genuinely Option: only when is_nix_cache
+    pub nix_cache_domain:    Option<CriomeDomainName>,   // Some only when is_nix_cache
+    pub nix_url:             Option<String>,             // Some only when is_nix_cache
 
     // grouped flags
     pub behaves_as:          BehavesAs,
     pub type_is:             TypeIs,
-    pub computer_is:         ComputerIs,
+
+    // viewpoint-only fields: Some on horizon.node, None on horizon.ex_nodes.<name>.
+    pub io:                  Option<Io>,
+    pub use_colemak:         Option<bool>,                  // io.keyboard == Colemak
+    pub computer_is:         Option<ComputerIs>,
+    pub builder_configs:     Option<Vec<BuilderConfig>>,
+    pub cache_urls:          Option<Vec<String>>,           // each is `http://nix.<criomeDomain>`
+    pub ex_nodes_ssh_pub_keys:     Option<Vec<SshPubKeyLine>>,
+    pub dispatchers_ssh_pub_keys:  Option<Vec<SshPubKeyLine>>,
+    pub admin_ssh_pub_keys:        Option<Vec<SshPubKeyLine>>,
+    pub wireguard_untrusted_proxies: Option<Vec<WireguardProxy>>,
 }
 
 pub struct LinkLocalAddress(String);                     // rendered "fe80::<suffix>%<iface>"
@@ -425,8 +422,13 @@ Internally the constructors live on the output types:
 
 ```rust
 impl Node {
+    // Builds a Node with viewpoint-only fields = None (suitable for ex_nodes).
     fn from_proposal(p: &NodeProposal, name: NodeName, cluster: &ClusterName,
                      trust_floor: Magnitude) -> Self { … }
+
+    // Fills the Some-variants of the viewpoint-only fields in place.
+    // Called only on the viewpoint Node, after every other Node is built.
+    fn fill_viewpoint(&mut self, ctx: &ZoneContext) { … }
 }
 
 impl User {
@@ -443,10 +445,11 @@ impl Horizon {
 }
 ```
 
-Every per-node field is filled in `Node::from_proposal`. The
-viewpoint roll-ups are filled in `Horizon::from_proposal` after every
-`Node` is built (it can then walk the full `nodes` map plus the user
-list).
+Per-node fields are filled in `Node::from_proposal`. The viewpoint-only
+fields (`builder_configs`, `admin_ssh_pub_keys`, `io`, etc.) are filled
+in `Node::fill_viewpoint`, called once on `horizon.node` after every
+sibling `Node` is constructed. `ZoneContext` is internal to `node.rs`,
+carries the full `nodes` map and the user list.
 
 ## Error type
 
