@@ -15,12 +15,6 @@ Build-cores derivation rationale: [docs/BUILD_CORES.md](docs/BUILD_CORES.md).
 
 CLI: `horizon-cli --cluster <C> --node <N> < proposal.toml > horizon.toml`.
 
-## Rust style
-
-Follow [~/git/tools-documentation/rust/style.md](../tools-documentation/rust/style.md):
-methods on types, typed newtypes, single-object I/O, `thiserror`-derived
-`Error` (no `anyhow`, no `eyre`), trait-domain rule.
-
 ## Hard process rules
 
 - Jujutsu only. Never `git` CLI.
