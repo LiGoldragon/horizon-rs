@@ -1,9 +1,8 @@
 # horizon-rs — design
 
-The spec horizon-rs is built against. Validated by the integration
-tests in [lib/tests/projection.rs](/home/li/git/horizon-rs/lib/tests/projection.rs)
-against the fixture at
-[lib/tests/fixtures/maisiliym.nota](/home/li/git/horizon-rs/lib/tests/fixtures/maisiliym.nota).
+The spec horizon-rs is built against. Integration tests against the
+goldragon `datom.nota` are pending (tracked in beads — fixture lives in
+the goldragon repo, not here).
 
 ## Scope
 
@@ -523,10 +522,10 @@ None. horizon-cli is a one-shot pure function.
 
 ## Status
 
-Phase 1 implemented. `cargo test` passes (3 unit + 12 integration).
-End-to-end: `horizon-cli --cluster <C> --node <N>` reads cluster
-proposal nota on stdin and writes enriched horizon nota on stdout.
-Smoke-tested against the maisiliym fixture.
+Phase 1 implemented (unit tests only). End-to-end: `horizon-cli
+--cluster <C> --node <N>` reads cluster proposal nota on stdin and
+writes enriched horizon nota on stdout. Integration tests against
+goldragon's `datom.nota` are pending the goldragon nota conversion.
 
 Next phases:
 
