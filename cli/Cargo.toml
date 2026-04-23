@@ -1,8 +1,13 @@
 [package]
-name = "horizon-cli"
+name    = "horizon-cli"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "horizon-cli"
+path = "src/main.rs"
+
 [dependencies]
-horizon-lib.workspace = true
-serde_json.workspace = true
+horizon-lib = { workspace = true }
+toml        = { workspace = true }
+clap        = { workspace = true }

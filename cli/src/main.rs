@@ -1,24 +1,79 @@
-use horizon_lib::horizon::{Horizon, Request};
-use horizon_lib::nix::{OutputFile, StructuredAttrs};
-use serde_json;
-use std::io::{Error, Write};
+//! horizon-cli — read cluster proposal TOML on stdin, write
+//! enriched horizon TOML on stdout.
 
-fn main() -> Result<(), Error> {
-    let struct_attrs: StructuredAttrs = StructuredAttrs::from_cwd();
+use std::io::{Read, Write};
+use std::process::ExitCode;
 
-    let horizon_request = Request::try_from(&struct_attrs);
+use clap::Parser;
+use horizon_lib::{ClusterProposal, Viewpoint};
+use horizon_lib::name::{ClusterName, NodeName};
 
-    let horizon: Horizon = Horizon::try_from(horizon_request);
+#[derive(Parser)]
+#[command(
+    name = "horizon-cli",
+    about = "Project a cluster proposal into the enriched horizon for one viewpoint node"
+)]
+struct Cli {
+    /// Cluster name (matches the proposal's cluster identity).
+    #[arg(long)]
+    cluster: String,
 
-    let reserialized_data: String = serde_json::to_string(&struct_attrs.attrs.get("horizon-data"))
-        .expect("Error Serializing Data");
+    /// Viewpoint node name (must exist in the proposal).
+    #[arg(long)]
+    node: String,
+}
 
-    let mut output_file: OutputFile =
-        OutputFile::try_from(struct_attrs).expect("Error: getting output file");
+fn main() -> ExitCode {
+    let cli = Cli::parse();
 
-    output_file
-        .write(reserialized_data.as_bytes())
-        .expect("Error writing Data");
+    let viewpoint = match build_viewpoint(&cli) {
+        Ok(v) => v,
+        Err(msg) => {
+            eprintln!("error: {msg}");
+            return ExitCode::from(2);
+        }
+    };
 
-    Ok(())
+    let mut buf = String::new();
+    if let Err(e) = std::io::stdin().read_to_string(&mut buf) {
+        eprintln!("error: read stdin: {e}");
+        return ExitCode::from(2);
+    }
+
+    let proposal: ClusterProposal = match toml::from_str(&buf) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: parse cluster proposal: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    let horizon = match proposal.project(&viewpoint) {
+        Ok(h) => h,
+        Err(e) => {
+            eprintln!("error: project: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    let out = match toml::to_string_pretty(&horizon) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: emit horizon toml: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    if let Err(e) = std::io::stdout().write_all(out.as_bytes()) {
+        eprintln!("error: write stdout: {e}");
+        return ExitCode::from(2);
+    }
+
+    ExitCode::SUCCESS
+}
+
+fn build_viewpoint(cli: &Cli) -> Result<Viewpoint, String> {
+    let cluster = ClusterName::try_new(&cli.cluster).map_err(|e| e.to_string())?;
+    let node = NodeName::try_new(&cli.node).map_err(|e| e.to_string())?;
+    Ok(Viewpoint { cluster, node })
 }

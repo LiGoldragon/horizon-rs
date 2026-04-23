@@ -1,0 +1,116 @@
+# Trimmed slice of the maisiliym proposal in the new TOML schema.
+# Three nodes (tiger viewpoint, ouranos peer, balboa low-trust),
+# one user (li), enough to exercise every projection branch.
+
+[trust]
+cluster = "max"
+nodes  = { tiger = "max", ouranos = "max", balboa = "min" }
+users  = { li = "max" }
+
+[nodes.tiger]
+species = "edge-testing"
+size    = "max"
+trust   = "max"
+node_ip = "5::4/128"
+nordvpn = false
+wifi_cert = false
+
+  [nodes.tiger.machine]
+  species = "metal"
+  arch    = "x86-64"
+  cores   = 4
+  model   = "ThinkPadE15Gen2Intel"
+
+  [nodes.tiger.io]
+  keyboard   = "colemak"
+  bootloader = "uefi"
+
+    [nodes.tiger.io.disks."/"]
+    device  = "/dev/disk/by-uuid/158a5a78-3dbc-4c80-99b6-96e433bd836a"
+    fs_type = "ext4"
+
+    [nodes.tiger.io.disks."/boot"]
+    device  = "/dev/disk/by-uuid/50F3-9E04"
+    fs_type = "vfat"
+
+  [nodes.tiger.pub_keys]
+  ssh = "AAAAC3NzaC1lZDI1NTE5AAAAIKeoCIfvbUDue17FBglmKF1N2cKH9CWsS5EcXOyBxq5T"
+  nix = "/1SYuET5/IIscPvZcgZyrfsMcRiCFcmV051+0U5YXVMx"
+
+    [nodes.tiger.pub_keys.yggdrasil]
+    pub_key = "38ed4c7c9ffd2e79361af3202f406810069fa37ff991e6d1d434a529ba75dfb338ed4c7c9ffd2e79361af3202f406810069fa37ff991e6d1d434a529ba75dfb3"
+    address = "202:3895:9c1b:16:8c36:4f28:66fe:85fc"
+    subnet  = "302:3895:9c1b:16"
+
+
+[nodes.ouranos]
+species = "edge-testing"
+size    = "max"
+trust   = "max"
+node_ip = "5::3/128"
+nordvpn = true
+wifi_cert = false
+
+  [nodes.ouranos.machine]
+  species = "metal"
+  arch    = "x86-64"
+  cores   = 12
+  model   = "ThinkPadT14Gen5Intel"
+
+  [nodes.ouranos.io]
+  keyboard   = "colemak"
+  bootloader = "uefi"
+
+    [nodes.ouranos.io.disks."/"]
+    device  = "/dev/disk/by-uuid/38a88e99-3b6e-4de6-9772-05adddc3a1ca"
+    fs_type = "ext4"
+
+  [nodes.ouranos.pub_keys]
+  ssh = "AAAAC3NzaC1lZDI1NTE5AAAAIP/v8LZFBXHMzflegvnHEgi6EyDn8P5i//iGjboVjtRr"
+  nix = "AAqjPi1kOaOWyZrwupTpHNL/7SYjYmaeDu1J+hNtVFAx"
+
+    [nodes.ouranos.pub_keys.yggdrasil]
+    pub_key = "6487aabfe0d4f491a2986f4b41388ebcbd3c69a654f32feb9b1fba351bbd590a6487aabfe0d4f491a2986f4b41388ebcbd3c69a654f32feb9b1fba351bbd590a"
+    address = "201:6de1:5500:7cac:2db9:759e:42d2:fb1d"
+    subnet  = "301:6de1:5500:7cac"
+
+
+[nodes.balboa]
+species = "center"
+size    = "non"
+trust   = "min"
+nordvpn = false
+wifi_cert = false
+
+  [nodes.balboa.machine]
+  species = "metal"
+  arch    = "arm64"
+  cores   = 4
+  model   = "rock64"
+
+  [nodes.balboa.io]
+  keyboard   = "qwerty"
+  bootloader = "uefi"
+
+    [nodes.balboa.io.disks."/"]
+    device  = "/dev/disk/by-label/NIXOS_SD"
+    fs_type = "ext4"
+
+  [nodes.balboa.pub_keys]
+  ssh = "AAAAC3NzaC1lZDI1NTE5AAAAIPvxPTAPPKe6Ne9MW4C04Ihe0g4NS12xydci/JW59pIe"
+
+
+[users.li]
+species  = "unlimited"
+size     = "max"
+keyboard = "colemak"
+style    = "emacs"
+github_id = "LiGoldragon"
+
+  [users.li.pub_keys.tiger]
+  ssh     = "AAAAC3NzaC1lZDI1NTE5AAAAILTm644m4foET1j+DGHl0gfEyGD9A4YltsNOidDUn3BG"
+  keygrip = "1785B4D2813D7ED1913A05FA74FF42B9153EEFF0"
+
+  [users.li.pub_keys.ouranos]
+  ssh     = "AAAAC3NzaC1lZDI1NTE5AAAAIHEtxRF2wjSD1DzlYCW9BivOsz9X0P95msrbXvGATy/p"
+  keygrip = "7FAFE190D2C749B222B249E54E5A7AD71C1BDDBD"

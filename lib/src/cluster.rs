@@ -1,18 +1,13 @@
+//! Output `Cluster`: cluster-level identity and roll-ups.
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+use crate::name::ClusterName;
+use crate::pub_key::NixPubKeyLine;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cluster {
-    name: String,
-    methods: ClusterMethods,
+    pub name: ClusterName,
+    /// One entry per node that has a nix signing key.
+    pub trusted_build_pub_keys: Vec<NixPubKeyLine>,
 }
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ClusterMethods {
-    name: String,
-    trusted_build_pre_criomes: TrustedBuildPreCriomes,
-}
-
-#[derive(Default, Serialize, Deserialize)]
-struct TrustedBuildPreCriomes(Vec<String>);

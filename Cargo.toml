@@ -1,12 +1,12 @@
-cargo-features = ["edition2024"]
-
 [workspace]
-resolver = "2"
-members = [ "lib", "cli" ]
+resolver = "3"
+members = ["lib", "cli"]
 
 [workspace.dependencies]
-horizon-lib = { path = "lib", workspace = true }
+horizon-lib = { path = "lib" }
 
-serde = { version = "*", features = ["derive"] }
-serde_json = { version = "*" }
-anyhow = "1.0.98"
+serde     = { version = "1", features = ["derive"] }
+toml      = "0.8"
+thiserror = "2"
+clap      = { version = "4", features = ["derive"] }
+ipnet     = { version = "2", features = ["serde"] }
