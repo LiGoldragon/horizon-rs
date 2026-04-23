@@ -1,28 +1,77 @@
 # horizon-rs — design
 
 This is the design we're agreeing on before any code lands. Read together
-with `~/git/CriomOS/docs/HORIZON.md` (the schema) and `example-horizon.json`
+with [/home/li/git/CriomOS/docs/HORIZON.md](/home/li/git/CriomOS/docs/HORIZON.md)
+(the schema) and [/home/li/git/horizon-rs/example-horizon.json](/home/li/git/horizon-rs/example-horizon.json)
 (the golden output for ouranos@maisiliym).
 
 ## Scope
 
 horizon-rs takes a **cluster proposal** (the JSON-ified shape of a
-maisiliym `datom.nix`) and a viewpoint `(cluster, node)` and produces an
-**enriched horizon**: that node's cluster + node + exNodes + users with
-the full `methods.*` DAG computed.
+maisiliym/goldragon `datom.nix`) and a viewpoint `(cluster, node)`,
+and produces an **enriched horizon**: that node's cluster + node +
+exNodes + users with the full `methods.*` DAG computed.
 
 It does not:
 
-- talk to maisiliym or any source repo (the input is given on stdin),
+- talk to the data-source repo (the input arrives on stdin),
 - read any environment / filesystem state,
-- emit anything other than enriched horizon JSON.
+- emit anything other than enriched horizon data.
+
+## Naming: `pubKey`, not `preCriome`
+
+Every `preCriome` / `Precriad` in the legacy schema is a public key
+(SSH ed25519, Yggdrasil ed25519, Nix signing, WireGuard). The new
+name is `pubKey`. horizon-rs uses `pubKey` throughout. The Nix side
+will follow in a coordinated rename (tracked in beads on
+`/home/li/git/CriomOS`).
+
+Renames:
+
+| Legacy | New |
+|--------|-----|
+| `preCriomes` (field) | `pubKeys` |
+| `wireguardPreCriome` | `wireguardPubKey` |
+| `yggPreCriome` / `yggdrasil.preCriome` | `yggPubKey` |
+| `nixPreCriome` / `nixSigningPublicKey` | `nixPubKey` |
+| `sshPreCriome` / `preCriomes.ssh` | `sshPubKey` |
+| `hasNixPreCriad` | `hasNixPubKey` |
+| `hasYggPrecriad` | `hasYggPubKey` |
+| `hasSshPrecriad` | `hasSshPubKey` |
+| `hasWireguardPrecriad` | `hasWireguardPubKey` |
+| `hasNordvpnPrecriad` | `hasNordvpnPubKey` |
+| `hasWifiCertPrecriad` | `hasWifiCertPubKey` |
+| `hasBasePrecriads` | `hasBasePubKeys` |
+| `sshPrecriome` (string method) | `sshPubKeyLine` |
+| `nixPreCriome` (string method, "domain:key") | `nixPubKeyLine` |
+| `trustedBuildPreCriomes` | `trustedBuildPubKeys` |
+| `adminSshPreCriomes` | `adminSshPubKeys` |
+| `exNodesSshPreCriomes` | `exNodesSshPubKeys` |
+| `dispatchersSshPreCriomes` | `dispatchersSshPubKeys` |
+| `sshCriomes` (user) | `sshPubKeys` |
+
+`Keygrip` stays (it's a GPG key identifier, not a public key proper).
+`gitSigningKey` stays (its value is `&<keygrip>`, a GPG configuration
+form, not a key itself).
+
+## Input source and wire format
+
+The data source migrates from `maisiliym` to `goldragon` (already at
+`github:LiGoldragon/goldragon`; old contents wiped, seeded with
+maisiliym's data as the production starting point).
+
+The input wire format is **TBD** — Nix and JSON are both ugly. Until
+the new format is chosen, horizon-cli reads the existing JSON shape
+(the `serde_json` derive of the proposal types) so we can develop
+against today's data. Switching the wire format later is a
+serde-side change that doesn't touch the typed schema.
 
 ## Crate shape
 
-Two-crate workspace, already in place:
+Two-crate workspace (already in place):
 
 ```
-horizon-rs/
+/home/li/git/horizon-rs/
 ├── Cargo.toml             # workspace
 ├── lib/
 │   ├── Cargo.toml         # horizon-lib
@@ -40,24 +89,23 @@ thin binary that wires stdin/argv/stdout.
 
 ```
 lib/src/
-├── lib.rs              # crate-level //! + re-exports
-├── error.rs            # Error enum (thiserror)
-├── name.rs             # ClusterName, NodeName, UserName, ModelName
-├── precriome.rs        # YggPreCriome, NixPreCriome, SshPreCriome,
-│                       # WireguardPreCriome, Keygrip
-├── address.rs          # YggAddress, YggSubnet, NodeIp, LinkLocalIp,
-│                       # CriomeDomainName
-├── magnitude.rs        # Magnitude (0..3) + SizedAtLeast
-├── species.rs          # NodeSpecies, UserSpecies, MachineSpecies,
-│                       # Keyboard, Style enums
-├── machine.rs          # Machine, Arch, System
-├── io.rs               # Io, Disk, FsType, Bootloader
-├── proposal.rs         # ClusterProposal + its node/user children
-├── horizon.rs          # Horizon (top-level) + projection entry-point
-├── cluster.rs          # Cluster + ClusterMethods
-├── node.rs             # Node + NodeMethods + LocalNodeMethods +
-│                       # BehavesAs + TypeIs + ComputerIs + BuilderConfig
-└── user.rs             # User + UserMethods
+├── lib.rs            # crate-level //! + re-exports
+├── error.rs          # Error enum (thiserror)
+├── name.rs           # ClusterName, NodeName, UserName, ModelName, Keygrip
+├── pub_key.rs        # YggPubKey, NixPubKey, SshPubKey, WireguardPubKey
+├── address.rs        # YggAddress, YggSubnet, NodeIp, LinkLocalIp,
+│                     # CriomeDomainName
+├── magnitude.rs      # Magnitude enum (Non, Min, Med, Max), AtLeast helper
+├── species.rs        # NodeSpecies, UserSpecies, MachineSpecies,
+│                     # Keyboard, Style, Bootloader, Arch, MotherBoard
+├── machine.rs        # Machine, System
+├── io.rs             # Io, Disk, FsType
+├── proposal.rs       # ClusterProposal + its node/user children
+├── horizon.rs        # Horizon (top-level) + projection entry-point
+├── cluster.rs        # Cluster + ClusterMethods
+├── node.rs           # Node + NodeMethods + LocalNodeMethods +
+│                     # BehavesAs + TypeIs + ComputerIs + BuilderConfig
+└── user.rs           # User + UserMethods
 ```
 
 One concern per file. Impls live next to their types — no `node.rs` +
@@ -78,54 +126,93 @@ ones) or `From<String>` (untyped pass-throughs).
 | `Keygrip`              | `String`          | hex 40 chars | GPG keygrip |
 | `GithubId`             | `String`          | non-empty   | |
 | `CriomeDomainName`     | `String`          | derived only | `<node>.<cluster>.criome` |
-| `System`               | `String`          | from arch   | `x86_64-linux` / `aarch64-linux` |
-| `Arch`                 | enum              | (closed)    | see "Enums" |
-| `YggAddress`           | `Ipv6Addr`-shaped | parse       | wraps `std::net::Ipv6Addr` |
-| `YggSubnet`            | `String`          | parse       | `300:…` form |
-| `YggPreCriome`         | `String`          | hex         | public key |
-| `NixPreCriome`         | `String`          | base64      | signing key (raw, no domain prefix) |
-| `SshPreCriome`         | `String`          | base64      | the `AAAAC3…` portion |
-| `WireguardPreCriome`   | `String`          | base64      | |
-| `NodeIp`               | `String`          | CIDR-ish    | `5::3/128` etc. |
+| `System`               | enum              | from arch   | `X86_64Linux`, `Aarch64Linux` |
+| `YggAddress`           | `Ipv6Addr`        | parse       | wraps `std::net::Ipv6Addr` |
+| `YggSubnet`            | `String`          | parse       | `300:…` form (custom prefix length) |
+| `YggPubKey`            | `String`          | hex 64+     | yggdrasil ed25519 public key |
+| `NixPubKey`            | `String`          | base64 44   | nix signing public key (raw) |
+| `SshPubKey`            | `String`          | base64      | the `AAAAC3…` portion |
+| `WireguardPubKey`      | `String`          | base64 44   | |
+| `NodeIp`               | `IpNet`-shaped    | parse       | `5::3/128` etc. (CIDR) |
 | `LinkLocalIp`          | struct            | parse       | `species` + `suffix` → `fe80::…%iface` |
 | `BuildCores`           | `u32`             | ≥ 1         | |
-| `Magnitude`            | `u8` enum         | 0..3        | size / trust |
 
-The `*PreCriome` types are deliberately distinct even though they all
-wrap base64-ish strings — substituting a Wireguard preCriome where a
-Nix preCriome is expected is exactly the bug typed newtypes prevent.
+The four `*PubKey` types are deliberately distinct — substituting a
+WireGuard pubkey where a Nix pubkey is expected is exactly the bug
+typed newtypes prevent.
 
-The `name.rs`-grouped names (`ClusterName`, `NodeName`, …) are
-written out one impl block per type, not behind a macro: they will
-grow per-name validation and per-name conversions.
+The `name.rs`-grouped names are written out one impl block per type,
+not behind a macro: they will grow per-name validation and conversions.
 
 ## Enums — closed sets
 
-Per the input schema (mkCrioSphere/speciesModule.nix in archive):
+Mirroring [/home/li/git/criomos-archive/nix/mkCrioSphere/speciesModule.nix](/home/li/git/criomos-archive/nix/mkCrioSphere/speciesModule.nix):
 
-- `NodeSpecies`: `Center`, `Edge`, `EdgeTesting`, `Hybrid`, `Router`,
-  `LargeAi`, `LargeAiRouter`, `MediaBroadcast`, `RouterTesting`.
-  serde-renames to the kebab/camel forms in JSON
-  (`largeAI`, `largeAI-router`).
-- `UserSpecies`: `Code`, `Multimedia`, `Unlimited`, … (need full list
-  from speciesModule.nix; placeholder).
-- `MachineSpecies`: `Metal`, `Pod`.
-- `Keyboard`: `Colemak`, `Qwerty`, … (placeholder).
-- `Style`: `Emacs`, … (placeholder).
-- `Arch`: `X86_64`, `Arm64`. Maps to `System` via a method.
-- `Bootloader`: `Uefi`, `Bios`, `None`.
-- `FsType`: `Ext4`, `Btrfs`, `Vfat`, `Tmpfs`, …
+```rust
+pub enum Magnitude { Non, Min, Med, Max }     // 0..3 — size and trust ladder
+
+pub enum NodeSpecies {
+    Center,
+    LargeAi,            // serde-renamed to "largeAI"
+    LargeAiRouter,      // serde-renamed to "largeAI-router"
+    Hybrid,
+    Edge,
+    EdgeTesting,
+    MediaBroadcast,
+    Router,
+    RouterTesting,
+}
+
+pub enum UserSpecies { Code, Multimedia, Unlimited }
+
+pub enum MachineSpecies { Metal, Pod }
+
+pub enum Keyboard { Qwerty, Colemak }
+
+pub enum Style { Vim, Emacs }
+
+pub enum Bootloader { Uefi, Mbr, Uboot }
+
+pub enum Arch { X86_64, Arm64 }                // serde-renamed "x86-64", "arm64"
+
+pub enum System { X86_64Linux, Aarch64Linux }  // derived from Arch
+
+pub enum MotherBoard { Ondyfaind }             // singleton today; extend with the source
+```
+
+`FsType` is open-ish (ext4, btrfs, vfat, tmpfs, …) — keep as a `String`
+newtype for now; promote to enum when the closed set is settled.
 
 For every enum, `Display` and `FromStr` are derived/impl'd so JSON
-round-trips cleanly.
+round-trips cleanly via `#[serde(rename = "…")]` on each variant.
+
+## `Magnitude` semantics
+
+`Non` = 0 (absent / disabled), `Min` = 1, `Med` = 2, `Max` = 3.
+Matches the Nix `matchSize: ifNon ifMin ifMed ifMax` ladder in
+[/home/li/git/criomos-archive/criomos-lib.nix](/home/li/git/criomos-archive/criomos-lib.nix).
+
+```rust
+impl Magnitude {
+    pub fn at_least(&self, other: Magnitude) -> bool { /* >= */ }
+}
+
+pub struct AtLeast { pub min: bool, pub med: bool, pub max: bool }
+
+impl Magnitude {
+    pub fn at_least_breakdown(&self) -> AtLeast { … }
+}
+```
+
+`AtLeast` is the typed form of `sizedAtLeast.{min,med,max}` in the
+output methods.
 
 ## Top-level types
 
-### `proposal::Cluster` (input shape)
+### `proposal::ClusterProposal` (input shape)
 
-Mirrors the cluster proposal that maisiliym emits when its
-`NodeProposal` is JSON-serialized. Fields match
-`mkCrioSphere/clustersModule.nix`:
+Mirrors the JSON-ified maisiliym/goldragon proposal. Field names track
+the new pubKey naming.
 
 ```rust
 pub struct ClusterProposal {
@@ -136,24 +223,35 @@ pub struct ClusterProposal {
 }
 
 pub struct NodeProposal {
-    pub species:               NodeSpecies,
-    pub size:                  Magnitude,
-    pub trust:                 Magnitude,
-    pub machine:               Machine,
-    pub io:                    Io,
-    pub pre_criomes:           NodePreCriomes,
-    pub link_local_ips:        Vec<LinkLocalIp>,
-    pub node_ip:               Option<NodeIp>,
-    pub wireguard_pre_criome:  Option<WireguardPreCriome>,
-    pub nordvpn:               bool,
-    pub wifi_cert:             bool,
-    // …
+    pub species:           NodeSpecies,
+    pub size:              Magnitude,
+    pub trust:             Magnitude,
+    pub machine:           Machine,
+    pub io:                Io,
+    pub pub_keys:          NodePubKeys,
+    pub link_local_ips:    Vec<LinkLocalIp>,
+    pub node_ip:           Option<NodeIp>,
+    pub wireguard_pub_key: Option<WireguardPubKey>,
+    pub nordvpn:           bool,
+    pub wifi_cert:         bool,
+}
+
+pub struct NodePubKeys {
+    pub ssh:       SshPubKey,
+    pub nix:       Option<NixPubKey>,
+    pub yggdrasil: Option<YggPubKeyEntry>,
+}
+
+pub struct YggPubKeyEntry {
+    pub pub_key: YggPubKey,
+    pub address: YggAddress,
+    pub subnet:  YggSubnet,
 }
 ```
 
-The `*Proposal` suffix names the **input concept**, not a -Details
-companion to a paired `Node`. They live in `proposal.rs` together so
-the namespace is local.
+The `*Proposal` suffix names the **input concept**; it's not a
+-Details companion to a paired `Node`. They live in `proposal.rs`
+together so the namespace is local.
 
 ### `Horizon` (output shape)
 
@@ -166,16 +264,16 @@ pub struct Horizon {
 }
 ```
 
-`Cluster`, `Node`, `User` here are the **enriched** shapes — they carry
-their `methods` field directly. There are no separate
-`EnrichedNode` / `NodeWithMethods` types.
+`Cluster`, `Node`, `User` are the **enriched** shapes — they carry
+their `methods` directly. No separate `EnrichedNode` /
+`NodeWithMethods` types.
 
 ### `Cluster`, `Node`, `User`
 
 Each is a struct of the schema's data fields plus `methods: …Methods`.
 `Node` additionally carries `local_methods: Option<LocalNodeMethods>` —
 present only when this is the viewpoint's `horizon.node` (carries
-`builderConfigs`, `cacheURLs`, `adminSshPreCriomes`, `computerIs`, …).
+`builderConfigs`, `cacheURLs`, `adminSshPubKeys`, `computerIs`, …).
 `local_methods` for sibling `exNodes` is `None`.
 
 ## Method computation
@@ -199,7 +297,7 @@ of the DAG:
 
 ```rust
 impl Node {
-    fn methods(&self) -> NodeMethods { … }                 // base methods on every node
+    fn methods(&self) -> NodeMethods { … }
     fn local_methods(&self, ctx: &ZoneContext) -> LocalNodeMethods { … }
 }
 
@@ -214,11 +312,11 @@ impl Cluster {
 
 `ZoneContext` is an internal struct (in `node.rs`) carrying the small
 amount of shared state the local-only methods need (the full `nodes`
-map for `builderConfigs`, the user list for `adminSshPreCriomes`).
+map for `builderConfigs`, the user list for `adminSshPubKeys`).
 
-Every method in `~/git/CriomOS/docs/HORIZON.md` lands as one named
-function on the type that owns it. The HORIZON.md table is the
-test-equivalence target.
+Every method in [/home/li/git/CriomOS/docs/HORIZON.md](/home/li/git/CriomOS/docs/HORIZON.md)
+lands as one named function on the type that owns it. The HORIZON.md
+table is the test-equivalence target.
 
 ## Error type
 
@@ -254,8 +352,8 @@ pub enum Error {
 }
 ```
 
-No `Box<dyn Error>`, no `anyhow`. Library returns
-`Result<T, horizon_lib::Error>` everywhere.
+Library returns `Result<T, horizon_lib::Error>` everywhere. No
+`anyhow`, no `Box<dyn Error>`.
 
 ## CLI
 
@@ -286,61 +384,53 @@ this one.
 
 ## Dependencies
 
-- `serde` (derive) + `serde_json` — JSON I/O.
+- `serde` (derive) + `serde_json` — JSON I/O for Phase 1.
 - `thiserror` — error enum derive.
 - `clap` (derive) — CLI parsing.
 - `std::net::Ipv6Addr` — `YggAddress` inner.
-- No `anyhow`, no `tokio`, no `rkyv` (this crate is the JSON boundary,
-  not a binary-contract participant).
+- `ipnet` — `NodeIp` inner (CIDR parsing).
+- No `anyhow`, no `tokio`, no `rkyv`.
 
-## Open questions
+## Settled questions (from review)
 
-1. **`Magnitude` representation.** `u8` (0..3) with a constructor that
-   rejects `> 3`, or a 4-variant enum (`Zero`, `One`, `Two`, `Three`)?
-   Enum is more typed; `u8` round-trips cheaper to JSON. Recommendation:
-   `u8`-newtype with `TryFrom<u8>`.
+1. **Magnitude as enum** — `Non / Min / Med / Max`, matches the Nix
+   `matchSize` ladder.
+2. **Typed addresses** — yes; `YggAddress` wraps `Ipv6Addr`, `NodeIp`
+   wraps `IpNet`. Bad addresses fail at projection time, not at
+   downstream parse.
+3. **Input format** — open. Nix and JSON are both ugly; format will
+   change. Phase 1 reads JSON for bootstrap (matches today's data).
+4. **Enum exhaustiveness** — mirror the Nix species lists from
+   [/home/li/git/criomos-archive/nix/mkCrioSphere/speciesModule.nix](/home/li/git/criomos-archive/nix/mkCrioSphere/speciesModule.nix).
+   The cluster-proposal owner defines the species set (currently
+   maisiliym; soon goldragon).
+5. **Source-of-truth migration** — input source moves from
+   maisiliym to goldragon. goldragon already exists at
+   [github.com/LiGoldragon/goldragon](https://github.com/LiGoldragon/goldragon)
+   (resetting now, seeded with maisiliym data).
+6. **`pubKey` rename** — agreed. Nix-side rename tracked in beads on
+   `/home/li/git/CriomOS`.
 
-2. **`Md5`-style addresses.** `YggAddress` wraps `std::net::Ipv6Addr`
-   (real parsing) vs `String` (verbatim). Recommendation: `Ipv6Addr`
-   so we catch malformed addresses at projection time, not at consumer
-   parse-time. Same for `NodeIp` (currently CIDR-shaped strings like
-   `5::3/128`) — wrap an `IpNet` from `ipnet`?
+## Still open
 
-3. **Names for input vs output types.** Three options on the table:
-   (a) `ClusterProposal` / `Cluster`,
-   (b) `proposal::Cluster` / `horizon::Cluster` (module-namespaced
-   same name), (c) `RawCluster` / `Cluster` (excluded — `Raw-` is on
-   the banned-suffix list). The doc currently shows (a). (b) reads
-   cleaner at use sites but doubles the import bookkeeping.
-   Recommendation: (a).
+1. **`LocalNodeMethods` placement.** `Option<LocalNodeMethods>` field
+   on every `Node` (current proposal) vs a distinct `LocalNode` type
+   that holds a `Node` plus the local methods (statically guaranteed
+   to be present at `horizon.node`). Recommendation: stick with
+   `Option`; revisit if `unwrap_or_default` noise piles up at use
+   sites.
 
-4. **Closed-enum exhaustiveness.** `NodeSpecies`, `UserSpecies`,
-   `Keyboard`, `MachineSpecies` are listed in
-   `mkCrioSphere/speciesModule.nix` in the archive. Do we mirror that
-   exact set, or define the canonical list here and have maisiliym
-   conform? Recommendation: mirror; the cluster-proposal owner
-   defines the species.
-
-5. **`LocalNodeMethods` placement.** Two options:
-   (a) `Option<LocalNodeMethods>` field on every `Node` (what's
-   shown), (b) a distinct `LocalNode` type that holds a `Node` plus
-   the local methods — used only at `horizon.node`. (a) keeps the
-   single-Node-type discipline; (b) makes "this is the
-   viewpoint-node" a static guarantee instead of a runtime `Option`.
-   Recommendation: (a) for simplicity, revisit if `unwrap_or_default`
-   noise piles up at use sites.
-
-6. **`docs/HORIZON.md` shape vs current `example-horizon.json`.** The
-   example carries `behavesAs.lowPower`, `behavesAs.nextGen`, and
-   `typeIs.{mediaBroadcast, routerTesting}` that aren't enumerated in
-   HORIZON.md. The doc needs a sweep against the example before code
-   lands; flagging here so we do that pass first.
+2. **`example-horizon.json` vs HORIZON.md drift.** The example carries
+   `behavesAs.{lowPower, nextGen}` and `typeIs.{mediaBroadcast,
+   routerTesting}` not enumerated in HORIZON.md. Need a sweep against
+   the example before code lands. This is a HORIZON.md fix, not a
+   horizon-rs change.
 
 ## Implementation order
 
 1. `name.rs`, `magnitude.rs`, `species.rs` — foundation newtypes /
    enums. Round-trip tests against fragments of `example-horizon.json`.
-2. `precriome.rs`, `address.rs`, `machine.rs`, `io.rs` — the rest of
+2. `pub_key.rs`, `address.rs`, `machine.rs`, `io.rs` — the rest of
    the input-shape primitives.
 3. `proposal.rs` — full `ClusterProposal` deserialization. Test:
    parse the maisiliym datom (JSON-converted) round-trip-clean.
