@@ -16,7 +16,7 @@ use crate::name::CriomeDomainName;
 
 const NIX_PUBKEY_LEN: usize = 44;
 const WG_PUBKEY_LEN: usize = 44;
-const YGG_PUBKEY_LEN: usize = 128;
+const YGG_PUBKEY_LEN: usize = 64;
 
 fn is_base64(s: &str) -> bool {
     s.chars()
