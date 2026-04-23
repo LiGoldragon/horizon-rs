@@ -1,27 +1,25 @@
 # Agent Bootstrap — horizon-rs
 
-## Rust style
+## First thing
 
-Follow [`~/git/tools-documentation/rust/style.md`](../tools-documentation/rust/style.md):
-methods on types, typed newtypes for domain values (`ClusterName`,
-`NodeName`, `Md5`, `YggAddress`, …), single-object I/O at every public
-boundary, manual `Error` enum (no thiserror/anyhow), trait-domain rule.
-
-Stub Rust currently in `lib/src/*.rs` is pre-style; rewrite when porting.
+Run `bd list --status open` to see what's already on the table.
 
 ## Scope
 
 Owns the horizon schema, type-checking, and method computation for
-CriomOS. Reads raw horizon JSON (from `maisiliym`-style cluster
-proposals), validates it, produces enriched horizon JSON with the full
-`methods.*` DAG.
+CriomOS. Reads a cluster proposal in TOML (from goldragon), projects it
+from a viewpoint `(cluster, node)`, and emits an enriched horizon TOML.
 
-Reference: `~/git/CriomOS/docs/HORIZON.md` is the spec for what `methods.*`
-must contain. `example-horizon.json` in this repo is the golden output for
-ouranos@maisiliym.
+Spec: [docs/DESIGN.md](docs/DESIGN.md).
+Build-cores derivation rationale: [docs/BUILD_CORES.md](docs/BUILD_CORES.md).
 
-Phase 1 is the CLI: `horizon-cli --cluster X --node Y < raw.json > horizon.json`.
-Library and broader API come later.
+CLI: `horizon-cli --cluster <C> --node <N> < proposal.toml > horizon.toml`.
+
+## Rust style
+
+Follow [~/git/tools-documentation/rust/style.md](../tools-documentation/rust/style.md):
+methods on types, typed newtypes, single-object I/O, `thiserror`-derived
+`Error` (no `anyhow`, no `eyre`), trait-domain rule.
 
 ## Hard process rules
 
