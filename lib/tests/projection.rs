@@ -5,10 +5,10 @@ use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, UserName};
 use horizon_lib::{ClusterProposal, Viewpoint};
 
-const FIXTURE: &str = include_str!("fixtures/maisiliym.toml");
+const FIXTURE: &str = include_str!("fixtures/maisiliym.nota");
 
 fn fixture() -> ClusterProposal {
-    toml::from_str(FIXTURE).expect("parse fixture toml")
+    nota_serde::from_str(FIXTURE).expect("parse fixture nota")
 }
 
 fn project(viewpoint_node: &str) -> horizon_lib::Horizon {
@@ -165,8 +165,8 @@ fn build_concurrency_role_aware() {
 }
 
 #[test]
-fn round_trip_horizon_toml() {
+fn round_trip_horizon_nota() {
     let h = project("ouranos");
-    let s = toml::to_string(&h).expect("serialize horizon to toml");
-    let _: horizon_lib::Horizon = toml::from_str(&s).expect("re-parse horizon toml");
+    let s = nota_serde::to_string(&h).expect("serialize horizon to nota");
+    let _: horizon_lib::Horizon = nota_serde::from_str(&s).expect("re-parse horizon nota");
 }

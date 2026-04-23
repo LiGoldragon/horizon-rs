@@ -71,7 +71,6 @@ pub struct SwapDevice {
 /// realistically use as a root, boot, or data filesystem. Add a
 /// variant when a new one shows up in real config.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum FsType {
     Ext2,
     Ext3,

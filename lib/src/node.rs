@@ -174,18 +174,14 @@ impl BehavesAs {
 
 /// Closed set of computer-model flags downstream consumers gate on.
 /// Add a variant here when a new model warrants a config branch.
+/// Field names emit as camelCase per nota convention.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ComputerIs {
-    /// `"ThinkPadT14Gen2Intel"` — preserves model name spelling.
-    #[serde(rename = "ThinkPadT14Gen2Intel")]
     pub thinkpad_t14_gen2_intel: bool,
-    #[serde(rename = "ThinkPadT14Gen5Intel")]
     pub thinkpad_t14_gen5_intel: bool,
-    #[serde(rename = "ThinkPadX230")]
     pub thinkpad_x230: bool,
-    #[serde(rename = "ThinkPadX240")]
     pub thinkpad_x240: bool,
-    #[serde(rename = "rpi3B")]
     pub rpi3b: bool,
 }
 

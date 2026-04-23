@@ -1,5 +1,5 @@
-//! horizon-cli — read cluster proposal TOML on stdin, write
-//! enriched horizon TOML on stdout.
+//! horizon-cli — read cluster proposal nota on stdin, write
+//! enriched horizon nota on stdout.
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
@@ -40,7 +40,7 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     }
 
-    let proposal: ClusterProposal = match toml::from_str(&buf) {
+    let proposal: ClusterProposal = match nota_serde::from_str(&buf) {
         Ok(p) => p,
         Err(e) => {
             eprintln!("error: parse cluster proposal: {e}");
@@ -56,10 +56,10 @@ fn main() -> ExitCode {
         }
     };
 
-    let out = match toml::to_string_pretty(&horizon) {
+    let out = match nota_serde::to_string(&horizon) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("error: emit horizon toml: {e}");
+            eprintln!("error: emit horizon nota: {e}");
             return ExitCode::from(1);
         }
     };
@@ -68,6 +68,7 @@ fn main() -> ExitCode {
         eprintln!("error: write stdout: {e}");
         return ExitCode::from(2);
     }
+    let _ = std::io::stdout().write_all(b"\n");
 
     ExitCode::SUCCESS
 }

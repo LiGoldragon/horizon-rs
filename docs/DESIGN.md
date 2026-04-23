@@ -3,11 +3,11 @@
 The spec horizon-rs is built against. Validated by the integration
 tests in [lib/tests/projection.rs](/home/li/git/horizon-rs/lib/tests/projection.rs)
 against the fixture at
-[lib/tests/fixtures/maisiliym.toml](/home/li/git/horizon-rs/lib/tests/fixtures/maisiliym.toml).
+[lib/tests/fixtures/maisiliym.nota](/home/li/git/horizon-rs/lib/tests/fixtures/maisiliym.nota).
 
 ## Scope
 
-horizon-rs takes a **cluster proposal** (the goldragon TOML) and a
+horizon-rs takes a **cluster proposal** (the goldragon nota) and a
 viewpoint `(cluster, node)`, and produces an **enriched horizon**: the
 viewpoint node's view of its cluster + node + exNodes + users with
 every computed field already filled in.
@@ -16,11 +16,11 @@ It does not:
 
 - talk to goldragon or any source repo (the input arrives on stdin),
 - read any environment / filesystem state,
-- emit anything other than enriched horizon TOML.
+- emit anything other than enriched horizon nota.
 
-## Wire format: TOML
+## Wire format: nota
 
-Both input and output are TOML. `serde` derives + the `toml` crate.
+Both input and output are nota — see `~/git/nota/README.md` for the spec. `serde` derives + the `nota-serde` crate.
 JSON is gone.
 
 ## Schema rules
@@ -104,7 +104,7 @@ validating types and `From<String>` for untyped pass-throughs.
 Mirroring [/home/li/git/criomos-archive/nix/mkCrioSphere/speciesModule.nix](/home/li/git/criomos-archive/nix/mkCrioSphere/speciesModule.nix):
 
 ```rust
-pub enum Magnitude { Non, Min, Med, Max }     // 0..3 — size and trust ladder
+pub enum Magnitude { None, Min, Med, Max }    // 0..3 — size and trust ladder
 
 pub enum NodeSpecies {
     Center, LargeAi, LargeAiRouter, Hybrid, Edge, EdgeTesting,
@@ -119,16 +119,17 @@ pub enum Bootloader    { Uefi, Mbr, Uboot }
 pub enum Arch          { X86_64, Arm64 }
 pub enum System        { X86_64Linux, Aarch64Linux }   // derived from Arch
 pub enum MotherBoard   { Ondyfaind }
-pub enum LinkLocalSpecies { Ethernet, Wifi }
-pub enum FsType        { Ext4, Btrfs, Vfat, Tmpfs, Xfs, Other(String) }   // open
+pub enum FsType        { Ext2, Ext3, Ext4, Btrfs, Xfs, Zfs, F2fs,
+                         Bcachefs, Vfat, Exfat, Ntfs, Tmpfs }
+pub enum DomainSpecies { Cloudflare }
 ```
 
-Every enum derives `Display`, `FromStr`, and serde with kebab-case
-renames where needed (`largeAI`, `largeAI-router`, `x86-64`).
+Variants serialize as their natural Rust spelling (PascalCase) per the
+nota identifier convention. No serde rename annotations on enums.
 
 ## `Magnitude`
 
-`Non` = 0, `Min` = 1, `Med` = 2, `Max` = 3. Matches the Nix
+`None` = 0, `Min` = 1, `Med` = 2, `Max` = 3. Matches the Nix
 `matchSize: ifNon ifMin ifMed ifMax` ladder.
 
 ```rust
@@ -141,7 +142,7 @@ impl Magnitude {
 
 ## Input shape — `proposal::ClusterProposal`
 
-The TOML schema goldragon emits.
+The nota schema goldragon emits.
 
 ```rust
 pub struct ClusterProposal {
@@ -480,19 +481,19 @@ pub enum Error {
     #[error("missing field: {0}")]
     MissingField(&'static str),
 
-    #[error("toml: {0}")]
-    Toml(#[from] toml::de::Error),
+    #[error("nota: {0}")]
+    Nota(#[from] nota_serde::Error),
 }
 ```
 
 ## CLI
 
 ```
-horizon-cli --cluster <CLUSTER> --node <NODE>   # < proposal.toml > horizon.toml
+horizon-cli --cluster <CLUSTER> --node <NODE>   # < proposal.nota > horizon.nota
 ```
 
-- Reads cluster proposal TOML from stdin.
-- Writes enriched horizon TOML to stdout.
+- Reads cluster proposal nota from stdin.
+- Writes enriched horizon nota to stdout.
 - Exit codes: `0` success, `1` projection error, `2` usage error.
 - `clap` derive. `main` is the only free function in the binary.
 
@@ -502,7 +503,7 @@ None. horizon-cli is a one-shot pure function.
 
 ## Dependencies
 
-- `serde` (derive) + `toml` — TOML I/O.
+- `serde` (derive) + `nota-serde` — nota I/O.
 - `thiserror` — Error enum derive.
 - `clap` (derive) — CLI parsing.
 - `std::net::Ipv6Addr` — `YggAddress`.
@@ -513,12 +514,12 @@ None. horizon-cli is a one-shot pure function.
 
 Phase 1 implemented. `cargo test` passes (3 unit + 12 integration).
 End-to-end: `horizon-cli --cluster <C> --node <N>` reads cluster
-proposal TOML on stdin and writes enriched horizon TOML on stdout.
+proposal nota on stdin and writes enriched horizon nota on stdout.
 Smoke-tested against the maisiliym fixture.
 
 Next phases:
 
-- Goldragon datom in TOML: convert `goldragon/datom.nix` into a TOML
+- Goldragon datom in nota: convert `goldragon/datom.nix` into a nota
   proposal that horizon-cli can consume directly.
 - Nix consumer: wire CriomOS's `lib.mkHorizon` to invoke horizon-cli
   via an IFD derivation, replacing the pure-Nix horizon derivation.

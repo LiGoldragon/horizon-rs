@@ -7,13 +7,13 @@ Run `bd list --status open` to see what's already on the table.
 ## Scope
 
 Owns the horizon schema, type-checking, and method computation for
-CriomOS. Reads a cluster proposal in TOML (from goldragon), projects it
-from a viewpoint `(cluster, node)`, and emits an enriched horizon TOML.
+CriomOS. Reads a cluster proposal in nota (from goldragon), projects it
+from a viewpoint `(cluster, node)`, and emits an enriched horizon nota.
 
 Spec: [docs/DESIGN.md](docs/DESIGN.md).
 Build-cores derivation rationale: [docs/BUILD_CORES.md](docs/BUILD_CORES.md).
 
-CLI: `horizon-cli --cluster <C> --node <N> < proposal.toml > horizon.toml`.
+CLI: `horizon-cli --cluster <C> --node <N> < proposal.nota > horizon.nota`.
 
 ## Hard process rules
 

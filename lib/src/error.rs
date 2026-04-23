@@ -34,11 +34,8 @@ pub enum Error {
     #[error("pod node {0:?} has no super-node and no arch of its own")]
     UnresolvableArch(NodeName),
 
-    #[error("toml parse: {0}")]
-    TomlDe(#[from] toml::de::Error),
-
-    #[error("toml emit: {0}")]
-    TomlSer(#[from] toml::ser::Error),
+    #[error("nota: {0}")]
+    Nota(#[from] nota_serde::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
