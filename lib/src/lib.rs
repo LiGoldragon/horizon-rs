@@ -1,6 +1,6 @@
 //! horizon-rs — typed schema + projection for criome cluster horizons.
 //!
-//! Reads a `ClusterProposal` (from goldragon TOML), produces a
+//! Reads a `ClusterProposal` (from goldragon nota), produces a
 //! viewpoint-scoped enriched `Horizon` with every method-derived
 //! field already filled.
 //!

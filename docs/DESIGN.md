@@ -489,13 +489,23 @@ pub enum Error {
 ## CLI
 
 ```
-horizon-cli --cluster <CLUSTER> --node <NODE>   # < proposal.nota > horizon.nota
+horizon-cli --cluster <CLUSTER> --node <NODE> [--format nota|json]
+            < proposal.nota > horizon.<ext>
 ```
 
-- Reads cluster proposal nota from stdin.
-- Writes enriched horizon nota to stdout.
+- Reads cluster proposal **nota** from stdin (always nota — that's the
+  source-of-truth format).
+- Writes the enriched horizon to stdout in the chosen format. `nota`
+  is the default (human-readable, canonical). **`json` is the
+  format Nix consumers ask for**, since `builtins.fromJSON` exists in
+  Nix and `builtins.fromNota` does not. Same data, different
+  encoding; both are produced by serde over the same `Horizon` types.
 - Exit codes: `0` success, `1` projection error, `2` usage error.
 - `clap` derive. `main` is the only free function in the binary.
+
+The IFD wiring in `CriomOS/lib.mkHorizon` calls
+`horizon-cli … --format json` and reads the result via
+`builtins.fromJSON (builtins.readFile drv)`.
 
 ## Actors
 
@@ -504,11 +514,12 @@ None. horizon-cli is a one-shot pure function.
 ## Dependencies
 
 - `serde` (derive) + `nota-serde` — nota I/O.
+- `serde_json` — JSON output mode (Nix consumption path).
 - `thiserror` — Error enum derive.
 - `clap` (derive) — CLI parsing.
 - `std::net::Ipv6Addr` — `YggAddress`.
 - `ipnet` — `NodeIp`.
-- No `anyhow`, no `tokio`, no `rkyv`, no `serde_json`.
+- No `anyhow`, no `tokio`, no `rkyv`.
 
 ## Status
 

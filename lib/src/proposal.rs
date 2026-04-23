@@ -1,4 +1,4 @@
-//! Input shape: what goldragon emits as a TOML cluster proposal.
+//! Input shape: what goldragon emits as a nota cluster proposal.
 //!
 //! `ClusterProposal::project(viewpoint)` is the single entry-point;
 //! it produces the typed `Horizon`. Proposal types carry only raw

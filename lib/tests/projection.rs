@@ -1,4 +1,4 @@
-//! End-to-end projection test: parse the maisiliym TOML fixture,
+//! End-to-end projection test: parse the maisiliym nota fixture,
 //! project from each viewpoint, assert the load-bearing derivations.
 
 use horizon_lib::magnitude::Magnitude;
