@@ -77,7 +77,7 @@ wifi_cert = false
 
 [nodes.balboa]
 species = "center"
-size    = "non"
+size    = "none"
 trust   = "min"
 nordvpn = false
 wifi_cert = false

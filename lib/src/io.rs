@@ -64,15 +64,22 @@ pub struct SwapDevice {
     pub device: DevicePath,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// Filesystem type. Closed set of NixOS-supported filesystems we
+/// realistically use as a root, boot, or data filesystem. Add a
+/// variant when a new one shows up in real config.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum FsType {
+    Ext2,
+    Ext3,
     Ext4,
     Btrfs,
-    Vfat,
-    Tmpfs,
     Xfs,
-    /// Open variant for fs-types we haven't seen yet.
-    #[serde(untagged)]
-    Other(String),
+    Zfs,
+    F2fs,
+    Bcachefs,
+    Vfat,
+    Exfat,
+    Ntfs,
+    Tmpfs,
 }

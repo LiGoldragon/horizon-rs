@@ -20,18 +20,3 @@ pub struct Machine {
     /// Pod-only: which user runs this pod.
     pub super_user: Option<UserName>,
 }
-
-/// Number of build cores (`maxJobs` for nix builders). Always ≥ 1.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct BuildCores(u32);
-
-impl BuildCores {
-    pub fn new(n: u32) -> Self {
-        Self(n.max(1))
-    }
-
-    pub fn get(self) -> u32 {
-        self.0
-    }
-}

@@ -32,9 +32,9 @@ pub struct ClusterProposal {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeProposal {
     pub species: NodeSpecies,
-    #[serde(default = "Magnitude::non")]
+    #[serde(default = "Magnitude::default_none")]
     pub size: Magnitude,
-    #[serde(default = "Magnitude::min")]
+    #[serde(default = "Magnitude::default_min")]
     pub trust: Magnitude,
     pub machine: Machine,
     pub io: Io,
@@ -72,7 +72,7 @@ pub struct YggPubKeyEntry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserProposal {
     pub species: UserSpecies,
-    #[serde(default = "Magnitude::non")]
+    #[serde(default = "Magnitude::default_none")]
     pub size: Magnitude,
     pub keyboard: Keyboard,
     pub style: Style,
@@ -107,19 +107,24 @@ pub struct ClusterTrust {
     pub users: BTreeMap<UserName, Magnitude>,
 }
 
-/// Open-shape pass-through. Refined when the first proxy lands in real data.
+/// An external WireGuard proxy this node tunnels through. Becomes a
+/// peer on the `wgProxies` interface; downstream nix module routes
+/// `0.0.0.0/0` through it. One per VPN connection (NordVPN, etc.).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WireguardProxy {
-    #[serde(flatten)]
-    pub other: BTreeMap<String, toml::Value>,
+    pub pub_key: WireguardPubKey,
+    /// `host:port` form.
+    pub endpoint: String,
+    /// Address assigned to our wireguard interface for this proxy.
+    pub interface_ip: NodeIp,
 }
 
 // Free-fn helpers used by serde defaults; not exposed.
 impl Magnitude {
-    pub(crate) fn non() -> Self {
-        Magnitude::Non
+    pub(crate) fn default_none() -> Self {
+        Magnitude::None
     }
-    pub(crate) fn min() -> Self {
+    pub(crate) fn default_min() -> Self {
         Magnitude::Min
     }
 }

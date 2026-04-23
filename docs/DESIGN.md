@@ -1,8 +1,9 @@
 # horizon-rs — design
 
-The spec horizon-rs is built against. Reference for computed *values*:
-[/home/li/git/horizon-rs/example-horizon.json](/home/li/git/horizon-rs/example-horizon.json)
-(legacy shape and naming; semantics carry over).
+The spec horizon-rs is built against. Validated by the integration
+tests in [lib/tests/projection.rs](/home/li/git/horizon-rs/lib/tests/projection.rs)
+against the fixture at
+[lib/tests/fixtures/maisiliym.toml](/home/li/git/horizon-rs/lib/tests/fixtures/maisiliym.toml).
 
 ## Scope
 
@@ -508,21 +509,16 @@ None. horizon-cli is a one-shot pure function.
 - `ipnet` — `NodeIp`.
 - No `anyhow`, no `tokio`, no `rkyv`, no `serde_json`.
 
-## Implementation order
+## Status
 
-1. `name.rs`, `magnitude.rs`, `species.rs` — foundation. Round-trip
-   tests against TOML fragments.
-2. `pub_key.rs`, `address.rs`, `machine.rs`, `io.rs` — input
-   primitives.
-3. `proposal.rs` — full `ClusterProposal` deserialization.
-4. `node.rs`, `user.rs`, `cluster.rs`, `horizon.rs` — output types
-   (no projection yet).
-5. Projection — fill the computed fields one type at a time, checking
-   values against `example-horizon.json` (semantic only — the legacy
-   JSON has different shape and naming).
-6. `error.rs` final pass, `lib.rs` re-exports.
-7. `cli/src/main.rs` — clap, stdin→stdout wiring.
-8. End-to-end:
-   `horizon-cli --cluster maisiliym --node ouranos < goldragon/datom.toml`
-   produces a TOML horizon. Sign off; that becomes the new golden
-   `example-horizon.toml`.
+Phase 1 implemented. `cargo test` passes (3 unit + 12 integration).
+End-to-end: `horizon-cli --cluster <C> --node <N>` reads cluster
+proposal TOML on stdin and writes enriched horizon TOML on stdout.
+Smoke-tested against the maisiliym fixture.
+
+Next phases:
+
+- Goldragon datom in TOML: convert `goldragon/datom.nix` into a TOML
+  proposal that horizon-cli can consume directly.
+- Nix consumer: wire CriomOS's `lib.mkHorizon` to invoke horizon-cli
+  via an IFD derivation, replacing the pure-Nix horizon derivation.

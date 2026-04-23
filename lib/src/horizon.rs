@@ -40,8 +40,10 @@ impl ClusterProposal {
         let mut nodes: BTreeMap<NodeName, Node> = BTreeMap::new();
         for (name, proposal) in &self.nodes {
             let trust = node_trust(self, name, proposal.trust, cluster_trust_floor);
-            if matches!(trust, Magnitude::Non) {
-                continue; // legacy: trust=0 nodes are filtered out of horizon
+            if matches!(trust, Magnitude::None) {
+                // trust=None marks a node as actively distrusted; drop it
+                // from the horizon entirely.
+                continue;
             }
             let resolved_arch = resolve_arch(name, &proposal.machine, &self.nodes)?;
             let ctx = NodeProjection {
@@ -62,7 +64,7 @@ impl ClusterProposal {
                 .get(name)
                 .copied()
                 .unwrap_or(Magnitude::Min);
-            if matches!(trust, Magnitude::Non) {
+            if matches!(trust, Magnitude::None) {
                 continue;
             }
             let ctx = UserProjection {

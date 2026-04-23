@@ -7,7 +7,6 @@ use ipnet::IpNet;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::species::LinkLocalSpecies;
 
 /// Yggdrasil-mesh IPv6 address. Always within `200::/7`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -103,7 +102,8 @@ impl From<NodeIp> for String {
     }
 }
 
-/// Network interface name (`enp0s25`, `wlp3s0`, …).
+/// Network interface name (`enp0s25`, `wlp3s0`, …). Hardware-dependent;
+/// the proposal author specifies it per link-local entry.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Iface(String);
@@ -124,27 +124,17 @@ impl std::fmt::Display for Iface {
     }
 }
 
-/// Raw input form of a link-local address: a transport species plus a
-/// 64-bit suffix that gets prefixed with `fe80::` and suffixed with
-/// `%<iface>` at projection time.
+/// Raw input form of a link-local address: an interface plus a
+/// 64-bit suffix. Renders as `fe80::<suffix>%<iface>`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkLocalIp {
-    pub species: LinkLocalSpecies,
+    pub iface: Iface,
     pub suffix: String,
 }
 
 impl LinkLocalIp {
-    /// Render to the projected form: `fe80::<suffix>%<iface>`.
-    ///
-    /// The interface name is hardware-dependent. The legacy hardcoded
-    /// `enp0s25` for ethernet and `wlp3s0` for wifi; we keep that
-    /// fallback until per-node iface mapping lands.
     pub fn render(&self) -> LinkLocalAddress {
-        let iface = match self.species {
-            LinkLocalSpecies::Ethernet => "enp0s25",
-            LinkLocalSpecies::Wifi => "wlp3s0",
-        };
-        LinkLocalAddress(format!("fe80::{}%{}", self.suffix, iface))
+        LinkLocalAddress(format!("fe80::{}%{}", self.suffix, self.iface))
     }
 }
 

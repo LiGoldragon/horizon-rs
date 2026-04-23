@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::address::{LinkLocalAddress, NodeIp, YggAddress, YggSubnet};
 use crate::error::{Error, Result};
 use crate::io::Io;
-use crate::machine::{BuildCores, Machine};
+use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName};
 use crate::proposal::{NodeProposal, WireguardProxy};
@@ -37,7 +37,14 @@ pub struct Node {
     // identity / connectivity (always derived)
     pub criome_domain_name: CriomeDomainName,
     pub system: System,
-    pub nb_of_build_cores: BuildCores,
+
+    /// `nix.buildMachines.<this>.maxJobs` from this viewpoint:
+    /// how many derivations Nix dispatches in parallel to this builder.
+    /// Derived from cores + role + size.
+    pub max_jobs: u32,
+    /// `nix.settings.cores` for this builder. `0` = use all cores per
+    /// individual derivation. Universal default.
+    pub build_cores: u32,
 
     // pubkey shadow flattened from input pub_keys
     pub ssh_pub_key: SshPubKey,
@@ -202,7 +209,7 @@ pub struct BuilderConfig {
     pub supported_features: Vec<String>,
     pub system: System,
     pub systems: Vec<System>,
-    pub max_jobs: BuildCores,
+    pub max_jobs: u32,
 }
 
 impl BuilderConfig {
@@ -222,9 +229,38 @@ impl BuilderConfig {
             },
             system: node.system,
             systems,
-            max_jobs: node.nb_of_build_cores,
+            max_jobs: node.max_jobs,
         }
     }
+}
+
+/// Compute `(max_jobs, build_cores)` for a builder.
+///
+/// `build_cores = 0` universally — each derivation is allowed to use
+/// every core via `NIX_BUILD_CORES=0`. Per-derivation `enableParallelBuilding`
+/// then runs `make -j$(nproc)`.
+///
+/// `max_jobs` (parallel-derivations-on-this-builder) is role + size aware:
+/// - 1-core machines (pods) → 1.
+/// - size = None or Min → 1 (don't fan out on a node not meant to carry load).
+/// - dedicated builders (`behaves_as.center`) → all cores.
+/// - everything else (interactive edge / hybrid) → cores / 2,
+///   leaving headroom for the human at the keyboard.
+pub(crate) fn nix_concurrency(
+    cores: u32,
+    behaves_as_center: bool,
+    size: Magnitude,
+) -> (u32, u32) {
+    let max_jobs = if cores <= 1 {
+        1
+    } else if matches!(size, Magnitude::None | Magnitude::Min) {
+        1
+    } else if behaves_as_center {
+        cores
+    } else {
+        (cores / 2).max(1)
+    };
+    (max_jobs, 0)
 }
 
 pub struct NodeProjection<'a> {
@@ -282,6 +318,8 @@ impl NodeProposal {
         let ssh_pub_key_line = ssh_pub_key.line();
 
         let chip_is_intel = ctx.resolved_arch.is_intel();
+        let (max_jobs, build_cores) =
+            nix_concurrency(self.machine.cores, behaves_as.center, self.size);
         let model_is_thinkpad = self
             .machine
             .model
@@ -307,7 +345,8 @@ impl NodeProposal {
 
             criome_domain_name,
             system: ctx.resolved_arch.system(),
-            nb_of_build_cores: BuildCores::new(1),
+            max_jobs,
+            build_cores,
 
             ssh_pub_key,
             nix_pub_key,

@@ -149,6 +149,22 @@ fn admin_ssh_keys_come_from_fully_trusted_users_on_trusted_nodes() {
 }
 
 #[test]
+fn build_concurrency_role_aware() {
+    let h = project("ouranos");
+    // ouranos: 12 cores, edge-testing (not center), size=max → cores/2 = 6.
+    assert_eq!(h.node.max_jobs, 6);
+    assert_eq!(h.node.build_cores, 0);
+
+    let tiger = h.ex_nodes.get(&NodeName::try_new("tiger").unwrap()).unwrap();
+    // tiger: 4 cores, edge-testing → cores/2 = 2.
+    assert_eq!(tiger.max_jobs, 2);
+
+    let balboa = h.ex_nodes.get(&NodeName::try_new("balboa").unwrap()).unwrap();
+    // balboa: 4 cores, center, but size=None → 1.
+    assert_eq!(balboa.max_jobs, 1);
+}
+
+#[test]
 fn round_trip_horizon_toml() {
     let h = project("ouranos");
     let s = toml::to_string(&h).expect("serialize horizon to toml");

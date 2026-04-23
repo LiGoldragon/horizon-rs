@@ -1,6 +1,6 @@
 //! `Magnitude` — the size and trust ladder.
 //!
-//! Four points on a single ordinal scale: `Non` (0, absent), `Min` (1),
+//! Four points on a single ordinal scale: `None` (0, absent), `Min` (1),
 //! `Med` (2), `Max` (3). Used for both `size` (capacity) and `trust`.
 //!
 //! `AtLeast` is the typed form of asking "is this magnitude at least
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Magnitude {
-    Non,
+    None,
     Min,
     Med,
     Max,
@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn ladder_monotonic() {
-        assert_eq!(Magnitude::Non.ladder(), AtLeast { min: false, med: false, max: false });
+        assert_eq!(Magnitude::None.ladder(), AtLeast { min: false, med: false, max: false });
         assert_eq!(Magnitude::Min.ladder(), AtLeast { min: true, med: false, max: false });
         assert_eq!(Magnitude::Med.ladder(), AtLeast { min: true, med: true, max: false });
         assert_eq!(Magnitude::Max.ladder(), AtLeast { min: true, med: true, max: true });
