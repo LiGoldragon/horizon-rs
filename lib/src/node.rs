@@ -13,7 +13,7 @@ use crate::address::{LinkLocalAddress, NodeIp, YggAddress, YggSubnet};
 use crate::error::{Error, Result};
 use crate::io::Io;
 use crate::machine::Machine;
-use crate::magnitude::{AtLeast, Magnitude};
+use crate::magnitude::{Magnitude, Mg};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName};
 use crate::proposal::{NodeProposal, WireguardProxy};
 use crate::pub_key::{NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey};
@@ -26,8 +26,8 @@ pub struct Node {
     // input pass-through (always present)
     pub name: NodeName,
     pub species: NodeSpecies,
-    pub size: Magnitude,
-    pub trust: Magnitude,
+    pub size: Mg,
+    pub trust: Mg,
     pub machine: Machine,
     pub link_local_ips: Vec<LinkLocalAddress>,
     pub node_ip: Option<NodeIp>,
@@ -56,7 +56,6 @@ pub struct Node {
 
     // computed booleans (always derived)
     pub is_fully_trusted: bool,
-    pub sized_at_least: AtLeast,
     pub is_builder: bool,
     pub is_dispatcher: bool,
     pub is_nix_cache: bool,
@@ -339,8 +338,8 @@ impl NodeProposal {
         Node {
             name: ctx.name,
             species: self.species,
-            size: self.size,
-            trust: ctx.trust,
+            size: Mg::from(self.size),
+            trust: Mg::from(ctx.trust),
             machine,
             link_local_ips,
             node_ip: self.node_ip.clone(),
@@ -360,7 +359,6 @@ impl NodeProposal {
             ygg_subnet,
 
             is_fully_trusted,
-            sized_at_least,
             is_builder,
             is_dispatcher,
             is_nix_cache,
@@ -443,7 +441,7 @@ impl Node {
         // adminSshPubKeys: for each user with trust=Max, walk their pubKeys; for each
         // entry whose node is fully trusted, take that ssh line. Dedup preserving order.
         let mut admin_ssh_pub_keys: Vec<SshPubKeyLine> = Vec::new();
-        for user in fill.all_users.values().filter(|u| matches!(u.trust, Magnitude::Max)) {
+        for user in fill.all_users.values().filter(|u| matches!(u.trust.value, Magnitude::Max)) {
             for (node_name, entry) in &user.pub_keys {
                 let is_trusted_node = fill
                     .all_nodes

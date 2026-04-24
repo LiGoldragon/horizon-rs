@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::magnitude::{AtLeast, Magnitude};
+use crate::magnitude::{Magnitude, Mg};
 use crate::name::{ClusterName, GithubId, NodeName, UserName};
 use crate::proposal::{UserProposal, UserPubKeyEntry};
 use crate::pub_key::SshPubKeyLine;
@@ -17,15 +17,14 @@ pub struct User {
     // input pass-through
     pub name: UserName,
     pub species: UserSpecies,
-    pub size: Magnitude,
-    pub trust: Magnitude,
+    pub size: Mg,
+    pub trust: Mg,
     pub keyboard: Keyboard,
     pub style: Style,
     pub github_id: Option<GithubId>,
     pub pub_keys: BTreeMap<NodeName, UserPubKeyEntry>,
 
     // derived
-    pub sized_at_least: AtLeast,
     pub has_pub_key: bool,
     pub email_address: String,
     pub matrix_id: String,
@@ -66,7 +65,6 @@ impl UserProposal {
         let matrix_id = format!("@{}:{}.criome.net", ctx.name, ctx.cluster);
 
         User {
-            sized_at_least: self.size.ladder(),
             has_pub_key,
             email_address,
             matrix_id,
@@ -80,8 +78,8 @@ impl UserProposal {
 
             name: ctx.name,
             species: self.species,
-            size: self.size,
-            trust: ctx.trust,
+            size: Mg::from(self.size),
+            trust: Mg::from(ctx.trust),
             keyboard: self.keyboard,
             style: self.style,
             github_id: Some(github_id),

@@ -44,3 +44,26 @@ pub struct AtLeast {
     pub max: bool,
 }
 
+/// `Mg` — a `Magnitude` bundled with its predicate ladder, so
+/// downstream consumers can do `node.size.is.med` rather than
+/// implementing the magnitude → ordinal conversion themselves.
+/// `value` carries the raw enum for callers that need the full
+/// magnitude; `is` is the precomputed `AtLeast` ladder.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Mg {
+    pub value: Magnitude,
+    pub is: AtLeast,
+}
+
+impl Mg {
+    pub fn from(value: Magnitude) -> Self {
+        Self { value, is: value.ladder() }
+    }
+}
+
+impl From<Magnitude> for Mg {
+    fn from(value: Magnitude) -> Self {
+        Self::from(value)
+    }
+}
+
