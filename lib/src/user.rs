@@ -37,6 +37,18 @@ pub struct User {
     pub ssh_pub_keys: Vec<SshPubKeyLine>,
     /// Viewpoint-node line, only when has_pub_key.
     pub ssh_pub_key: Option<SshPubKeyLine>,
+
+    // derived node-contextual fields (depend on the viewpoint node role
+    // as well as the user's trust level)
+    /// Secondary Unix groups this user should be added to on the
+    /// viewpoint node, derived from trust. Nix consumers still add
+    /// dynamic groups (e.g. "sway" when `config.programs.sway.enable`)
+    /// on top of this list.
+    pub extra_groups: Vec<String>,
+    /// `users.users.<u>.linger` — keep this user's systemd --user
+    /// sessions alive. True iff `trust == Max` and the viewpoint node
+    /// behaves as a `center`.
+    pub enable_linger: bool,
 }
 
 pub struct UserProjection<'a> {
@@ -44,6 +56,9 @@ pub struct UserProjection<'a> {
     pub cluster: &'a ClusterName,
     pub viewpoint_node: &'a NodeName,
     pub trust: Magnitude,
+    /// Whether the projection's viewpoint node behaves as a `center`.
+    /// Needed to derive `enable_linger`.
+    pub viewpoint_behaves_as_center: bool,
 }
 
 impl UserProposal {
@@ -64,6 +79,29 @@ impl UserProposal {
         let email_address = format!("{}@{}.criome.net", ctx.name, ctx.cluster);
         let matrix_id = format!("@{}:{}.criome.net", ctx.name, ctx.cluster);
 
+        let trust_ladder = ctx.trust.ladder();
+        let mut extra_groups: Vec<String> = vec!["audio".into()];
+        if trust_ladder.at_least_med {
+            extra_groups.push("video".into());
+        }
+        if trust_ladder.at_least_max {
+            extra_groups.extend(
+                [
+                    "adbusers",
+                    "nixdev",
+                    "systemd-journal",
+                    "dialout",
+                    "plugdev",
+                    "power",
+                    "storage",
+                    "libvirtd",
+                ]
+                .into_iter()
+                .map(String::from),
+            );
+        }
+        let enable_linger = trust_ladder.at_least_max && ctx.viewpoint_behaves_as_center;
+
         User {
             has_pub_key,
             email_address,
@@ -75,11 +113,13 @@ impl UserProposal {
             is_code_dev: matches!(self.species, UserSpecies::Code | UserSpecies::Unlimited),
             ssh_pub_keys,
             ssh_pub_key,
+            extra_groups,
+            enable_linger,
 
             name: ctx.name,
             species: self.species,
             size: self.size.ladder(),
-            trust: ctx.trust.ladder(),
+            trust: trust_ladder,
             keyboard: self.keyboard,
             style: self.style,
             github_id: Some(github_id),

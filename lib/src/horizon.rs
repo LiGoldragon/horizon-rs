@@ -56,7 +56,14 @@ impl ClusterProposal {
             nodes.insert(name.clone(), proposal.project(ctx));
         }
 
-        // Build every User (per-viewpoint).
+        // Build every User (per-viewpoint). Users need the viewpoint
+        // node's `behaves_as.center` to compute `enable_linger`, so
+        // look it up once before the loop.
+        let viewpoint_behaves_as_center = nodes
+            .get(&viewpoint.node)
+            .expect("viewpoint node was projected above")
+            .behaves_as
+            .center;
         let mut users: BTreeMap<UserName, User> = BTreeMap::new();
         for (name, proposal) in &self.users {
             let trust = self
@@ -73,6 +80,7 @@ impl ClusterProposal {
                 cluster: &viewpoint.cluster,
                 viewpoint_node: &viewpoint.node,
                 trust,
+                viewpoint_behaves_as_center,
             };
             users.insert(name.clone(), proposal.project(ctx));
         }

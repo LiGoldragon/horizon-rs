@@ -59,6 +59,8 @@ pub struct Node {
     pub is_builder: bool,
     pub is_dispatcher: bool,
     pub is_nix_cache: bool,
+    pub is_large_edge: bool,
+    pub enable_network_manager: bool,
     pub has_nix_pub_key: bool,
     pub has_ygg_pub_key: bool,
     pub has_ssh_pub_key: bool,
@@ -69,6 +71,11 @@ pub struct Node {
     pub has_video_output: bool,
     pub chip_is_intel: bool,
     pub model_is_thinkpad: bool,
+
+    // computed power-policy (systemd logind lid-switch actions)
+    pub handle_lid_switch: LidSwitchAction,
+    pub handle_lid_switch_external_power: LidSwitchAction,
+    pub handle_lid_switch_docked: LidSwitchAction,
 
     // computed strings
     pub ssh_pub_key_line: SshPubKeyLine,
@@ -100,6 +107,16 @@ pub struct Node {
     pub admin_ssh_pub_keys: Option<Vec<SshPubKeyLine>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub wireguard_untrusted_proxies: Option<Vec<WireguardProxy>>,
+}
+
+/// systemd-logind lid-switch policy. Serialises to the lowercase
+/// strings systemd accepts directly (`"ignore" | "suspend" | "lock"`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LidSwitchAction {
+    Ignore,
+    Suspend,
+    Lock,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -308,7 +325,30 @@ impl NodeProposal {
             && has_base_pub_keys;
         let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.at_least_min;
         let is_nix_cache = behaves_as.center && sized_at_least.at_least_min && has_base_pub_keys;
+        let is_large_edge = sized_at_least.at_least_max && behaves_as.edge;
+        let enable_network_manager = sized_at_least.at_least_min
+            && !behaves_as.iso
+            && !behaves_as.center
+            && !behaves_as.router;
         let has_video_output = behaves_as.edge;
+
+        let handle_lid_switch = if behaves_as.center {
+            LidSwitchAction::Ignore
+        } else {
+            LidSwitchAction::Suspend
+        };
+        let handle_lid_switch_external_power = if behaves_as.center {
+            LidSwitchAction::Ignore
+        } else if behaves_as.low_power {
+            LidSwitchAction::Suspend
+        } else {
+            LidSwitchAction::Lock
+        };
+        let handle_lid_switch_docked = if behaves_as.edge {
+            LidSwitchAction::Lock
+        } else {
+            LidSwitchAction::Ignore
+        };
 
         let nix_pub_key_line = nix_pub_key.as_ref().map(|k| k.line(&criome_domain_name));
         let nix_cache_domain = if is_nix_cache {
@@ -362,6 +402,8 @@ impl NodeProposal {
             is_builder,
             is_dispatcher,
             is_nix_cache,
+            is_large_edge,
+            enable_network_manager,
             has_nix_pub_key,
             has_ygg_pub_key,
             has_ssh_pub_key,
@@ -380,6 +422,10 @@ impl NodeProposal {
 
             behaves_as,
             type_is,
+
+            handle_lid_switch,
+            handle_lid_switch_external_power,
+            handle_lid_switch_docked,
 
             io: None,
             use_colemak: None,
