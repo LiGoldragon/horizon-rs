@@ -1,12 +1,12 @@
 //! horizon-cli — read cluster proposal nota on stdin, write
-//! enriched horizon nota on stdout.
+//! enriched horizon JSON (default) or nota on stdout.
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
-use clap::Parser;
-use horizon_lib::{ClusterProposal, Viewpoint};
+use clap::{Parser, ValueEnum};
 use horizon_lib::name::{ClusterName, NodeName};
+use horizon_lib::{ClusterProposal, Viewpoint};
 
 #[derive(Parser)]
 #[command(
@@ -21,6 +21,17 @@ struct Cli {
     /// Viewpoint node name (must exist in the proposal).
     #[arg(long)]
     node: String,
+
+    /// Output format. JSON is default — Nix consumers read it via
+    /// `builtins.fromJSON` (no `builtins.fromNota` exists).
+    #[arg(long, value_enum, default_value_t = Format::Json)]
+    format: Format,
+}
+
+#[derive(Copy, Clone, Debug, ValueEnum)]
+enum Format {
+    Json,
+    Nota,
 }
 
 fn main() -> ExitCode {
@@ -56,10 +67,14 @@ fn main() -> ExitCode {
         }
     };
 
-    let out = match nota_serde::to_string(&horizon) {
+    let out = match cli.format {
+        Format::Json => serde_json::to_string_pretty(&horizon).map_err(|e| e.to_string()),
+        Format::Nota => nota_serde::to_string(&horizon).map_err(|e| e.to_string()),
+    };
+    let out = match out {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("error: emit horizon nota: {e}");
+            eprintln!("error: emit horizon: {e}");
             return ExitCode::from(1);
         }
     };
