@@ -13,7 +13,7 @@ use crate::address::{LinkLocalAddress, NodeIp, YggAddress, YggSubnet};
 use crate::error::{Error, Result};
 use crate::io::Io;
 use crate::machine::Machine;
-use crate::magnitude::{Magnitude, Mg};
+use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName};
 use crate::proposal::{NodeProposal, WireguardProxy};
 use crate::pub_key::{NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey};
@@ -26,8 +26,8 @@ pub struct Node {
     // input pass-through (always present)
     pub name: NodeName,
     pub species: NodeSpecies,
-    pub size: Mg,
-    pub trust: Mg,
+    pub size: AtLeast,
+    pub trust: AtLeast,
     pub machine: Machine,
     pub link_local_ips: Vec<LinkLocalAddress>,
     pub node_ip: Option<NodeIp>,
@@ -304,10 +304,10 @@ impl NodeProposal {
 
         let is_builder = !type_is.edge
             && is_fully_trusted
-            && (sized_at_least.med || behaves_as.center)
+            && (sized_at_least.at_least_med || behaves_as.center)
             && has_base_pub_keys;
-        let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.min;
-        let is_nix_cache = behaves_as.center && sized_at_least.min && has_base_pub_keys;
+        let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.at_least_min;
+        let is_nix_cache = behaves_as.center && sized_at_least.at_least_min && has_base_pub_keys;
         let has_video_output = behaves_as.edge;
 
         let nix_pub_key_line = nix_pub_key.as_ref().map(|k| k.line(&criome_domain_name));
@@ -338,8 +338,8 @@ impl NodeProposal {
         Node {
             name: ctx.name,
             species: self.species,
-            size: Mg::from(self.size),
-            trust: Mg::from(ctx.trust),
+            size: self.size.ladder(),
+            trust: ctx.trust.ladder(),
             machine,
             link_local_ips,
             node_ip: self.node_ip.clone(),
@@ -441,7 +441,7 @@ impl Node {
         // adminSshPubKeys: for each user with trust=Max, walk their pubKeys; for each
         // entry whose node is fully trusted, take that ssh line. Dedup preserving order.
         let mut admin_ssh_pub_keys: Vec<SshPubKeyLine> = Vec::new();
-        for user in fill.all_users.values().filter(|u| matches!(u.trust.value, Magnitude::Max)) {
+        for user in fill.all_users.values().filter(|u| u.trust.at_least_max) {
             for (node_name, entry) in &user.pub_keys {
                 let is_trusted_node = fill
                     .all_nodes

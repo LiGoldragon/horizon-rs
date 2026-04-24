@@ -4,10 +4,22 @@ use horizon_lib::magnitude::{AtLeast, Magnitude};
 
 #[test]
 fn ladder_monotonic() {
-    assert_eq!(Magnitude::None.ladder(), AtLeast { min: false, med: false, max: false });
-    assert_eq!(Magnitude::Min.ladder(), AtLeast { min: true, med: false, max: false });
-    assert_eq!(Magnitude::Med.ladder(), AtLeast { min: true, med: true, max: false });
-    assert_eq!(Magnitude::Max.ladder(), AtLeast { min: true, med: true, max: true });
+    assert_eq!(
+        Magnitude::None.ladder(),
+        AtLeast { at_least_min: false, at_least_med: false, at_least_max: false }
+    );
+    assert_eq!(
+        Magnitude::Min.ladder(),
+        AtLeast { at_least_min: true, at_least_med: false, at_least_max: false }
+    );
+    assert_eq!(
+        Magnitude::Med.ladder(),
+        AtLeast { at_least_min: true, at_least_med: true, at_least_max: false }
+    );
+    assert_eq!(
+        Magnitude::Max.ladder(),
+        AtLeast { at_least_min: true, at_least_med: true, at_least_max: true }
+    );
 }
 
 #[test]

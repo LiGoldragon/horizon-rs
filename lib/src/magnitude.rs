@@ -1,10 +1,13 @@
 //! `Magnitude` — the size and trust ladder.
 //!
 //! Four points on a single ordinal scale: `None` (0, absent), `Min` (1),
-//! `Med` (2), `Max` (3). Used for both `size` (capacity) and `trust`.
+//! `Med` (2), `Max` (3). Used internally for both `size` (capacity) and
+//! `trust`.
 //!
-//! `AtLeast` is the typed form of asking "is this magnitude at least
-//! min/med/max?" — three booleans, true monotonically.
+//! Consumers don't see `Magnitude` directly — they see `AtLeast`, the
+//! monotonic boolean ladder (`atLeastMin` / `atLeastMed` / `atLeastMax`)
+//! that tells them whether a magnitude meets each threshold. This is
+//! the only public shape of magnitude-valued fields on `Node` / `User`.
 
 use serde::{Deserialize, Serialize};
 
@@ -23,9 +26,9 @@ impl Magnitude {
 
     pub fn ladder(self) -> AtLeast {
         AtLeast {
-            min: self >= Magnitude::Min,
-            med: self >= Magnitude::Med,
-            max: self >= Magnitude::Max,
+            at_least_min: self >= Magnitude::Min,
+            at_least_med: self >= Magnitude::Med,
+            at_least_max: self >= Magnitude::Max,
         }
     }
 
@@ -34,36 +37,17 @@ impl Magnitude {
     }
 }
 
-/// Three-bit decomposition of a `Magnitude` for downstream consumers
-/// that want named flags rather than ordinal comparisons.
+/// Monotonic ladder of at-least predicates for a `Magnitude`.
+///
+/// The three booleans are the public shape of `Node.size`, `Node.trust`,
+/// `User.size`, `User.trust`. They are monotonic — if `at_least_med` is
+/// true then `at_least_min` is also true — so consumers can branch on
+/// the threshold they actually care about without knowing the raw
+/// `Magnitude` variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AtLeast {
-    pub min: bool,
-    pub med: bool,
-    pub max: bool,
+    pub at_least_min: bool,
+    pub at_least_med: bool,
+    pub at_least_max: bool,
 }
-
-/// `Mg` — a `Magnitude` bundled with its predicate ladder, so
-/// downstream consumers can do `node.size.is.med` rather than
-/// implementing the magnitude → ordinal conversion themselves.
-/// `value` carries the raw enum for callers that need the full
-/// magnitude; `is` is the precomputed `AtLeast` ladder.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Mg {
-    pub value: Magnitude,
-    pub is: AtLeast,
-}
-
-impl Mg {
-    pub fn from(value: Magnitude) -> Self {
-        Self { value, is: value.ladder() }
-    }
-}
-
-impl From<Magnitude> for Mg {
-    fn from(value: Magnitude) -> Self {
-        Self::from(value)
-    }
-}
-

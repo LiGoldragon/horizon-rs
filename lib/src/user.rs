@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::magnitude::{Magnitude, Mg};
+use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, GithubId, NodeName, UserName};
 use crate::proposal::{UserProposal, UserPubKeyEntry};
 use crate::pub_key::SshPubKeyLine;
@@ -17,8 +17,8 @@ pub struct User {
     // input pass-through
     pub name: UserName,
     pub species: UserSpecies,
-    pub size: Mg,
-    pub trust: Mg,
+    pub size: AtLeast,
+    pub trust: AtLeast,
     pub keyboard: Keyboard,
     pub style: Style,
     pub github_id: Option<GithubId>,
@@ -78,8 +78,8 @@ impl UserProposal {
 
             name: ctx.name,
             species: self.species,
-            size: Mg::from(self.size),
-            trust: Mg::from(ctx.trust),
+            size: self.size.ladder(),
+            trust: ctx.trust.ladder(),
             keyboard: self.keyboard,
             style: self.style,
             github_id: Some(github_id),
