@@ -37,4 +37,4 @@ in-process actors when the lojix family unifies.
 ## Cross-cutting context
 
 - Project-wide architecture:
-  [mentci-next/docs/architecture.md](https://github.com/LiGoldragon/mentci-next/blob/main/docs/architecture.md)
+  [criome/ARCHITECTURE.md](https://github.com/LiGoldragon/criome/blob/main/ARCHITECTURE.md)
