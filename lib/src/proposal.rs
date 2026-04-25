@@ -52,9 +52,12 @@ pub struct NodeProposal {
     #[serde(default)]
     pub wifi_cert: bool,
     #[serde(default)]
-    pub wants_printing: bool,
-    #[serde(default)]
     pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
+    /// Operator opt-in for the printer driver bundle (hplip, samsung,
+    /// epson, gutenprint). Default false. Must remain the LAST field
+    /// in this struct so existing positional nota files still parse.
+    #[serde(default)]
+    pub wants_printing: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
