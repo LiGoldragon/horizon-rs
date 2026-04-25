@@ -20,4 +20,19 @@ pub struct Machine {
     pub super_node: Option<NodeName>,
     /// Pod-only: which user runs this pod.
     pub super_user: Option<UserName>,
+    /// Intel iGPU graphics generation (e.g. 8 = Broadwell, 11 = Skylake,
+    /// 12 = Tiger Lake / Alder Lake / Meteor Lake Xe-LPG, 13 = Lunar
+    /// Lake Xe2). Gates the modern Intel media stack: `>= 12` enables
+    /// `vpl-gpu-rt` for AV1/HEVC HW decode. None for non-Intel or
+    /// unknown — modules fall back to the safe default driver.
+    /// MUST stay near the end of the struct so positional nota records
+    /// keep parsing with implicit None defaults.
+    #[serde(default)]
+    pub chip_gen: Option<u32>,
+    /// Total system RAM in gibibytes (rounded). Gates downstream
+    /// resource policies: `nix.settings.maxJobs` thresholds,
+    /// llama.cpp model size, language-server heap. Optional — None
+    /// means the operator hasn't filled it in yet.
+    #[serde(default)]
+    pub ram_gb: Option<u32>,
 }

@@ -54,10 +54,17 @@ pub struct NodeProposal {
     #[serde(default)]
     pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
     /// Operator opt-in for the printer driver bundle (hplip, samsung,
-    /// epson, gutenprint). Default false. Must remain the LAST field
-    /// in this struct so existing positional nota files still parse.
+    /// epson, gutenprint). Default false. Must stay near the end of
+    /// this struct so existing positional nota files still parse.
     #[serde(default)]
     pub wants_printing: bool,
+    /// Operator opt-in for hardware-accelerated video decode (browser
+    /// playback, mpv, etc.). Modules pick the codec driver based on
+    /// `machine.chip_gen`: Gen >= 12 → `vpl-gpu-rt` (AV1/HEVC); older
+    /// Intel → `intel-vaapi-driver`. Default false; software fallback
+    /// is silent. MUST stay the LAST field for positional-nota parsing.
+    #[serde(default)]
+    pub wants_hw_video_accel: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -37,6 +37,9 @@ pub struct Node {
     /// Operator opt-in for the printer driver bundle (hplip, samsung,
     /// epson, gutenprint). Default false — toggle on per node.
     pub wants_printing: bool,
+    /// Operator opt-in for HW-accelerated video decode. Modules pick
+    /// the codec driver based on `machine.chip_gen`.
+    pub wants_hw_video_accel: bool,
 
     // identity / connectivity (always derived)
     pub criome_domain_name: CriomeDomainName,
@@ -390,6 +393,7 @@ impl NodeProposal {
             nordvpn: self.nordvpn,
             wifi_cert: self.wifi_cert,
             wants_printing: self.wants_printing,
+            wants_hw_video_accel: self.wants_hw_video_accel,
 
             criome_domain_name,
             system: ctx.resolved_arch.system(),
