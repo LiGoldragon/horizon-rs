@@ -34,6 +34,9 @@ pub struct Node {
     pub wireguard_pub_key: Option<WireguardPubKey>,
     pub nordvpn: bool,
     pub wifi_cert: bool,
+    /// Operator opt-in for the printer driver bundle (hplip, samsung,
+    /// epson, gutenprint). Default false — toggle on per node.
+    pub wants_printing: bool,
 
     // identity / connectivity (always derived)
     pub criome_domain_name: CriomeDomainName,
@@ -325,7 +328,7 @@ impl NodeProposal {
             && has_base_pub_keys;
         let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.at_least_min;
         let is_nix_cache = behaves_as.center && sized_at_least.at_least_min && has_base_pub_keys;
-        let is_large_edge = sized_at_least.at_least_max && behaves_as.edge;
+        let is_large_edge = sized_at_least.at_least_large && behaves_as.edge;
         let enable_network_manager = sized_at_least.at_least_min
             && !behaves_as.iso
             && !behaves_as.center
@@ -386,6 +389,7 @@ impl NodeProposal {
             wireguard_pub_key: self.wireguard_pub_key.clone(),
             nordvpn: self.nordvpn,
             wifi_cert: self.wifi_cert,
+            wants_printing: self.wants_printing,
 
             criome_domain_name,
             system: ctx.resolved_arch.system(),

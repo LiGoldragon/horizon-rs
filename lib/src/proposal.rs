@@ -52,6 +52,8 @@ pub struct NodeProposal {
     #[serde(default)]
     pub wifi_cert: bool,
     #[serde(default)]
+    pub wants_printing: bool,
+    #[serde(default)]
     pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
 }
 
