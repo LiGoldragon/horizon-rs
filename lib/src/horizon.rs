@@ -64,6 +64,11 @@ impl ClusterProposal {
             .expect("viewpoint node was projected above")
             .behaves_as
             .center;
+        let viewpoint_node_size = self
+            .nodes
+            .get(&viewpoint.node)
+            .expect("viewpoint node proposal exists")
+            .size;
         let mut users: BTreeMap<UserName, User> = BTreeMap::new();
         for (name, proposal) in &self.users {
             let trust = self
@@ -81,6 +86,7 @@ impl ClusterProposal {
                 viewpoint_node: &viewpoint.node,
                 trust,
                 viewpoint_behaves_as_center,
+                viewpoint_node_size,
             };
             users.insert(name.clone(), proposal.project(ctx));
         }

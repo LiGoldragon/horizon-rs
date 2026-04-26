@@ -59,6 +59,12 @@ pub struct UserProjection<'a> {
     /// Whether the projection's viewpoint node behaves as a `center`.
     /// Needed to derive `enable_linger`.
     pub viewpoint_behaves_as_center: bool,
+    /// Capacity ceiling: the user's projected `size` is the floor of
+    /// the user's declared size and the viewpoint node's declared
+    /// size. A Max user on a Large box gets a Large-shaped home.
+    /// Mirrors archive behavior (mkHorizonModule.nix `lowestOf [
+    /// inputUser.size node.size ]`) which was lost in the Rust port.
+    pub viewpoint_node_size: Magnitude,
 }
 
 impl UserProposal {
@@ -118,7 +124,7 @@ impl UserProposal {
 
             name: ctx.name,
             species: self.species,
-            size: self.size.ladder(),
+            size: self.size.floor(ctx.viewpoint_node_size).ladder(),
             trust: trust_ladder,
             keyboard: self.keyboard,
             style: self.style,
