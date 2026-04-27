@@ -6,6 +6,7 @@
 
 use std::collections::BTreeMap;
 
+use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
 
 use crate::address::{LinkLocalIp, NodeIp};
@@ -18,7 +19,7 @@ use crate::species::{DomainSpecies, Keyboard, NodeSpecies, Style, UserSpecies};
 use crate::address::{YggAddress, YggSubnet};
 
 /// The proposal a cluster owner emits.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct ClusterProposal {
     #[serde(default)]
@@ -30,7 +31,7 @@ pub struct ClusterProposal {
     pub trust: ClusterTrust,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeProposal {
     pub species: NodeSpecies,
@@ -67,7 +68,7 @@ pub struct NodeProposal {
     pub wants_hw_video_accel: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct NodePubKeys {
     pub ssh: SshPubKey,
@@ -77,7 +78,7 @@ pub struct NodePubKeys {
     pub yggdrasil: Option<YggPubKeyEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct YggPubKeyEntry {
     pub pub_key: YggPubKey,
@@ -85,7 +86,7 @@ pub struct YggPubKeyEntry {
     pub subnet: YggSubnet,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct UserProposal {
     pub species: UserSpecies,
@@ -102,20 +103,20 @@ pub struct UserProposal {
     pub pub_keys: BTreeMap<NodeName, UserPubKeyEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct UserPubKeyEntry {
     pub ssh: SshPubKey,
     pub keygrip: Keygrip,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct DomainProposal {
     pub species: DomainSpecies,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct ClusterTrust {
     pub cluster: Magnitude,
@@ -130,7 +131,7 @@ pub struct ClusterTrust {
 /// An external WireGuard proxy this node tunnels through. Becomes a
 /// peer on the `wgProxies` interface; downstream nix module routes
 /// `0.0.0.0/0` through it. One per VPN connection (NordVPN, etc.).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct WireguardProxy {
     pub pub_key: WireguardPubKey,

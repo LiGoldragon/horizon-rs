@@ -35,7 +35,7 @@ pub enum Error {
     UnresolvableArch(NodeName),
 
     #[error("nota: {0}")]
-    Nota(#[from] nota_serde::Error),
+    Nota(#[from] nota_codec::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

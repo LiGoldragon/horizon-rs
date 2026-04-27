@@ -4,6 +4,7 @@
 use std::net::Ipv6Addr;
 
 use ipnet::IpNet;
+use nota_codec::{NotaEncode, NotaDecode, NotaRecord, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
@@ -45,13 +46,28 @@ impl std::fmt::Display for YggAddress {
     }
 }
 
+impl NotaEncode for YggAddress {
+    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
+        encoder.write_string(&self.0.to_string())
+    }
+}
+
+impl NotaDecode for YggAddress {
+    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
+        let s = decoder.read_string()?;
+        YggAddress::try_new(s.clone()).map_err(|e| {
+            nota_codec::Error::Lexer(format!("invalid YggAddress {s:?}: {e}"))
+        })
+    }
+}
+
 /// Yggdrasil subnet identifier (e.g. `300:ca41:6b12:fba`). Free-form
 /// today — not a parsed CIDR — because the legacy data carries it as
 /// the bare prefix without a prefix length. Promote to `Ipv6Net` when
 /// goldragon emits canonical CIDRs.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
-pub struct YggSubnet(String);
+pub struct YggSubnet(pub(crate) String);
 
 impl YggSubnet {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
@@ -75,6 +91,21 @@ impl YggSubnet {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct NodeIp(IpNet);
+
+impl NotaEncode for NodeIp {
+    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
+        encoder.write_string(&self.0.to_string())
+    }
+}
+
+impl NotaDecode for NodeIp {
+    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
+        let s = decoder.read_string()?;
+        NodeIp::try_new(s.clone()).map_err(|e| {
+            nota_codec::Error::Lexer(format!("invalid NodeIp {s:?}: {e}"))
+        })
+    }
+}
 
 impl NodeIp {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
@@ -104,9 +135,9 @@ impl From<NodeIp> for String {
 
 /// Network interface name (`enp0s25`, `wlp3s0`, …). Hardware-dependent;
 /// the proposal author specifies it per link-local entry.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
-pub struct Iface(String);
+pub struct Iface(pub(crate) String);
 
 impl Iface {
     pub fn new(s: impl Into<String>) -> Self {
@@ -126,7 +157,7 @@ impl std::fmt::Display for Iface {
 
 /// Raw input form of a link-local address: an interface plus a
 /// 64-bit suffix. Renders as `fe80::<suffix>%<iface>`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkLocalIp {
     pub iface: Iface,
@@ -140,9 +171,9 @@ impl LinkLocalIp {
 }
 
 /// Projected (rendered) link-local address.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
-pub struct LinkLocalAddress(String);
+pub struct LinkLocalAddress(pub(crate) String);
 
 impl LinkLocalAddress {
     pub fn as_str(&self) -> &str {

@@ -7,6 +7,7 @@ use std::process::ExitCode;
 use clap::{Parser, ValueEnum};
 use horizon_lib::name::{ClusterName, NodeName};
 use horizon_lib::{ClusterProposal, Viewpoint};
+use nota_codec::{Decoder, NotaDecode};
 
 #[derive(Parser)]
 #[command(
@@ -51,11 +52,14 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     }
 
-    let proposal: ClusterProposal = match nota_serde::from_str(&buf) {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("error: parse cluster proposal: {e}");
-            return ExitCode::from(1);
+    let proposal: ClusterProposal = {
+        let mut decoder = Decoder::nota(&buf);
+        match ClusterProposal::decode(&mut decoder) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("error: parse cluster proposal: {e}");
+                return ExitCode::from(1);
+            }
         }
     };
 
@@ -67,9 +71,13 @@ fn main() -> ExitCode {
         }
     };
 
-    let out = match cli.format {
+    let out: std::result::Result<String, String> = match cli.format {
         Format::Json => serde_json::to_string_pretty(&horizon).map_err(|e| e.to_string()),
-        Format::Nota => nota_serde::to_string(&horizon).map_err(|e| e.to_string()),
+        // Nota emit on output types is currently unwired during the
+        // nota-codec migration. Re-enable by deriving NotaRecord on
+        // Horizon / Node / User / Cluster / BuilderConfig (and the
+        // viewpoint-only fields) once their wire shape is decided.
+        Format::Nota => Err("Nota output not implemented in this build (use --format json)".to_string()),
     };
     let out = match out {
         Ok(s) => s,

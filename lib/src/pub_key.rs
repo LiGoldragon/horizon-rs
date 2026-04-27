@@ -9,6 +9,7 @@
 //! Derived line types (`SshPubKeyLine`, `NixPubKeyLine`) carry the
 //! pre-rendered string form used by downstream consumers.
 
+use nota_codec::{NotaTransparent, NotaTryTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
@@ -27,9 +28,16 @@ fn is_hex(s: &str) -> bool {
     s.chars().all(|c| c.is_ascii_hexdigit())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
 #[serde(try_from = "String", into = "String")]
 pub struct SshPubKey(String);
+
+impl TryFrom<String> for SshPubKey {
+    type Error = Error;
+    fn try_from(s: String) -> Result<Self> {
+        Self::try_new(s)
+    }
+}
 
 impl SshPubKey {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
@@ -50,22 +58,17 @@ impl SshPubKey {
     }
 }
 
-impl TryFrom<String> for SshPubKey {
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
+#[serde(try_from = "String", into = "String")]
+pub struct YggPubKey(String);
+
+impl TryFrom<String> for YggPubKey {
     type Error = Error;
     fn try_from(s: String) -> Result<Self> {
         Self::try_new(s)
     }
 }
-
-impl From<SshPubKey> for String {
-    fn from(k: SshPubKey) -> Self {
-        k.0
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(try_from = "String", into = "String")]
-pub struct YggPubKey(String);
 
 impl YggPubKey {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
@@ -82,22 +85,17 @@ impl YggPubKey {
     }
 }
 
-impl TryFrom<String> for YggPubKey {
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
+#[serde(try_from = "String", into = "String")]
+pub struct NixPubKey(String);
+
+impl TryFrom<String> for NixPubKey {
     type Error = Error;
     fn try_from(s: String) -> Result<Self> {
         Self::try_new(s)
     }
 }
-
-impl From<YggPubKey> for String {
-    fn from(k: YggPubKey) -> Self {
-        k.0
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(try_from = "String", into = "String")]
-pub struct NixPubKey(String);
 
 impl NixPubKey {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
@@ -118,22 +116,17 @@ impl NixPubKey {
     }
 }
 
-impl TryFrom<String> for NixPubKey {
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
+#[serde(try_from = "String", into = "String")]
+pub struct WireguardPubKey(String);
+
+impl TryFrom<String> for WireguardPubKey {
     type Error = Error;
     fn try_from(s: String) -> Result<Self> {
         Self::try_new(s)
     }
 }
-
-impl From<NixPubKey> for String {
-    fn from(k: NixPubKey) -> Self {
-        k.0
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(try_from = "String", into = "String")]
-pub struct WireguardPubKey(String);
 
 impl WireguardPubKey {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
@@ -150,22 +143,10 @@ impl WireguardPubKey {
     }
 }
 
-impl TryFrom<String> for WireguardPubKey {
-    type Error = Error;
-    fn try_from(s: String) -> Result<Self> {
-        Self::try_new(s)
-    }
-}
-
-impl From<WireguardPubKey> for String {
-    fn from(k: WireguardPubKey) -> Self {
-        k.0
-    }
-}
 
 /// Pre-rendered SSH known-hosts / authorized_keys line:
 /// `ssh-ed25519 <pubKey>`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
 pub struct SshPubKeyLine(String);
 
@@ -183,7 +164,7 @@ impl std::fmt::Display for SshPubKeyLine {
 
 /// Pre-rendered nix `trusted-public-keys` entry:
 /// `<criomeDomain>:<rawNixPubKey>`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
 pub struct NixPubKeyLine(String);
 

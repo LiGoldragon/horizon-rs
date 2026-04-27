@@ -1,15 +1,16 @@
 //! Typed name newtypes. Each kind of name is a distinct type so a
 //! `NodeName` cannot be confused with a `UserName` or a `ClusterName`.
 
+use nota_codec::{NotaTransparent, NotaTryTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 
 macro_rules! string_newtype {
     ($name:ident, $kind:literal) => {
-        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
         #[serde(transparent)]
-        pub struct $name(String);
+        pub struct $name(pub(crate) String);
 
         impl $name {
             pub fn try_new(s: impl Into<String>) -> Result<Self> {
@@ -55,9 +56,9 @@ string_newtype!(GithubId, "github id");
 string_newtype!(DomainName, "domain name");
 
 /// Derived: `<node>.<cluster>.criome` — and also `nix.<criomeDomain>` for caches.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
-pub struct CriomeDomainName(String);
+pub struct CriomeDomainName(pub(crate) String);
 
 impl CriomeDomainName {
     pub fn for_node(node: &NodeName, cluster: &ClusterName) -> Self {
@@ -86,9 +87,16 @@ impl std::fmt::Display for CriomeDomainName {
 }
 
 /// GPG keygrip: 40 hex chars.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
 #[serde(try_from = "String", into = "String")]
-pub struct Keygrip(String);
+pub struct Keygrip(pub(crate) String);
+
+impl TryFrom<String> for Keygrip {
+    type Error = Error;
+    fn try_from(s: String) -> Result<Self> {
+        Self::try_new(s)
+    }
+}
 
 impl Keygrip {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
@@ -105,18 +113,6 @@ impl Keygrip {
     }
 }
 
-impl TryFrom<String> for Keygrip {
-    type Error = Error;
-    fn try_from(s: String) -> Result<Self> {
-        Self::try_new(s)
-    }
-}
-
-impl From<Keygrip> for String {
-    fn from(k: Keygrip) -> Self {
-        k.0
-    }
-}
 
 impl AsRef<str> for Keygrip {
     fn as_ref(&self) -> &str {

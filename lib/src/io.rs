@@ -2,11 +2,12 @@
 
 use std::collections::BTreeMap;
 
+use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::species::{Bootloader, Keyboard};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct Io {
     pub keyboard: Keyboard,
@@ -17,9 +18,9 @@ pub struct Io {
 }
 
 /// A filesystem mount point.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
-pub struct MountPath(String);
+pub struct MountPath(pub(crate) String);
 
 impl MountPath {
     pub fn new(s: impl Into<String>) -> Self {
@@ -38,9 +39,9 @@ impl std::fmt::Display for MountPath {
 }
 
 /// A device path (e.g. `/dev/disk/by-uuid/abcd-…`).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
-pub struct DevicePath(String);
+pub struct DevicePath(pub(crate) String);
 
 impl DevicePath {
     pub fn new(s: impl Into<String>) -> Self {
@@ -52,7 +53,7 @@ impl DevicePath {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct Disk {
     pub device: DevicePath,
@@ -61,7 +62,7 @@ pub struct Disk {
     pub options: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct SwapDevice {
     pub device: DevicePath,
@@ -70,7 +71,7 @@ pub struct SwapDevice {
 /// Filesystem type. Closed set of NixOS-supported filesystems we
 /// realistically use as a root, boot, or data filesystem. Add a
 /// variant when a new one shows up in real config.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
 pub enum FsType {
     Ext2,
     Ext3,
