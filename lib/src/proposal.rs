@@ -63,9 +63,28 @@ pub struct NodeProposal {
     /// playback, mpv, etc.). Modules pick the codec driver based on
     /// `machine.chip_gen`: Gen >= 12 → `vpl-gpu-rt` (AV1/HEVC); older
     /// Intel → `intel-vaapi-driver`. Default false; software fallback
-    /// is silent. MUST stay the LAST field for positional-nota parsing.
+    /// is silent.
     #[serde(default)]
     pub wants_hw_video_accel: bool,
+
+    /// Whether this node is currently reachable on the network.
+    /// `None` (= default `Some(true)`) means online; `Some(false)`
+    /// declares the node as administratively offline so dispatchers
+    /// don't list it in `nix.buildMachines` and stall on TCP timeouts
+    /// trying to reach it. Nodes that are offline still get projected
+    /// (so other consumers can see they exist) but the `is_builder`
+    /// predicate is gated on `online`.
+    #[serde(default)]
+    pub online: Option<bool>,
+
+    /// `nix.buildMachines.<this>.maxJobs` from each dispatcher's
+    /// viewpoint when this node acts as a remote builder; also drives
+    /// `nix.settings.build-cores` locally on the node itself. `None`
+    /// (= default `Some(1)`) means single-job-at-a-time, matching
+    /// nix's default. Bump this up on big builders (e.g. prometheus
+    /// at 6) to unlock parallel dispatch.
+    #[serde(default)]
+    pub nb_of_build_cores: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]

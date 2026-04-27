@@ -286,35 +286,6 @@ impl BuilderConfig {
     }
 }
 
-/// Compute `(max_jobs, build_cores)` for a builder.
-///
-/// `build_cores = 0` universally — each derivation is allowed to use
-/// every core via `NIX_BUILD_CORES=0`. Per-derivation `enableParallelBuilding`
-/// then runs `make -j$(nproc)`.
-///
-/// `max_jobs` (parallel-derivations-on-this-builder) is role + size aware:
-/// - 1-core machines (pods) → 1.
-/// - size = None or Min → 1 (don't fan out on a node not meant to carry load).
-/// - dedicated builders (`behaves_as.center`) → all cores.
-/// - everything else (interactive edge / hybrid) → cores / 2,
-///   leaving headroom for the human at the keyboard.
-pub(crate) fn nix_concurrency(
-    cores: u32,
-    behaves_as_center: bool,
-    size: Magnitude,
-) -> (u32, u32) {
-    let max_jobs = if cores <= 1 {
-        1
-    } else if matches!(size, Magnitude::None | Magnitude::Min) {
-        1
-    } else if behaves_as_center {
-        cores
-    } else {
-        (cores / 2).max(1)
-    };
-    (max_jobs, 0)
-}
-
 pub struct NodeProjection<'a> {
     pub name: NodeName,
     pub cluster: &'a ClusterName,
@@ -350,7 +321,9 @@ impl NodeProposal {
         let io_disks_empty = self.io.disks.is_empty();
         let behaves_as = BehavesAs::derive(&type_is, &self.machine, io_disks_empty);
 
-        let is_builder = !type_is.edge
+        let online = self.online.unwrap_or(true);
+        let is_builder = online
+            && !type_is.edge
             && is_fully_trusted
             && (sized_at_least.at_least_med || behaves_as.center)
             && has_base_pub_keys;
@@ -393,8 +366,14 @@ impl NodeProposal {
         let ssh_pub_key_line = ssh_pub_key.line();
 
         let chip_is_intel = ctx.resolved_arch.is_intel();
-        let (max_jobs, build_cores) =
-            nix_concurrency(self.machine.cores, behaves_as.center, self.size);
+        // Per-node `nb_of_build_cores` from the datom drives both
+        // `nix.buildMachines.<n>.maxJobs` (when this node acts as a
+        // remote builder) and `nix.settings.build-cores` locally on
+        // the node itself. `None` defaults to 1 — matches nix's
+        // out-of-the-box single-job-at-a-time and keeps the wire
+        // backward-compat with datoms that don't set the field.
+        let max_jobs = self.nb_of_build_cores.unwrap_or(1);
+        let build_cores = max_jobs;
         let model_is_thinkpad = self
             .machine
             .model
