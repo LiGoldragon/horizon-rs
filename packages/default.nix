@@ -12,12 +12,6 @@ let
 
   cargoVendorDir = craneLib.vendorCargoDeps {
     inherit src;
-    outputHashes = {
-      "git+https://github.com/LiGoldragon/nota-serde#fc005d47870a4a17594464251462b57c251f89b8" =
-        "sha256-CmycShB+N6JgvFT6xzbgFWw445DTOVj7fbo2jOSUH3I=";
-      "git+https://github.com/LiGoldragon/nota-serde-core.git#e553e171b733583758c1351d7a5cd5642e32b5a8" =
-        "sha256-XrgepGfd2ADYifj30+hIocKh+Ctycof54E/BBKLKI0g=";
-    };
   };
 
   commonArgs = {

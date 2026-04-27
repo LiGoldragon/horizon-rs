@@ -19,7 +19,7 @@ It does not:
 
 ## Wire format: nota
 
-Both input and output are nota — see `~/git/nota/README.md` for the spec. `serde` derives + the `nota-serde` crate.
+Both input and output are nota — see `~/git/nota/README.md` for the spec. nota-codec's typed `Decoder` + `Encoder` plus nota-derive's proc-macro derives (`NotaRecord`, `NotaEnum`, `NotaTransparent`, `NotaTryTransparent`).
 JSON is gone.
 
 ## Schema rules
@@ -481,7 +481,7 @@ pub enum Error {
     MissingField(&'static str),
 
     #[error("nota: {0}")]
-    Nota(#[from] nota_serde::Error),
+    Nota(#[from] nota_codec::Error),
 }
 ```
 
@@ -512,8 +512,8 @@ None. horizon-cli is a one-shot pure function.
 
 ## Dependencies
 
-- `serde` (derive) + `nota-serde` — nota I/O.
-- `serde_json` — JSON output mode (Nix consumption path).
+- `nota-codec` (typed `Decoder` + `Encoder`) + `nota-derive` (six proc-macro derives) — nota I/O.
+- `serde` (derive) + `serde_json` — JSON output mode (Nix consumption path).
 - `thiserror` — Error enum derive.
 - `clap` (derive) — CLI parsing.
 - `std::net::Ipv6Addr` — `YggAddress`.
