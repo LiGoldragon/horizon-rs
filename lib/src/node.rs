@@ -237,6 +237,17 @@ pub struct BuilderConfig {
     pub system: System,
     pub systems: Vec<System>,
     pub max_jobs: u32,
+    /// Builder's SSH host pubkey, base64 form (no `ssh-ed25519 ` prefix).
+    /// Maps to `nix.buildMachines.<n>.publicHostKey` which the consumer
+    /// uses to verify the builder's identity at SSH-connect time. Without
+    /// this populated, the dispatcher's nix-daemon (no-TTY root context)
+    /// cannot answer the host-trust prompt and the build silently hangs.
+    pub public_host_key: SshPubKey,
+    /// Same key in line form (`ssh-ed25519 AAAA...== <comment>`). Maps to
+    /// `programs.ssh.knownHosts.<host>.publicKey`. Populating both
+    /// `publicHostKey` (in `nix.buildMachines`) and `programs.ssh.knownHosts`
+    /// makes the SSH path fully declarative — no manual `ssh-keyscan`.
+    pub public_host_key_line: SshPubKeyLine,
 }
 
 impl BuilderConfig {
@@ -247,16 +258,30 @@ impl BuilderConfig {
         let systems = Vec::new();
         BuilderConfig {
             host_name: node.criome_domain_name.clone(),
-            ssh_user: "nixBuilder".to_string(),
+            // `nix-ssh` is the user `nix.sshServe.enable = true` creates on
+            // the builder. Match it on the dispatcher side so `sshServe.keys`
+            // and `buildMachines.<n>.sshUser` line up out of the box.
+            ssh_user: "nix-ssh".to_string(),
+            // The dispatcher's nix-daemon runs as root with no provisioned
+            // user keys (NixOS doesn't auto-generate `/root/.ssh/id_*`).
+            // Use the host's SSH host key as the daemon's identity instead —
+            // sshd auto-generates `ssh_host_ed25519_key` at first boot, mode
+            // 600 root-owned. The builder authorizes the dispatcher's host
+            // *pub*key as if it were a user key in `nix.sshServe.keys`.
             ssh_key: "/etc/ssh/ssh_host_ed25519_key".to_string(),
             supported_features: if node.type_is.edge {
                 Vec::new()
             } else {
-                vec!["big-parallel".to_string()]
+                // `big-parallel`: required by LLVM, kernels, chromium, etc.
+                // `kvm`: required by `nixos-tests` that boot VMs. Cheap to
+                // claim on a non-edge bare-metal host (always has /dev/kvm).
+                vec!["big-parallel".to_string(), "kvm".to_string()]
             },
             system: node.system,
             systems,
             max_jobs: node.max_jobs,
+            public_host_key: node.ssh_pub_key.clone(),
+            public_host_key_line: node.ssh_pub_key_line.clone(),
         }
     }
 }
