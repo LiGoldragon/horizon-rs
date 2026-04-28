@@ -73,10 +73,6 @@ fn main() -> ExitCode {
 
     let out: std::result::Result<String, String> = match cli.format {
         Format::Json => serde_json::to_string_pretty(&horizon).map_err(|e| e.to_string()),
-        // Nota emit on output types is currently unwired during the
-        // nota-codec migration. Re-enable by deriving NotaRecord on
-        // Horizon / Node / User / Cluster / BuilderConfig (and the
-        // viewpoint-only fields) once their wire shape is decided.
         Format::Nota => Err("Nota output not implemented in this build (use --format json)".to_string()),
     };
     let out = match out {
