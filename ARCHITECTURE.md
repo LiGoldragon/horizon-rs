@@ -6,7 +6,7 @@ nixos modules; linked in-process by
 
 ## Role
 
-When lojix-deploy materialises a CriomOS configuration, it walks
+When forge-deploy materialises a CriomOS configuration, it walks
 horizon-rs's projection types to compute the nixos-rebuild
 inputs. Today, this is in-process — a Rust dep, not a daemon
 boundary.
@@ -25,14 +25,14 @@ Does not own:
 
 - The deploy pipeline — that's
   [lojix-cli](https://github.com/LiGoldragon/lojix-cli).
-- The nixos-rebuild driver — also lojix.
+- The nixos-rebuild driver — also forge.
 - Sema records — though horizon-rs's role may eventually be
   absorbed into a records-authored projection over sema.
 
 ## Status
 
-CANON. Active. Long-term: parts may migrate into lojix's
-in-process actors when the lojix family unifies.
+CANON. Active. Long-term: parts may migrate into forge's
+in-process actors when the forge family unifies.
 
 ## Cross-cutting context
 
