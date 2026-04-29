@@ -6,7 +6,7 @@ nixos modules; linked in-process by
 
 ## Role
 
-When forge-deploy materialises a CriomOS configuration, it walks
+When forge materialises a CriomOS configuration, it walks
 horizon-rs's projection types to compute the nixos-rebuild
 inputs. Today, this is in-process — a Rust dep, not a daemon
 boundary.
