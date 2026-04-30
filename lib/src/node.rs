@@ -15,8 +15,10 @@ use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName};
-use crate::proposal::{NodeProposal, WireguardProxy};
-use crate::pub_key::{NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey};
+use crate::proposal::{NodeProposal, RouterInterfaces, WireguardProxy};
+use crate::pub_key::{
+    NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
+};
 use crate::species::{Arch, NodeSpecies, System};
 use crate::user::User;
 
@@ -40,6 +42,9 @@ pub struct Node {
     /// Operator opt-in for HW-accelerated video decode. Modules pick
     /// the codec driver based on `machine.chip_gen`.
     pub wants_hw_video_accel: bool,
+    /// Router interface roles for router nodes. `None` for non-router
+    /// nodes and for invalid proposals that validation rejects upstream.
+    pub router_interfaces: Option<RouterInterfaces>,
 
     // identity / connectivity (always derived)
     pub criome_domain_name: CriomeDomainName,
@@ -398,6 +403,7 @@ impl NodeProposal {
             wifi_cert: self.wifi_cert,
             wants_printing: self.wants_printing,
             wants_hw_video_accel: self.wants_hw_video_accel,
+            router_interfaces: self.router_interfaces.clone(),
 
             criome_domain_name,
             system: ctx.resolved_arch.system(),
@@ -482,13 +488,12 @@ impl Node {
             .map(|n| BuilderConfig::from_node(n))
             .collect();
 
-        let cache_urls: Vec<String> = ex_nodes
-            .iter()
-            .filter_map(|n| n.nix_url.clone())
-            .collect();
+        let cache_urls: Vec<String> = ex_nodes.iter().filter_map(|n| n.nix_url.clone()).collect();
 
-        let ex_nodes_ssh_pub_keys: Vec<SshPubKeyLine> =
-            ex_nodes.iter().map(|n| n.ssh_pub_key_line.clone()).collect();
+        let ex_nodes_ssh_pub_keys: Vec<SshPubKeyLine> = ex_nodes
+            .iter()
+            .map(|n| n.ssh_pub_key_line.clone())
+            .collect();
 
         let dispatchers_ssh_pub_keys: Vec<SshPubKeyLine> = ex_nodes
             .iter()

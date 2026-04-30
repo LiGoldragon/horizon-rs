@@ -9,14 +9,14 @@ use std::collections::BTreeMap;
 use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
 
-use crate::address::{LinkLocalIp, NodeIp};
+use crate::address::{Iface, LinkLocalIp, NodeIp};
+use crate::address::{YggAddress, YggSubnet};
 use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, DomainName, GithubId, Keygrip, NodeName, UserName};
 use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 use crate::species::{DomainSpecies, Keyboard, NodeSpecies, Style, UserSpecies};
-use crate::address::{YggAddress, YggSubnet};
 
 /// The proposal a cluster owner emits.
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -67,6 +67,12 @@ pub struct NodeProposal {
     #[serde(default)]
     pub wants_hw_video_accel: bool,
 
+    /// Router interface roles for nodes that behave as routers. These
+    /// are deployment facts, not machine-model facts: two machines with
+    /// the same model may have different interface names.
+    #[serde(default)]
+    pub router_interfaces: Option<RouterInterfaces>,
+
     /// Whether this node is currently reachable on the network.
     /// `None` (= default `Some(true)`) means online; `Some(false)`
     /// declares the node as administratively offline so dispatchers
@@ -85,6 +91,34 @@ pub struct NodeProposal {
     /// at 6) to unlock parallel dispatch.
     #[serde(default)]
     pub nb_of_build_cores: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct RouterInterfaces {
+    pub wan: Iface,
+    pub wlan: Iface,
+    pub wlan_band: WlanBand,
+    pub wlan_channel: u16,
+    pub wlan_standard: WlanStandard,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
+pub enum WlanBand {
+    #[serde(rename = "2g")]
+    TwoG,
+    #[serde(rename = "5g")]
+    FiveG,
+    #[serde(rename = "6g")]
+    SixG,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
+#[serde(rename_all = "camelCase")]
+pub enum WlanStandard {
+    Wifi4,
+    Wifi6,
+    Wifi7,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]

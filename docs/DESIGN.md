@@ -164,6 +164,19 @@ pub struct NodeProposal {
     pub nordvpn:           bool,
     pub wifi_cert:         bool,
     pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
+    pub wants_printing:    bool,
+    pub wants_hw_video_accel: bool,
+    pub router_interfaces: Option<RouterInterfaces>,
+    pub online:            Option<bool>,
+    pub nb_of_build_cores: Option<u32>,
+}
+
+pub struct RouterInterfaces {
+    pub wan:           Iface,
+    pub wlan:          Iface,
+    pub wlan_band:     WlanBand,
+    pub wlan_channel:  u16,
+    pub wlan_standard: WlanStandard,
 }
 
 pub struct NodePubKeys {
@@ -280,6 +293,9 @@ pub struct Node {
     pub wireguard_pub_key:   Option<WireguardPubKey>,
     pub nordvpn:             bool,
     pub wifi_cert:           bool,
+    pub wants_printing:      bool,
+    pub wants_hw_video_accel: bool,
+    pub router_interfaces:   Option<RouterInterfaces>,
 
     // identity / connectivity (derived)
     pub criome_domain_name:  CriomeDomainName,
