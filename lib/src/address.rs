@@ -55,8 +55,9 @@ impl NotaEncode for YggAddress {
 impl NotaDecode for YggAddress {
     fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
         let s = decoder.read_string()?;
-        YggAddress::try_new(s.clone()).map_err(|e| {
-            nota_codec::Error::Lexer(format!("invalid YggAddress {s:?}: {e}"))
+        YggAddress::try_new(s.clone()).map_err(|e| nota_codec::Error::Validation {
+            type_name: "YggAddress",
+            message: format!("invalid YggAddress {s:?}: {e}"),
         })
     }
 }
@@ -101,8 +102,9 @@ impl NotaEncode for NodeIp {
 impl NotaDecode for NodeIp {
     fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
         let s = decoder.read_string()?;
-        NodeIp::try_new(s.clone()).map_err(|e| {
-            nota_codec::Error::Lexer(format!("invalid NodeIp {s:?}: {e}"))
+        NodeIp::try_new(s.clone()).map_err(|e| nota_codec::Error::Validation {
+            type_name: "NodeIp",
+            message: format!("invalid NodeIp {s:?}: {e}"),
         })
     }
 }

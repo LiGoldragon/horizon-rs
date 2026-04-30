@@ -247,7 +247,7 @@ dependencies = [
 [[package]]
 name = "nota-codec"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/nota-codec.git#a0edb69861205443336439b7cb78213eec3c924a"
+source = "git+https://github.com/LiGoldragon/nota-codec.git#f9112ee308824014501742cf0670ccd1e0d56aff"
 dependencies = [
  "nota-derive",
  "rkyv",
@@ -257,7 +257,7 @@ dependencies = [
 [[package]]
 name = "nota-derive"
 version = "0.1.0"
-source = "git+https://github.com/LiGoldragon/nota-derive.git?rev=7cff7aaddb8ed8d234b4c53b5b113adf525356ea#7cff7aaddb8ed8d234b4c53b5b113adf525356ea"
+source = "git+https://github.com/LiGoldragon/nota-derive.git?branch=main#d936e20bd4bb6b09999f5efac5f537f368598ed1"
 dependencies = [
  "proc-macro2",
  "quote",
