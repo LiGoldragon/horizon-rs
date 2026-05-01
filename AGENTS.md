@@ -1,23 +1,15 @@
-# Agent Bootstrap — horizon-rs
+# Agent instructions — horizon-rs
 
-## First thing
+You **MUST** read AGENTS.md at `github:ligoldragon/lore` — the workspace contract.
 
-Run `bd list --status open` to see what's already on the table.
+You **MUST** read CriomOS's AGENTS.md (sibling repo) — CriomOS-cluster rules apply here.
 
-## Scope
+## Repo role
 
-Owns the horizon schema, type-checking, and method computation for
-CriomOS. Reads a cluster proposal in nota (from goldragon), projects it
-from a viewpoint `(cluster, node)`, and emits an enriched horizon nota.
-
-Spec: [docs/DESIGN.md](docs/DESIGN.md).
-Build-cores derivation rationale: [docs/BUILD_CORES.md](docs/BUILD_CORES.md).
+Owns the horizon schema, type-checking, and method computation for CriomOS. Reads a cluster proposal in nota (from goldragon), projects it from a viewpoint `(cluster, node)`, emits an enriched horizon nota.
 
 CLI: `horizon-cli --cluster <C> --node <N> < proposal.nota > horizon.nota`.
 
-## Hard process rules
+Spec: `docs/DESIGN.md`. Build-cores derivation rationale: `docs/BUILD_CORES.md`.
 
-- Jujutsu only. Never `git` CLI.
-- Push immediately after every change.
-- Mentci three-tuple commit format:
-  `(("CommitType", "scope"), ("Action", "what"), ("Verdict", "why"))`.
+First thing: run `bd list --status open`.
