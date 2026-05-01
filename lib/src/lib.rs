@@ -4,7 +4,7 @@
 //! viewpoint-scoped enriched `Horizon` with every method-derived
 //! field already filled.
 //!
-//! Spec: `docs/DESIGN.md`. Style: `~/git/tools-documentation/rust/style.md`.
+//! Spec: `docs/DESIGN.md`. Style: `~/git/lore/rust/style.md`.
 
 pub mod address;
 pub mod cluster;
