@@ -67,7 +67,7 @@ pub struct Node {
 
     // computed booleans (always derived)
     pub is_fully_trusted: bool,
-    pub is_builder: bool,
+    pub is_remote_nix_builder: bool,
     pub is_dispatcher: bool,
     pub is_nix_cache: bool,
     pub is_large_edge: bool,
@@ -327,7 +327,7 @@ impl NodeProposal {
         let behaves_as = BehavesAs::derive(&type_is, &self.machine, io_disks_empty);
 
         let online = self.online.unwrap_or(true);
-        let is_builder = online
+        let is_remote_nix_builder = online
             && !type_is.edge
             && is_fully_trusted
             && (sized_at_least.at_least_med || behaves_as.center)
@@ -417,7 +417,7 @@ impl NodeProposal {
             ygg_subnet,
 
             is_fully_trusted,
-            is_builder,
+            is_remote_nix_builder,
             is_dispatcher,
             is_nix_cache,
             is_large_edge,
@@ -484,7 +484,7 @@ impl Node {
 
         let builder_configs: Vec<BuilderConfig> = ex_nodes
             .iter()
-            .filter(|n| n.is_builder)
+            .filter(|n| n.is_remote_nix_builder)
             .map(|n| BuilderConfig::from_node(n))
             .collect();
 

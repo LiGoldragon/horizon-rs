@@ -312,7 +312,7 @@ pub struct Node {
     // computed booleans
     pub is_fully_trusted:    bool,
     pub sized_at_least:      AtLeast,
-    pub is_builder:          bool,
+    pub is_remote_nix_builder: bool,
     pub is_dispatcher:       bool,
     pub is_nix_cache:        bool,
     pub has_nix_pub_key:     bool,

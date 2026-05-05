@@ -78,8 +78,8 @@ pub struct NodeProposal {
     /// declares the node as administratively offline so dispatchers
     /// don't list it in `nix.buildMachines` and stall on TCP timeouts
     /// trying to reach it. Nodes that are offline still get projected
-    /// (so other consumers can see they exist) but the `is_builder`
-    /// predicate is gated on `online`.
+    /// (so other consumers can see they exist) but the
+    /// `is_remote_nix_builder` predicate is gated on `online`.
     #[serde(default)]
     pub online: Option<bool>,
 
