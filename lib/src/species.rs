@@ -45,6 +45,17 @@ pub enum Style {
     Emacs,
 }
 
+/// User's preferred top-level editor application. Distinct from
+/// [`Style`] (modal-keystroke style — Vim or Emacs bindings can be
+/// selected on top of either editor). When absent on a `UserProposal`,
+/// the projection picks `Emacs` for code developers and `Codium`
+/// otherwise.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+pub enum Editor {
+    Codium,
+    Emacs,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
 pub enum Bootloader {
     Uefi,
