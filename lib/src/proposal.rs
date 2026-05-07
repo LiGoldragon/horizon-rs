@@ -16,7 +16,7 @@ use crate::machine::Machine;
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, DomainName, GithubId, Keygrip, NodeName, UserName};
 use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
-use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, UserSpecies};
+use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
 
 /// The proposal a cluster owner emits.
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -159,6 +159,10 @@ pub struct UserProposal {
     /// `Codium` otherwise).
     #[serde(default)]
     pub editor: Option<Editor>,
+    /// Preferred relative text size — drives terminal font, editor
+    /// font, and editor UI zoom. Defaults to `Medium` when absent.
+    #[serde(default)]
+    pub text_size: TextSize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]

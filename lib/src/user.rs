@@ -9,7 +9,7 @@ use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, GithubId, NodeName, UserName};
 use crate::proposal::{UserProposal, UserPubKeyEntry};
 use crate::pub_key::SshPubKeyLine;
-use crate::species::{Editor, Keyboard, Style, UserSpecies};
+use crate::species::{Editor, Keyboard, Style, TextSize, UserSpecies};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -38,6 +38,9 @@ pub struct User {
     /// when set, otherwise `Emacs` for code developers and `Codium`
     /// for everyone else.
     pub preferred_editor: Editor,
+    /// User's preferred relative text size; consumers (ghostty,
+    /// wezterm, emacs, codium) map this onto their own units.
+    pub text_size: TextSize,
     pub ssh_pub_keys: Vec<SshPubKeyLine>,
     /// Viewpoint-node line, only when has_pub_key.
     pub ssh_pub_key: Option<SshPubKeyLine>,
@@ -129,6 +132,7 @@ impl UserProposal {
             is_multimedia_dev: matches!(self.species, UserSpecies::Multimedia | UserSpecies::Unlimited),
             is_code_dev,
             preferred_editor,
+            text_size: self.text_size,
             ssh_pub_keys,
             ssh_pub_key,
             extra_groups,

@@ -56,6 +56,20 @@ pub enum Editor {
     Emacs,
 }
 
+/// User's preferred relative text and UI size — covers terminal font
+/// size, editor font size, and editor UI zoom. A user setting; later
+/// composed with hardware DPI to compute actual pixel values.
+/// Default is `Medium`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, NotaEnum)]
+pub enum TextSize {
+    ExtraSmall,
+    Small,
+    #[default]
+    Medium,
+    Large,
+    ExtraLarge,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
 pub enum Bootloader {
     Uefi,
