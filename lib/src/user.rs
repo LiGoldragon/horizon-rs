@@ -132,7 +132,7 @@ impl UserProposal {
             is_multimedia_dev: matches!(self.species, UserSpecies::Multimedia | UserSpecies::Unlimited),
             is_code_dev,
             preferred_editor,
-            text_size: self.text_size,
+            text_size: self.text_size.unwrap_or_default(),
             ssh_pub_keys,
             ssh_pub_key,
             extra_groups,

@@ -160,9 +160,10 @@ pub struct UserProposal {
     #[serde(default)]
     pub editor: Option<Editor>,
     /// Preferred relative text size — drives terminal font, editor
-    /// font, and editor UI zoom. Defaults to `Medium` when absent.
+    /// font, and editor UI zoom. `None` means use the default
+    /// (`Medium`).
     #[serde(default)]
-    pub text_size: TextSize,
+    pub text_size: Option<TextSize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
