@@ -4,7 +4,7 @@
 use std::net::Ipv6Addr;
 
 use ipnet::IpNet;
-use nota_codec::{NotaEncode, NotaDecode, NotaRecord, NotaTransparent};
+use nota_codec::{NotaDecode, NotaEncode, NotaRecord, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
@@ -74,10 +74,7 @@ impl YggSubnet {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
         let s = s.into();
         if s.is_empty() {
-            Err(Error::InvalidYggAddress {
-                got: s,
-                source: "::".parse::<Ipv6Addr>().unwrap_err(),
-            })
+            Err(Error::EmptyYggSubnet)
         } else {
             Ok(Self(s))
         }
@@ -139,9 +136,9 @@ impl From<NodeIp> for String {
 /// the proposal author specifies it per link-local entry.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
-pub struct Iface(pub(crate) String);
+pub struct Interface(pub(crate) String);
 
-impl Iface {
+impl Interface {
     pub fn new(s: impl Into<String>) -> Self {
         Self(s.into())
     }
@@ -151,7 +148,7 @@ impl Iface {
     }
 }
 
-impl std::fmt::Display for Iface {
+impl std::fmt::Display for Interface {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0)
     }
@@ -162,7 +159,7 @@ impl std::fmt::Display for Iface {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkLocalIp {
-    pub iface: Iface,
+    pub iface: Interface,
     pub suffix: String,
 }
 

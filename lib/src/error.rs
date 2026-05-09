@@ -19,6 +19,9 @@ pub enum Error {
     #[error("invalid yggdrasil address {got:?}: {source}")]
     InvalidYggAddress { got: String, source: std::net::AddrParseError },
 
+    #[error("yggdrasil subnet must not be empty")]
+    EmptyYggSubnet,
+
     #[error("invalid node ip {got:?}: {source}")]
     InvalidNodeIp { got: String, source: ipnet::AddrParseError },
 

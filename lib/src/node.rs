@@ -14,7 +14,7 @@ use crate::error::{Error, Result};
 use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
-use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName};
+use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName, UserName};
 use crate::proposal::{NodeProposal, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
@@ -464,8 +464,6 @@ pub struct ViewpointFill<'a> {
     pub all_users: &'a BTreeMap<UserName, User>,
     pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
 }
-
-use crate::name::UserName;
 
 impl Node {
     /// Fill viewpoint-only fields on the viewpoint node. Idempotent.

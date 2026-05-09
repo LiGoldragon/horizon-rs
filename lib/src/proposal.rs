@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
 
-use crate::address::{Iface, LinkLocalIp, NodeIp};
+use crate::address::{Interface, LinkLocalIp, NodeIp};
 use crate::address::{YggAddress, YggSubnet};
 use crate::io::Io;
 use crate::machine::Machine;
@@ -96,8 +96,8 @@ pub struct NodeProposal {
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct RouterInterfaces {
-    pub wan: Iface,
-    pub wlan: Iface,
+    pub wan: Interface,
+    pub wlan: Interface,
     pub wlan_band: WlanBand,
     pub wlan_channel: u16,
     pub wlan_standard: WlanStandard,
