@@ -5,40 +5,40 @@ use horizon_lib::magnitude::{AtLeast, Magnitude};
 #[test]
 fn ladder_monotonic() {
     assert_eq!(
-        Magnitude::None.ladder(),
-        AtLeast { at_least_min: false, at_least_med: false, at_least_large: false, at_least_max: false }
+        Magnitude::Zero.ladder(),
+        AtLeast { min: false, medium: false, large: false, max: false }
     );
     assert_eq!(
         Magnitude::Min.ladder(),
-        AtLeast { at_least_min: true, at_least_med: false, at_least_large: false, at_least_max: false }
+        AtLeast { min: true, medium: false, large: false, max: false }
     );
     assert_eq!(
-        Magnitude::Med.ladder(),
-        AtLeast { at_least_min: true, at_least_med: true, at_least_large: false, at_least_max: false }
+        Magnitude::Medium.ladder(),
+        AtLeast { min: true, medium: true, large: false, max: false }
     );
     assert_eq!(
         Magnitude::Large.ladder(),
-        AtLeast { at_least_min: true, at_least_med: true, at_least_large: true, at_least_max: false }
+        AtLeast { min: true, medium: true, large: true, max: false }
     );
     assert_eq!(
         Magnitude::Max.ladder(),
-        AtLeast { at_least_min: true, at_least_med: true, at_least_large: true, at_least_max: true }
+        AtLeast { min: true, medium: true, large: true, max: true }
     );
 }
 
 #[test]
 fn min_picks_lower() {
-    assert_eq!(Magnitude::Max.min(Magnitude::Med), Magnitude::Med);
+    assert_eq!(Magnitude::Max.min(Magnitude::Medium), Magnitude::Medium);
     assert_eq!(Magnitude::Min.min(Magnitude::Max), Magnitude::Min);
     assert_eq!(Magnitude::Max.min(Magnitude::Large), Magnitude::Large);
 }
 
 #[test]
 fn at_least_compares() {
-    assert!(Magnitude::Med.at_least(Magnitude::Min));
-    assert!(Magnitude::Med.at_least(Magnitude::Med));
-    assert!(!Magnitude::Med.at_least(Magnitude::Large));
-    assert!(!Magnitude::Med.at_least(Magnitude::Max));
-    assert!(Magnitude::Large.at_least(Magnitude::Med));
+    assert!(Magnitude::Medium.at_least(Magnitude::Min));
+    assert!(Magnitude::Medium.at_least(Magnitude::Medium));
+    assert!(!Magnitude::Medium.at_least(Magnitude::Large));
+    assert!(!Magnitude::Medium.at_least(Magnitude::Max));
+    assert!(Magnitude::Large.at_least(Magnitude::Medium));
     assert!(!Magnitude::Large.at_least(Magnitude::Max));
 }

@@ -94,10 +94,10 @@ impl UserProposal {
 
         let trust_ladder = ctx.trust.ladder();
         let mut extra_groups: Vec<String> = vec!["audio".into()];
-        if trust_ladder.at_least_med {
+        if trust_ladder.medium {
             extra_groups.push("video".into());
         }
-        if trust_ladder.at_least_max {
+        if trust_ladder.max {
             extra_groups.extend(
                 [
                     "adbusers",
@@ -113,7 +113,7 @@ impl UserProposal {
                 .map(String::from),
             );
         }
-        let enable_linger = trust_ladder.at_least_max && ctx.viewpoint_behaves_as_center;
+        let enable_linger = trust_ladder.max && ctx.viewpoint_behaves_as_center;
 
         let is_code_dev = matches!(self.species, UserSpecies::Code | UserSpecies::Unlimited);
         let preferred_editor = self.editor.unwrap_or(if is_code_dev {

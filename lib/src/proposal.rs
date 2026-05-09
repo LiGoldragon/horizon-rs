@@ -35,7 +35,7 @@ pub struct ClusterProposal {
 #[serde(rename_all = "camelCase")]
 pub struct NodeProposal {
     pub species: NodeSpecies,
-    #[serde(default = "Magnitude::default_none")]
+    #[serde(default = "Magnitude::default_zero")]
     pub size: Magnitude,
     #[serde(default = "Magnitude::default_min")]
     pub trust: Magnitude,
@@ -143,7 +143,7 @@ pub struct YggPubKeyEntry {
 #[serde(rename_all = "camelCase")]
 pub struct UserProposal {
     pub species: UserSpecies,
-    #[serde(default = "Magnitude::default_none")]
+    #[serde(default = "Magnitude::default_zero")]
     pub size: Magnitude,
     pub keyboard: Keyboard,
     pub style: Style,
@@ -206,8 +206,8 @@ pub struct WireguardProxy {
 
 // Free-fn helpers used by serde defaults; not exposed.
 impl Magnitude {
-    pub(crate) fn default_none() -> Self {
-        Magnitude::None
+    pub(crate) fn default_zero() -> Self {
+        Magnitude::Zero
     }
     pub(crate) fn default_min() -> Self {
         Magnitude::Min

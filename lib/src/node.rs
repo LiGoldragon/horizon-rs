@@ -197,6 +197,41 @@ impl BehavesAs {
             large_ai,
         }
     }
+
+    /// systemd-logind lid-switch policy derived from the node's
+    /// behaves-as flags. Centers ignore lid events entirely; edges
+    /// lock when docked; otherwise the policy depends on the
+    /// power state.
+    fn lid_switch_policy(&self) -> LidSwitchPolicy {
+        let on_battery = if self.center {
+            LidSwitchAction::Ignore
+        } else {
+            LidSwitchAction::Suspend
+        };
+        let on_external_power = if self.center {
+            LidSwitchAction::Ignore
+        } else if self.low_power {
+            LidSwitchAction::Suspend
+        } else {
+            LidSwitchAction::Lock
+        };
+        let docked = if self.edge {
+            LidSwitchAction::Lock
+        } else {
+            LidSwitchAction::Ignore
+        };
+        LidSwitchPolicy {
+            on_battery,
+            on_external_power,
+            docked,
+        }
+    }
+}
+
+struct LidSwitchPolicy {
+    on_battery: LidSwitchAction,
+    on_external_power: LidSwitchAction,
+    docked: LidSwitchAction,
 }
 
 /// Closed set of computer-model flags downstream consumers gate on.
@@ -323,34 +358,18 @@ impl NodeProposal {
         let is_remote_nix_builder = online
             && !type_is.edge
             && is_fully_trusted
-            && (sized_at_least.at_least_med || behaves_as.center)
+            && (sized_at_least.medium || behaves_as.center)
             && has_base_pub_keys;
-        let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.at_least_min;
-        let is_nix_cache = behaves_as.center && sized_at_least.at_least_min && has_base_pub_keys;
-        let is_large_edge = sized_at_least.at_least_large && behaves_as.edge;
-        let enable_network_manager = sized_at_least.at_least_min
+        let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.min;
+        let is_nix_cache = behaves_as.center && sized_at_least.min && has_base_pub_keys;
+        let is_large_edge = sized_at_least.large && behaves_as.edge;
+        let enable_network_manager = sized_at_least.min
             && !behaves_as.iso
             && !behaves_as.center
             && !behaves_as.router;
         let has_video_output = behaves_as.edge;
 
-        let handle_lid_switch = if behaves_as.center {
-            LidSwitchAction::Ignore
-        } else {
-            LidSwitchAction::Suspend
-        };
-        let handle_lid_switch_external_power = if behaves_as.center {
-            LidSwitchAction::Ignore
-        } else if behaves_as.low_power {
-            LidSwitchAction::Suspend
-        } else {
-            LidSwitchAction::Lock
-        };
-        let handle_lid_switch_docked = if behaves_as.edge {
-            LidSwitchAction::Lock
-        } else {
-            LidSwitchAction::Ignore
-        };
+        let lid_policy = behaves_as.lid_switch_policy();
 
         let nix_pub_key_line = nix_pub_key.as_ref().map(|k| k.line(&criome_domain_name));
         let nix_cache_domain = if is_nix_cache {
@@ -436,9 +455,9 @@ impl NodeProposal {
             behaves_as,
             type_is,
 
-            handle_lid_switch,
-            handle_lid_switch_external_power,
-            handle_lid_switch_docked,
+            handle_lid_switch: lid_policy.on_battery,
+            handle_lid_switch_external_power: lid_policy.on_external_power,
+            handle_lid_switch_docked: lid_policy.docked,
 
             io: None,
             use_colemak: None,
@@ -497,7 +516,7 @@ impl Node {
         // adminSshPubKeys: for each user with trust=Max, walk their pubKeys; for each
         // entry whose node is fully trusted, take that ssh line. Dedup preserving order.
         let mut admin_ssh_pub_keys: Vec<SshPubKeyLine> = Vec::new();
-        for user in fill.all_users.values().filter(|u| u.trust.at_least_max) {
+        for user in fill.all_users.values().filter(|u| u.trust.max) {
             for (node_name, entry) in &user.pub_keys {
                 let is_trusted_node = fill
                     .all_nodes
