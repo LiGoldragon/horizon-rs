@@ -90,7 +90,7 @@ pub struct NodeProposal {
     /// nix's default. Bump this up on big builders (e.g. prometheus
     /// at 6) to unlock parallel dispatch.
     #[serde(default)]
-    pub nb_of_build_cores: Option<u32>,
+    pub number_of_build_cores: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]

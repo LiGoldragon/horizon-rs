@@ -19,7 +19,7 @@ use crate::proposal::{NodeProposal, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
 };
-use crate::species::{Arch, NodeSpecies, System};
+use crate::species::{Arch, KnownModel, NodeSpecies, System};
 use crate::user::User;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -214,23 +214,16 @@ pub struct ComputerIs {
 
 impl ComputerIs {
     fn from_model(model: Option<&ModelName>) -> Self {
-        let m = model.map(ModelName::as_str);
+        let known = model.and_then(ModelName::known);
         ComputerIs {
-            thinkpad_t14_gen2_intel: m == Some("ThinkPadT14Gen2Intel"),
-            thinkpad_t14_gen5_intel: m == Some("ThinkPadT14Gen5Intel"),
-            thinkpad_x230: m == Some("ThinkPadX230"),
-            thinkpad_x240: m == Some("ThinkPadX240"),
-            rpi3b: m == Some("rpi3B"),
+            thinkpad_t14_gen2_intel: known == Some(KnownModel::ThinkPadT14Gen2Intel),
+            thinkpad_t14_gen5_intel: known == Some(KnownModel::ThinkPadT14Gen5Intel),
+            thinkpad_x230: known == Some(KnownModel::ThinkPadX230),
+            thinkpad_x240: known == Some(KnownModel::ThinkPadX240),
+            rpi3b: known == Some(KnownModel::Rpi3B),
         }
     }
 }
-
-const THINKPAD_MODELS: &[&str] = &[
-    "ThinkPadX240",
-    "ThinkPadX230",
-    "ThinkPadT14Gen2Intel",
-    "ThinkPadT14Gen5Intel",
-];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -371,19 +364,21 @@ impl NodeProposal {
         let ssh_pub_key_line = ssh_pub_key.line();
 
         let chip_is_intel = ctx.resolved_arch.is_intel();
-        // Per-node `nb_of_build_cores` from the datom drives both
-        // `nix.buildMachines.<n>.maxJobs` (when this node acts as a
-        // remote builder) and `nix.settings.build-cores` locally on
-        // the node itself. `None` defaults to 1 — matches nix's
-        // out-of-the-box single-job-at-a-time and keeps the wire
-        // backward-compat with datoms that don't set the field.
-        let max_jobs = self.nb_of_build_cores.unwrap_or(1);
+        // Per-node `number_of_build_cores` from the datom drives
+        // both `nix.buildMachines.<n>.maxJobs` (when this node
+        // acts as a remote builder) and `nix.settings.build-cores`
+        // locally on the node itself. `None` defaults to 1 —
+        // matches nix's out-of-the-box single-job-at-a-time and
+        // keeps the wire backward-compat with datoms that don't
+        // set the field.
+        let max_jobs = self.number_of_build_cores.unwrap_or(1);
         let build_cores = max_jobs;
         let model_is_thinkpad = self
             .machine
             .model
             .as_ref()
-            .is_some_and(|m| THINKPAD_MODELS.contains(&m.as_str()));
+            .and_then(ModelName::known)
+            .is_some_and(KnownModel::is_thinkpad);
 
         let mut machine = self.machine.clone();
         machine.arch = Some(ctx.resolved_arch);
@@ -529,25 +524,30 @@ impl Node {
     }
 }
 
-/// Resolve a machine's arch — concrete if specified, otherwise looked up
-/// from its super-node's arch (single hop; no chained pods).
-pub(crate) fn resolve_arch(
-    name: &NodeName,
-    machine: &Machine,
-    proposals: &BTreeMap<NodeName, NodeProposal>,
-) -> Result<Arch> {
-    if let Some(a) = machine.arch {
-        return Ok(a);
+impl NodeProposal {
+    /// Resolve this proposal's machine arch — concrete if specified,
+    /// otherwise looked up from the super-node's arch (single hop;
+    /// no chained pods). `name` identifies this proposal in the
+    /// surrounding map for error reporting.
+    pub(crate) fn resolve_arch(
+        &self,
+        name: &NodeName,
+        proposals: &BTreeMap<NodeName, NodeProposal>,
+    ) -> Result<Arch> {
+        if let Some(a) = self.machine.arch {
+            return Ok(a);
+        }
+        let super_name = self
+            .machine
+            .super_node
+            .as_ref()
+            .ok_or_else(|| Error::UnresolvableArch(name.clone()))?;
+        let super_proposal = proposals
+            .get(super_name)
+            .ok_or_else(|| Error::MissingSuperNode(name.clone(), super_name.clone()))?;
+        super_proposal
+            .machine
+            .arch
+            .ok_or_else(|| Error::UnresolvableArch(name.clone()))
     }
-    let super_name = machine
-        .super_node
-        .as_ref()
-        .ok_or_else(|| Error::UnresolvableArch(name.clone()))?;
-    let super_proposal = proposals
-        .get(super_name)
-        .ok_or_else(|| Error::MissingSuperNode(name.clone(), super_name.clone()))?;
-    super_proposal
-        .machine
-        .arch
-        .ok_or_else(|| Error::UnresolvableArch(name.clone()))
 }

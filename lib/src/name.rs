@@ -5,6 +5,7 @@ use nota_codec::{NotaTransparent, NotaTryTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::species::KnownModel;
 
 macro_rules! string_newtype {
     ($name:ident, $kind:literal) => {
@@ -54,6 +55,22 @@ string_newtype!(UserName, "user name");
 string_newtype!(ModelName, "model name");
 string_newtype!(GithubId, "github id");
 string_newtype!(DomainName, "domain name");
+
+impl ModelName {
+    /// Parse this model name into its `KnownModel` form, if it
+    /// matches one. Unknown model strings return `None` — the
+    /// projection treats them as "no model-specific config branch."
+    pub fn known(&self) -> Option<KnownModel> {
+        match self.0.as_str() {
+            "ThinkPadX230" => Some(KnownModel::ThinkPadX230),
+            "ThinkPadX240" => Some(KnownModel::ThinkPadX240),
+            "ThinkPadT14Gen2Intel" => Some(KnownModel::ThinkPadT14Gen2Intel),
+            "ThinkPadT14Gen5Intel" => Some(KnownModel::ThinkPadT14Gen5Intel),
+            "rpi3B" => Some(KnownModel::Rpi3B),
+            _ => None,
+        }
+    }
+}
 
 /// Derived: `<node>.<cluster>.criome` — and also `nix.<criomeDomain>` for caches.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]

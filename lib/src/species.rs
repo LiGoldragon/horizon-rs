@@ -108,6 +108,35 @@ pub enum MotherBoard {
     Ondyfaind,
 }
 
+/// Closed set of computer models the projection recognises by
+/// `ModelName` string. Drives `ComputerIs` flags and
+/// `model_is_thinkpad` on `Node`. Add a variant when a new
+/// model needs a config branch.
+///
+/// Not on the wire — `ModelName` stays an open string in the
+/// proposal. This is the parsed form used internally by
+/// `ModelName::known()`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum KnownModel {
+    ThinkPadX230,
+    ThinkPadX240,
+    ThinkPadT14Gen2Intel,
+    ThinkPadT14Gen5Intel,
+    Rpi3B,
+}
+
+impl KnownModel {
+    pub fn is_thinkpad(self) -> bool {
+        matches!(
+            self,
+            Self::ThinkPadX230
+                | Self::ThinkPadX240
+                | Self::ThinkPadT14Gen2Intel
+                | Self::ThinkPadT14Gen5Intel
+        )
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
 pub enum DomainSpecies {
     Cloudflare,

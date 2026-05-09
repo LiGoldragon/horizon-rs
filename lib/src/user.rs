@@ -140,7 +140,7 @@ impl UserProposal {
 
             name: ctx.name,
             species: self.species,
-            size: self.size.floor(ctx.viewpoint_node_size).ladder(),
+            size: self.size.min(ctx.viewpoint_node_size).ladder(),
             trust: trust_ladder,
             keyboard: self.keyboard,
             style: self.style,

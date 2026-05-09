@@ -1,10 +1,10 @@
 //! horizon-cli — read cluster proposal nota on stdin, write
-//! enriched horizon JSON (default) or nota on stdout.
+//! enriched horizon JSON on stdout.
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use horizon_lib::name::{ClusterName, NodeName};
 use horizon_lib::{ClusterProposal, Viewpoint};
 use nota_codec::{Decoder, NotaDecode};
@@ -22,23 +22,20 @@ struct Cli {
     /// Viewpoint node name (must exist in the proposal).
     #[arg(long)]
     node: String,
-
-    /// Output format. JSON is default — Nix consumers read it via
-    /// `builtins.fromJSON` (no `builtins.fromNota` exists).
-    #[arg(long, value_enum, default_value_t = Format::Json)]
-    format: Format,
 }
 
-#[derive(Copy, Clone, Debug, ValueEnum)]
-enum Format {
-    Json,
-    Nota,
+impl Cli {
+    fn viewpoint(&self) -> Result<Viewpoint, String> {
+        let cluster = ClusterName::try_new(&self.cluster).map_err(|e| e.to_string())?;
+        let node = NodeName::try_new(&self.node).map_err(|e| e.to_string())?;
+        Ok(Viewpoint { cluster, node })
+    }
 }
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
 
-    let viewpoint = match build_viewpoint(&cli) {
+    let viewpoint = match cli.viewpoint() {
         Ok(v) => v,
         Err(msg) => {
             eprintln!("error: {msg}");
@@ -71,11 +68,7 @@ fn main() -> ExitCode {
         }
     };
 
-    let out: std::result::Result<String, String> = match cli.format {
-        Format::Json => serde_json::to_string_pretty(&horizon).map_err(|e| e.to_string()),
-        Format::Nota => Err("Nota output not implemented in this build (use --format json)".to_string()),
-    };
-    let out = match out {
+    let json = match serde_json::to_string_pretty(&horizon) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("error: emit horizon: {e}");
@@ -83,17 +76,11 @@ fn main() -> ExitCode {
         }
     };
 
-    if let Err(e) = std::io::stdout().write_all(out.as_bytes()) {
+    if let Err(e) = std::io::stdout().write_all(json.as_bytes()) {
         eprintln!("error: write stdout: {e}");
         return ExitCode::from(2);
     }
     let _ = std::io::stdout().write_all(b"\n");
 
     ExitCode::SUCCESS
-}
-
-fn build_viewpoint(cli: &Cli) -> Result<Viewpoint, String> {
-    let cluster = ClusterName::try_new(&cli.cluster).map_err(|e| e.to_string())?;
-    let node = NodeName::try_new(&cli.node).map_err(|e| e.to_string())?;
-    Ok(Viewpoint { cluster, node })
 }

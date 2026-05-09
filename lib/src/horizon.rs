@@ -9,7 +9,7 @@ use crate::cluster::Cluster;
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, NodeName, UserName};
-use crate::node::{resolve_arch, Node, NodeProjection, ViewpointFill};
+use crate::node::{Node, NodeProjection, ViewpointFill};
 use crate::proposal::ClusterProposal;
 use crate::user::{User, UserProjection};
 
@@ -40,13 +40,13 @@ impl ClusterProposal {
         // Build every Node (no viewpoint fill yet).
         let mut nodes: BTreeMap<NodeName, Node> = BTreeMap::new();
         for (name, proposal) in &self.nodes {
-            let trust = node_trust(self, name, proposal.trust, cluster_trust_floor);
+            let trust = self.node_trust(name, proposal.trust, cluster_trust_floor);
             if matches!(trust, Magnitude::None) {
                 // trust=None marks a node as actively distrusted; drop it
                 // from the horizon entirely.
                 continue;
             }
-            let resolved_arch = resolve_arch(name, &proposal.machine, &self.nodes)?;
+            let resolved_arch = proposal.resolve_arch(name, &self.nodes)?;
             let ctx = NodeProjection {
                 name: name.clone(),
                 cluster: &viewpoint.cluster,
@@ -142,18 +142,20 @@ impl ClusterProposal {
     }
 }
 
-/// `min(node_input_trust, cluster.trust.nodes[node], cluster.trust.cluster)`.
-fn node_trust(
-    proposal: &ClusterProposal,
-    name: &NodeName,
-    input_trust: Magnitude,
-    cluster_trust: Magnitude,
-) -> Magnitude {
-    let per_node = proposal
-        .trust
-        .nodes
-        .get(name)
-        .copied()
-        .unwrap_or(Magnitude::Max);
-    input_trust.floor(per_node).floor(cluster_trust)
+impl ClusterProposal {
+    /// `min(input_trust, self.trust.nodes[name], cluster_trust)`.
+    fn node_trust(
+        &self,
+        name: &NodeName,
+        input_trust: Magnitude,
+        cluster_trust: Magnitude,
+    ) -> Magnitude {
+        let per_node = self
+            .trust
+            .nodes
+            .get(name)
+            .copied()
+            .unwrap_or(Magnitude::Max);
+        input_trust.min(per_node).min(cluster_trust)
+    }
 }

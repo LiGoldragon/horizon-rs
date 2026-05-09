@@ -35,10 +35,6 @@ impl Magnitude {
             at_least_max: self >= Magnitude::Max,
         }
     }
-
-    pub fn floor(self, other: Magnitude) -> Magnitude {
-        std::cmp::min(self, other)
-    }
 }
 
 /// Monotonic ladder of at-least predicates for a `Magnitude`.

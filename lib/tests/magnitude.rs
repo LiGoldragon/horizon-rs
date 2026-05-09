@@ -27,10 +27,10 @@ fn ladder_monotonic() {
 }
 
 #[test]
-fn floor_picks_lower() {
-    assert_eq!(Magnitude::Max.floor(Magnitude::Med), Magnitude::Med);
-    assert_eq!(Magnitude::Min.floor(Magnitude::Max), Magnitude::Min);
-    assert_eq!(Magnitude::Max.floor(Magnitude::Large), Magnitude::Large);
+fn min_picks_lower() {
+    assert_eq!(Magnitude::Max.min(Magnitude::Med), Magnitude::Med);
+    assert_eq!(Magnitude::Min.min(Magnitude::Max), Magnitude::Min);
+    assert_eq!(Magnitude::Max.min(Magnitude::Large), Magnitude::Large);
 }
 
 #[test]
