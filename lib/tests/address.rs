@@ -1,0 +1,58 @@
+//! Tests for `address` — yggdrasil identifiers, node IPs, link-local
+//! per-interface addresses.
+
+use horizon_lib::address::{Interface, LinkLocalIp, NodeIp, YggAddress, YggSubnet};
+use horizon_lib::error::Error;
+
+#[test]
+fn ygg_address_accepts_canonical_ipv6() {
+    let address = YggAddress::try_new("200:1234::1").unwrap();
+    assert_eq!(address.to_string(), "200:1234::1");
+}
+
+#[test]
+fn ygg_address_rejects_garbage() {
+    let error = YggAddress::try_new("not-an-ip").unwrap_err();
+    assert!(matches!(error, Error::InvalidYggAddress { .. }));
+}
+
+#[test]
+fn ygg_subnet_accepts_non_empty_prefix() {
+    let subnet = YggSubnet::try_new("300:ca41:6b12:fba").unwrap();
+    assert_eq!(subnet.as_str(), "300:ca41:6b12:fba");
+}
+
+#[test]
+fn ygg_subnet_rejects_empty() {
+    let error = YggSubnet::try_new("").unwrap_err();
+    assert!(matches!(error, Error::EmptyYggSubnet));
+}
+
+#[test]
+fn node_ip_accepts_cidr() {
+    let ip = NodeIp::try_new("10.0.0.1/32").unwrap();
+    assert_eq!(ip.ipnet().to_string(), "10.0.0.1/32");
+}
+
+#[test]
+fn node_ip_rejects_non_cidr_string() {
+    let error = NodeIp::try_new("definitely not a cidr").unwrap_err();
+    assert!(matches!(error, Error::InvalidNodeIp { .. }));
+}
+
+#[test]
+fn interface_displays_as_carried_string() {
+    let interface = Interface::new("enp0s25");
+    assert_eq!(interface.as_str(), "enp0s25");
+    assert_eq!(format!("{interface}"), "enp0s25");
+}
+
+#[test]
+fn link_local_ip_render_concatenates_fe80_prefix_suffix_and_iface() {
+    let link = LinkLocalIp {
+        iface: Interface::new("enp0s25"),
+        suffix: "1234:abcd".to_string(),
+    };
+    let rendered = link.render();
+    assert_eq!(rendered.as_str(), "fe80::1234:abcd%enp0s25");
+}

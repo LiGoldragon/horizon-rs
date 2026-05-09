@@ -548,7 +548,7 @@ impl NodeProposal {
     /// otherwise looked up from the super-node's arch (single hop;
     /// no chained pods). `name` identifies this proposal in the
     /// surrounding map for error reporting.
-    pub(crate) fn resolve_arch(
+    pub fn resolve_arch(
         &self,
         name: &NodeName,
         proposals: &BTreeMap<NodeName, NodeProposal>,
