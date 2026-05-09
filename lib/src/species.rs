@@ -48,26 +48,12 @@ pub enum Style {
 /// User's preferred top-level editor application. Distinct from
 /// [`Style`] (modal-keystroke style — Vim or Emacs bindings can be
 /// selected on top of either editor). When absent on a `UserProposal`,
-/// the projection picks `Emacs` for code developers and `Codium`
-/// otherwise.
+/// the projection defaults to `Emacs` (the workspace's primary
+/// editor).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
 pub enum Editor {
     Codium,
     Emacs,
-}
-
-/// User's preferred relative text and UI size — covers terminal font
-/// size, editor font size, and editor UI zoom. A user setting; later
-/// composed with hardware DPI to compute actual pixel values.
-/// Default is `Medium`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, NotaEnum)]
-pub enum TextSize {
-    ExtraSmall,
-    Small,
-    #[default]
-    Medium,
-    Large,
-    ExtraLarge,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]

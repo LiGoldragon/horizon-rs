@@ -9,7 +9,7 @@ use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, GithubId, NodeName, UserName};
 use crate::proposal::{UserProposal, UserPubKeyEntry};
 use crate::pub_key::SshPubKeyLine;
-use crate::species::{Editor, Keyboard, Style, TextSize, UserSpecies};
+use crate::species::{Editor, Keyboard, Style, UserSpecies};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,12 +35,8 @@ pub struct User {
     pub is_multimedia_dev: bool,
     pub is_code_dev: bool,
     /// Resolved editor preference: the user's explicit `editor`
-    /// when set, otherwise `Emacs` for code developers and `Codium`
-    /// for everyone else.
+    /// when set, otherwise `Emacs` (the workspace default).
     pub preferred_editor: Editor,
-    /// User's preferred relative text size; consumers (ghostty,
-    /// wezterm, emacs, codium) map this onto their own units.
-    pub text_size: TextSize,
     pub ssh_pub_keys: Vec<SshPubKeyLine>,
     /// Viewpoint-node line, only when has_pub_key.
     pub ssh_pub_key: Option<SshPubKeyLine>,
@@ -115,12 +111,7 @@ impl UserProposal {
         }
         let enable_linger = trust_ladder.at_least_max && ctx.viewpoint_behaves_as_center;
 
-        let is_code_dev = matches!(self.species, UserSpecies::Code | UserSpecies::Unlimited);
-        let preferred_editor = self.editor.unwrap_or(if is_code_dev {
-            Editor::Emacs
-        } else {
-            Editor::Codium
-        });
+        let preferred_editor = self.editor.unwrap_or(Editor::Emacs);
 
         User {
             has_pub_key,
@@ -130,9 +121,8 @@ impl UserProposal {
             use_colemak: matches!(self.keyboard, Keyboard::Colemak),
             use_fast_repeat: self.fast_repeat.unwrap_or(true),
             is_multimedia_dev: matches!(self.species, UserSpecies::Multimedia | UserSpecies::Unlimited),
-            is_code_dev,
+            is_code_dev: matches!(self.species, UserSpecies::Code | UserSpecies::Unlimited),
             preferred_editor,
-            text_size: self.text_size.unwrap_or_default(),
             ssh_pub_keys,
             ssh_pub_key,
             extra_groups,

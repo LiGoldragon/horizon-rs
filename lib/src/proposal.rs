@@ -16,7 +16,7 @@ use crate::machine::Machine;
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, DomainName, GithubId, Keygrip, NodeName, UserName};
 use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
-use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
+use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, UserSpecies};
 
 /// The proposal a cluster owner emits.
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -154,16 +154,12 @@ pub struct UserProposal {
     pub fast_repeat: Option<bool>,
     #[serde(default)]
     pub pub_keys: BTreeMap<NodeName, UserPubKeyEntry>,
-    /// Preferred top-level editor application. `None` means use the
-    /// projection's smart default (`Emacs` for code developers,
-    /// `Codium` otherwise).
+    /// Preferred top-level editor application. `None` defaults to
+    /// `Emacs` at projection time (the workspace's primary editor).
+    /// Tail-positioned so existing positional nota records still
+    /// parse without modification.
     #[serde(default)]
     pub editor: Option<Editor>,
-    /// Preferred relative text size — drives terminal font, editor
-    /// font, and editor UI zoom. `None` means use the default
-    /// (`Medium`).
-    #[serde(default)]
-    pub text_size: Option<TextSize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
