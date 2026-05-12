@@ -299,3 +299,82 @@ fn project_node_trust_clamps_at_cluster_floor() {
     assert!(horizon.node.trust.min);
     assert!(!horizon.node.trust.max);
 }
+
+#[test]
+fn project_rejects_contained_host_that_does_not_exist() {
+    use horizon_lib::error::Error;
+    use horizon_lib::magnitude::Magnitude as Mag;
+    use horizon_lib::placement::{
+        Contained, ContainerResources, ContainmentSubstrate, NodePlacement, UserNamespacePolicy,
+    };
+
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    let ouranos = NodeName::try_new("ouranos").unwrap();
+    proposal.nodes.get_mut(&ouranos).unwrap().placement =
+        Some(NodePlacement::Contained(Contained {
+            host: NodeName::try_new("nonexistent-host").unwrap(),
+            substrate: ContainmentSubstrate::NixosContainer,
+            resources: ContainerResources { cores: 2, ram_gb: 4 },
+            network: None,
+            state: None,
+            trust: Mag::Max.ladder(),
+            user_namespace_policy: UserNamespacePolicy::PrivateUsersPick {},
+            super_user: None,
+        }));
+    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
+    match error {
+        Error::ContainedHostNotFound { node, host } => {
+            assert_eq!(node.as_str(), "ouranos");
+            assert_eq!(host.as_str(), "nonexistent-host");
+        }
+        other => panic!("expected ContainedHostNotFound, got {other:?}"),
+    }
+}
+
+#[test]
+fn project_rejects_nested_containment() {
+    use horizon_lib::error::Error;
+    use horizon_lib::magnitude::Magnitude as Mag;
+    use horizon_lib::placement::{
+        Contained, ContainerResources, ContainmentSubstrate, NodePlacement, UserNamespacePolicy,
+    };
+
+    // ouranos placed in prometheus; prometheus placed in (anything contained)
+    // — but we need prometheus to ALSO be contained. The cluster proposal
+    // has both nodes; we override both placements.
+    let mut proposal = cluster_proposal(Magnitude::Max);
+
+    let mk_contained = |host_name: &str| {
+        Some(NodePlacement::Contained(Contained {
+            host: NodeName::try_new(host_name).unwrap(),
+            substrate: ContainmentSubstrate::NixosContainer,
+            resources: ContainerResources { cores: 1, ram_gb: 2 },
+            network: None,
+            state: None,
+            trust: Mag::Max.ladder(),
+            user_namespace_policy: UserNamespacePolicy::PrivateUsersPick {},
+            super_user: None,
+        }))
+    };
+
+    let ouranos = NodeName::try_new("ouranos").unwrap();
+    let prometheus = NodeName::try_new("prometheus").unwrap();
+    proposal.nodes.get_mut(&ouranos).unwrap().placement = mk_contained("prometheus");
+    proposal.nodes.get_mut(&prometheus).unwrap().placement = mk_contained("ouranos");
+
+    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
+    match error {
+        Error::NestedContainment { node, host } => {
+            // Order depends on BTreeMap iteration — both ouranos→prometheus
+            // and prometheus→ouranos are nested. Either is correct.
+            assert!(
+                (node.as_str() == "ouranos" && host.as_str() == "prometheus")
+                    || (node.as_str() == "prometheus" && host.as_str() == "ouranos"),
+                "got node={:?} host={:?}",
+                node,
+                host
+            );
+        }
+        other => panic!("expected NestedContainment, got {other:?}"),
+    }
+}

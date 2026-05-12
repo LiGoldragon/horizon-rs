@@ -37,6 +37,14 @@ pub enum Error {
     #[error("pod node {0:?} has no super-node and no arch of its own")]
     UnresolvableArch(NodeName),
 
+    #[error("contained node {node:?} references host {host:?} which is not in the cluster")]
+    ContainedHostNotFound { node: NodeName, host: NodeName },
+
+    #[error(
+        "contained node {node:?} hosts on {host:?}, but {host:?} is itself contained — nested containment is not supported in the first cut"
+    )]
+    NestedContainment { node: NodeName, host: NodeName },
+
     #[error("nota: {0}")]
     Nota(#[from] nota_codec::Error),
 }

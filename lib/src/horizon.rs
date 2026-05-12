@@ -65,6 +65,27 @@ impl ClusterProposal {
             nodes.insert(name.clone(), proposal.project(ctx));
         }
 
+        // Validate containment. For every contained node, the named
+        // host must (a) exist as a projected node, and (b) itself be
+        // metal. Nested containment is rejected — the first cut
+        // supports one level of containment, not chains.
+        for (name, node) in &nodes {
+            if let crate::placement::NodePlacement::Contained(contained) = &node.placement {
+                let host = nodes.get(&contained.host).ok_or_else(|| {
+                    Error::ContainedHostNotFound {
+                        node: name.clone(),
+                        host: contained.host.clone(),
+                    }
+                })?;
+                if matches!(host.placement, crate::placement::NodePlacement::Contained(_)) {
+                    return Err(Error::NestedContainment {
+                        node: name.clone(),
+                        host: contained.host.clone(),
+                    });
+                }
+            }
+        }
+
         // Build every User (per-viewpoint). Users need the viewpoint
         // node's `behaves_as.center` to compute `enable_linger`, so
         // look it up once before the loop.
