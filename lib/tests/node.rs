@@ -80,6 +80,8 @@ fn proposal(species: NodeSpecies, size: Magnitude, with_keys: bool) -> NodePropo
         router_interfaces: None,
         online: None,
         number_of_build_cores: None,
+        tailnet_client: false,
+        tailnet_controller: false,
     }
 }
 
@@ -188,6 +190,18 @@ fn nix_url_absent_for_non_cache() {
         .project(ctx_for("zeus", Magnitude::Max));
     assert!(node.nix_url.is_none());
     assert!(node.nix_cache_domain.is_none());
+}
+
+#[test]
+fn tailnet_roles_project_from_proposal_not_node_name() {
+    let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
+    prop.tailnet_client = true;
+    prop.tailnet_controller = true;
+
+    let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
+
+    assert!(node.tailnet_client);
+    assert!(node.tailnet_controller);
 }
 
 #[test]

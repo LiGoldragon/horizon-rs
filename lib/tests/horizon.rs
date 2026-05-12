@@ -82,6 +82,8 @@ fn node_proposal(species: NodeSpecies, size: Magnitude, full_keys: bool) -> Node
         router_interfaces: None,
         online: None,
         number_of_build_cores: None,
+        tailnet_client: false,
+        tailnet_controller: false,
     }
 }
 

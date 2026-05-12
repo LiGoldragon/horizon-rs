@@ -76,6 +76,8 @@ fn node_proposal(species: NodeSpecies, size: Magnitude) -> NodeProposal {
         router_interfaces: None,
         online: None,
         number_of_build_cores: None,
+        tailnet_client: false,
+        tailnet_controller: false,
     }
 }
 
@@ -154,7 +156,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
         "(Machine Metal Arm64 4 None None None None None None) ",
         "(Io Qwerty Uboot [] []) ",
         "(NodePubKeys \"AAA=\" None None) ",
-        "[] None None false false [] false false None None None)",
+        "[] None None false false [] false false None None None false false)",
     );
     let mut decoder = Decoder::nota(text);
     let node = NodeProposal::decode(&mut decoder).unwrap();

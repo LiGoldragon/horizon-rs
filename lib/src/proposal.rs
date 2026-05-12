@@ -87,10 +87,22 @@ pub struct NodeProposal {
     /// viewpoint when this node acts as a remote builder; also drives
     /// `nix.settings.build-cores` locally on the node itself. `None`
     /// (= default `Some(1)`) means single-job-at-a-time, matching
-    /// nix's default. Bump this up on big builders (e.g. prometheus
-    /// at 6) to unlock parallel dispatch.
+    /// nix's default. Bump this up on large builders to unlock
+    /// parallel dispatch.
     #[serde(default)]
     pub number_of_build_cores: Option<u32>,
+
+    /// Whether this node should join the cluster tailnet as a client.
+    /// This is cluster role data: consumers must not infer it from node
+    /// names.
+    #[serde(default)]
+    pub tailnet_client: bool,
+
+    /// Whether this node hosts the cluster tailnet controller service.
+    /// CriomOS currently implements this with headscale, but the proposal
+    /// names the role, not the implementation.
+    #[serde(default)]
+    pub tailnet_controller: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
