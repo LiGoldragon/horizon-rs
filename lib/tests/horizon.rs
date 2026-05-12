@@ -10,8 +10,8 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, UserProposal,
-    UserPubKeyEntry,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
+    UserProposal, UserPubKeyEntry,
     YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
@@ -243,6 +243,52 @@ fn project_rejects_viewpoint_not_in_cluster() {
         .project(&viewpoint("nonexistent"))
         .unwrap_err();
     assert!(matches!(error, Error::NodeNotInCluster(_)));
+}
+
+#[test]
+fn project_rejects_multiple_active_tailnet_controller_servers() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    for name in ["ouranos", "prometheus"] {
+        proposal
+            .nodes
+            .get_mut(&NodeName::try_new(name).unwrap())
+            .unwrap()
+            .services
+            .tailnet_controller = Some(TailnetControllerRole::Server);
+    }
+
+    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
+
+    assert!(matches!(
+        error,
+        Error::MultipleTailnetControllers { first, second }
+            if first.as_str() == "ouranos" && second.as_str() == "prometheus"
+    ));
+}
+
+#[test]
+fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    for name in ["ouranos", "zeus"] {
+        proposal
+            .nodes
+            .get_mut(&NodeName::try_new(name).unwrap())
+            .unwrap()
+            .services
+            .tailnet_controller = Some(TailnetControllerRole::Server);
+    }
+    proposal.trust.nodes.insert(
+        NodeName::try_new("zeus").unwrap(),
+        Magnitude::Zero,
+    );
+
+    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+
+    assert_eq!(
+        horizon.node.services.tailnet_controller,
+        Some(TailnetControllerRole::Server)
+    );
+    assert!(!horizon.ex_nodes.contains_key(&NodeName::try_new("zeus").unwrap()));
 }
 
 #[test]

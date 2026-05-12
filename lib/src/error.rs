@@ -31,6 +31,12 @@ pub enum Error {
     #[error("cluster has no node {0:?}")]
     NodeNotInCluster(NodeName),
 
+    #[error("multiple tailnet controller servers: {first:?} and {second:?}")]
+    MultipleTailnetControllers {
+        first: NodeName,
+        second: NodeName,
+    },
+
     #[error("pod node {0:?} references missing super-node {1:?}")]
     MissingSuperNode(NodeName, NodeName),
 

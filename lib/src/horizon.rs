@@ -10,7 +10,7 @@ use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, NodeName, UserName};
 use crate::node::{Node, NodeProjection, ViewpointFill};
-use crate::proposal::ClusterProposal;
+use crate::proposal::{ClusterProposal, TailnetControllerRole};
 use crate::user::{User, UserProjection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,6 +36,7 @@ impl ClusterProposal {
         }
 
         let cluster_trust_floor = self.trust.cluster;
+        self.validate_tailnet_controller_singleton(cluster_trust_floor)?;
 
         // Build every Node (no viewpoint fill yet).
         let mut nodes: BTreeMap<NodeName, Node> = BTreeMap::new();
@@ -143,6 +144,31 @@ impl ClusterProposal {
 }
 
 impl ClusterProposal {
+    fn validate_tailnet_controller_singleton(&self, cluster_trust_floor: Magnitude) -> Result<()> {
+        let mut server: Option<NodeName> = None;
+
+        for (name, proposal) in &self.nodes {
+            let trust = self.node_trust(name, proposal.trust, cluster_trust_floor);
+            if matches!(trust, Magnitude::Zero) {
+                continue;
+            }
+            if proposal.services.tailnet_controller != Some(TailnetControllerRole::Server) {
+                continue;
+            }
+
+            if let Some(first) = server {
+                return Err(Error::MultipleTailnetControllers {
+                    first,
+                    second: name.clone(),
+                });
+            }
+
+            server = Some(name.clone());
+        }
+
+        Ok(())
+    }
+
     /// `min(input_trust, self.trust.nodes[name], cluster_trust)`.
     fn node_trust(
         &self,
