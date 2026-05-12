@@ -15,6 +15,7 @@ use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, ClusterTld, CriomeDomainName, ModelName, NodeName, UserName};
+use crate::capability::{BuildHost, NodeCapabilities};
 use crate::placement::{
     Contained, ContainerResources, ContainmentSubstrate, Metal, NodePlacement, UserNamespacePolicy,
 };
@@ -107,6 +108,16 @@ pub struct Node {
     // author `placement` directly once the proposal-side wire format
     // gains the field.
     pub placement: NodePlacement,
+
+    // typed capabilities — what the node provides. Each capability is
+    // `Option`: `None` means "this node does not provide it". CriomOS
+    // modules can migrate from the legacy `is_*` flags
+    // (`is_nix_cache`, `is_remote_nix_builder`, …) to
+    // `if let Some(c) = &node.capabilities.binary_cache` over a compat
+    // cycle. Slice 3a populates `build_host` only; `binary_cache`,
+    // `container_host`, `public_endpoint` derive in later slices once
+    // their authored-input shape is settled.
+    pub capabilities: NodeCapabilities,
 
     // grouped flags
     pub behaves_as: BehavesAs,
@@ -458,6 +469,24 @@ impl NodeProposal {
             }
         };
 
+        // Typed capabilities — derived for slice 3a from the legacy
+        // is_remote_nix_builder flag. Binary cache / container host /
+        // public endpoint stay None until their authored shapes land.
+        let capabilities = NodeCapabilities {
+            build_host: if is_remote_nix_builder {
+                Some(BuildHost {
+                    max_jobs,
+                    cores_per_job: build_cores,
+                    trust: ctx.trust.ladder(),
+                })
+            } else {
+                None
+            },
+            binary_cache: None,
+            container_host: None,
+            public_endpoint: None,
+        };
+
         Node {
             name: ctx.name,
             species: self.species,
@@ -465,6 +494,7 @@ impl NodeProposal {
             trust: ctx.trust.ladder(),
             machine,
             placement,
+            capabilities,
             link_local_ips,
             node_ip: self.node_ip.clone(),
             wireguard_pub_key: self.wireguard_pub_key.clone(),

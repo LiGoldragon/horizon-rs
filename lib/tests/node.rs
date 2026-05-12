@@ -282,6 +282,34 @@ fn pod_arch_unresolvable_when_super_node_pointer_absent() {
 }
 
 #[test]
+fn remote_nix_builder_projects_to_build_host_capability() {
+    // A center node with full keys is_remote_nix_builder; capabilities
+    // .build_host should be populated with max_jobs, cores_per_job, and
+    // trust matching the projected node.
+    let node = proposal(NodeSpecies::Center, Magnitude::Min, true)
+        .project(ctx_for("prometheus", Magnitude::Max));
+    assert!(node.is_remote_nix_builder);
+    let build_host = node
+        .capabilities
+        .build_host
+        .as_ref()
+        .expect("remote nix builder should have build_host capability");
+    assert_eq!(build_host.max_jobs, node.max_jobs);
+    assert_eq!(build_host.cores_per_job, node.build_cores);
+    assert_eq!(build_host.trust, node.trust);
+}
+
+#[test]
+fn non_builder_node_has_no_build_host_capability() {
+    // An edge node is_not_remote_nix_builder; capabilities.build_host
+    // should be None.
+    let node = proposal(NodeSpecies::Edge, Magnitude::Min, true)
+        .project(ctx_for("edge1", Magnitude::Max));
+    assert!(!node.is_remote_nix_builder);
+    assert!(node.capabilities.build_host.is_none());
+}
+
+#[test]
 fn metal_machine_projects_to_metal_placement() {
     use horizon_lib::placement::NodePlacement;
     let node = proposal(NodeSpecies::Center, Magnitude::Min, true)
