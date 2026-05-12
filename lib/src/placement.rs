@@ -9,13 +9,20 @@
 //! §P1.1 (typed placement, no `WorkloadSubstrate`) and report 05
 //! (workload is always native NixOS — no axis to choose along).
 
-//! First-slice note: `NotaRecord` / `NotaEnum` derives are intentionally
-//! omitted on these types until they are wired into a proposal record.
-//! Sum types with data variants (`NodePlacement`, `UserNamespacePolicy`)
-//! need hand-written `NotaEncode/NotaDecode` impls — those land in the
-//! slice that adds `placement` to `NodeProposal`.
+//! Wire format: `NodePlacement` and `UserNamespacePolicy` are `NotaSum`s
+//! (head-identifier dispatch on the variant name). `UserNamespacePolicy::
+//! PrivateUsersPick {}` is an empty struct variant rather than a unit
+//! variant so it fits `NotaSum`'s shape (unit variants belong on
+//! `NotaEnum`, not on a sum-with-data enum). Construct as
+//! `UserNamespacePolicy::PrivateUsersPick {}` and match as
+//! `UserNamespacePolicy::PrivateUsersPick {}`.
 
-use nota_codec::{NotaEnum, NotaTransparent};
+// nota-codec's `NexusVerb` derive is the "head-identifier dispatched
+// sum-with-data" macro. It was renamed to `NotaSum` in nota-codec
+// commit adbdb6f; this file uses the older name because horizon-rs's
+// pinned nota-codec rev (333e73a) predates that rename. TODO: rename
+// when horizon-rs bumps nota-codec to >= adbdb6f.
+use nota_codec::{NexusVerb, NotaEnum, NotaRecord, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::magnitude::AtLeast;
@@ -23,20 +30,20 @@ use crate::name::{ModelName, NodeName, UserName};
 use crate::species::{Arch, MotherBoard};
 
 /// How and where a node exists. Exactly one placement per node.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NexusVerb)]
 #[serde(rename_all = "camelCase")]
 pub enum NodePlacement {
-    Metal(MetalPlacement),
-    Contained(ContainedPlacement),
+    Metal(Metal),
+    Contained(Contained),
 }
 
 /// Bare-metal node: physical hardware on its own boot path. The
 /// existing `Machine` record covers the same data and stays during
-/// the migration cycle for backward compatibility; `MetalPlacement`
+/// the migration cycle for backward compatibility; `Metal`
 /// is the new authoritative form.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
-pub struct MetalPlacement {
+pub struct Metal {
     pub arch: Arch,
     #[serde(default)]
     pub model: Option<ModelName>,
@@ -50,9 +57,9 @@ pub struct MetalPlacement {
 /// substrate. Carries enough data for the host to materialize the
 /// container and route traffic to it without consulting any other
 /// records.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
-pub struct ContainedPlacement {
+pub struct Contained {
     pub host: NodeName,
     pub substrate: ContainmentSubstrate,
     pub resources: ContainerResources,
@@ -95,11 +102,14 @@ pub enum ContainmentSubstrate {
 /// of `containers.<name>.privateUsers = false`) is opt-in by data
 /// variant: it requires an explicit `HostRootMappingAllowed` with a
 /// reason and an approver. Trust level is not the gate.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NexusVerb)]
 #[serde(rename_all = "camelCase")]
 pub enum UserNamespacePolicy {
     /// `privateUsers = "pick"` — automatic user-namespace mapping.
-    PrivateUsersPick,
+    /// Empty struct variant rather than unit so `NotaSum` accepts it
+    /// alongside `HostRootMappingAllowed`. Construct as
+    /// `UserNamespacePolicy::PrivateUsersPick {}`.
+    PrivateUsersPick {},
     /// `privateUsers = false` — container UIDs map to host UIDs.
     /// Required for some workloads but unsafe for public-facing
     /// services. Must declare a reason and an approver.
@@ -109,14 +119,14 @@ pub enum UserNamespacePolicy {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct ContainerResources {
     pub cores: u32,
     pub ram_gb: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct ContainerNetwork {
     /// Address inside the container, on the host bridge.
@@ -149,7 +159,7 @@ impl AsRef<str> for ContainerLocalAddress {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct ContainerState {
     /// Paths inside the container that must persist across host

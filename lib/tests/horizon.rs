@@ -84,6 +84,7 @@ fn node_proposal(species: NodeSpecies, size: Magnitude, full_keys: bool) -> Node
         online: None,
         number_of_build_cores: None,
         services: NodeServices::default(),
+        placement: None,
     }
 }
 

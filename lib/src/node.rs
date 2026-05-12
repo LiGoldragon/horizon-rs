@@ -16,8 +16,7 @@ use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, ClusterTld, CriomeDomainName, ModelName, NodeName, UserName};
 use crate::placement::{
-    ContainedPlacement, ContainmentSubstrate, ContainerResources, MetalPlacement, NodePlacement,
-    UserNamespacePolicy,
+    Contained, ContainerResources, ContainmentSubstrate, Metal, NodePlacement, UserNamespacePolicy,
 };
 use crate::proposal::{NodeProposal, NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
@@ -419,13 +418,18 @@ impl NodeProposal {
 
         let link_local_ips = self.link_local_ips.iter().map(|l| l.render()).collect();
 
-        // Typed placement derived from the legacy `machine.species` axis.
-        // For `Pod` without a `super_node` this would be malformed input,
-        // but such proposals already fail `resolve_arch` above (the arch
-        // can't be inherited without a super-node), so by the time we
-        // get here a Pod has a super-node.
-        let placement = match self.machine.species {
-            crate::species::MachineSpecies::Metal => NodePlacement::Metal(MetalPlacement {
+        // Typed placement: prefer the proposal-authored placement if
+        // present; otherwise derive from the legacy `machine.species`
+        // axis. For `Pod` without a `super_node` the derived path is
+        // malformed input, but such proposals already fail
+        // `resolve_arch` above (the arch can't be inherited without a
+        // super-node), so by the time we get here a Pod has a
+        // super-node.
+        let placement = if let Some(authored) = self.placement.clone() {
+            authored
+        } else {
+            match self.machine.species {
+            crate::species::MachineSpecies::Metal => NodePlacement::Metal(Metal {
                 arch: ctx.resolved_arch,
                 model: self.machine.model.clone(),
                 motherboard: self.machine.mother_board,
@@ -437,7 +441,7 @@ impl NodeProposal {
                     .super_node
                     .clone()
                     .expect("Pod without super_node should fail resolve_arch above");
-                NodePlacement::Contained(ContainedPlacement {
+                NodePlacement::Contained(Contained {
                     host,
                     substrate: ContainmentSubstrate::NixosContainer,
                     resources: ContainerResources {
@@ -447,9 +451,10 @@ impl NodeProposal {
                     network: None,
                     state: None,
                     trust: ctx.trust.ladder(),
-                    user_namespace_policy: UserNamespacePolicy::PrivateUsersPick,
+                    user_namespace_policy: UserNamespacePolicy::PrivateUsersPick {},
                     super_user: self.machine.super_user.clone(),
                 })
+            }
             }
         };
 

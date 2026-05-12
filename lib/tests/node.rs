@@ -84,6 +84,7 @@ fn proposal(species: NodeSpecies, size: Magnitude, with_keys: bool) -> NodePropo
         online: None,
         number_of_build_cores: None,
         services: NodeServices::default(),
+        placement: None,
     }
 }
 
@@ -295,6 +296,40 @@ fn metal_machine_projects_to_metal_placement() {
 }
 
 #[test]
+fn proposal_authored_placement_overrides_legacy_machine_species_derivation() {
+    use horizon_lib::placement::{
+        Contained, ContainerResources, ContainmentSubstrate, NodePlacement, UserNamespacePolicy,
+    };
+    // A Metal-shaped legacy machine still gets a `Contained` projection
+    // when the proposal authors `placement` directly. Authoring wins.
+    let mut p = proposal(NodeSpecies::Edge, Magnitude::Min, true);
+    p.machine.species = MachineSpecies::Metal; // legacy says metal
+    p.placement = Some(NodePlacement::Contained(Contained {
+        host: NodeName::try_new("ouranos").unwrap(),
+        substrate: ContainmentSubstrate::MicroVm,
+        resources: ContainerResources { cores: 4, ram_gb: 16 },
+        network: None,
+        state: None,
+        trust: Magnitude::Max.ladder(),
+        user_namespace_policy: UserNamespacePolicy::PrivateUsersPick {},
+        super_user: None,
+    }));
+    let node = p.project(ctx_for("ghost", Magnitude::Medium));
+    match &node.placement {
+        NodePlacement::Contained(c) => {
+            assert_eq!(c.substrate, ContainmentSubstrate::MicroVm);
+            assert_eq!(c.resources.cores, 4);
+            assert_eq!(c.resources.ram_gb, 16);
+            assert_eq!(c.host.as_str(), "ouranos");
+        }
+        other => panic!(
+            "authored placement should override legacy derivation, got {:?}",
+            other
+        ),
+    }
+}
+
+#[test]
 fn pod_machine_projects_to_contained_placement_with_nixos_container() {
     use horizon_lib::placement::{ContainmentSubstrate, NodePlacement, UserNamespacePolicy};
     let mut pod_proposal = proposal(NodeSpecies::Edge, Magnitude::Min, true);
@@ -313,7 +348,7 @@ fn pod_machine_projects_to_contained_placement_with_nixos_container() {
             assert_eq!(contained.resources.ram_gb, 8);
             assert!(matches!(
                 contained.user_namespace_policy,
-                UserNamespacePolicy::PrivateUsersPick
+                UserNamespacePolicy::PrivateUsersPick {}
             ));
             assert_eq!(
                 contained.super_user.as_ref().map(|u| u.as_str()),

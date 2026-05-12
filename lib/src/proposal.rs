@@ -15,6 +15,7 @@ use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, ClusterTld, DomainName, GithubId, Keygrip, NodeName, UserName};
+use crate::placement::NodePlacement;
 use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
 
@@ -101,6 +102,15 @@ pub struct NodeProposal {
     /// not infer it from node names.
     #[serde(default)]
     pub services: NodeServices,
+
+    /// Typed placement — `Metal { arch, model, … }` or
+    /// `Contained { host, substrate, … }`. Optional during the migration
+    /// from `machine.species`: legacy proposals leave this `None` and
+    /// projection derives the placement from `machine.species`.
+    /// New proposals author this directly and the legacy `machine`
+    /// field becomes a backward-compat echo.
+    #[serde(default)]
+    pub placement: Option<NodePlacement>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, NotaRecord)]
