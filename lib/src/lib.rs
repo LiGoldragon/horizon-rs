@@ -7,6 +7,7 @@
 //! Spec: `docs/DESIGN.md`. Style: `~/git/lore/rust/style.md`.
 
 pub mod address;
+pub mod capability;
 pub mod cluster;
 pub mod error;
 pub mod horizon;
@@ -15,8 +16,10 @@ pub mod machine;
 pub mod magnitude;
 pub mod name;
 pub mod node;
+pub mod placement;
 pub mod proposal;
 pub mod pub_key;
+pub mod secret;
 pub mod species;
 pub mod user;
 
