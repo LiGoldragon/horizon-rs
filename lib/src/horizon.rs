@@ -37,6 +37,14 @@ impl ClusterProposal {
 
         let cluster_trust_floor = self.trust.cluster;
 
+        // Resolve the cluster TLD once. Used by every node's domain name
+        // and stored on the projected `Cluster` so CriomOS modules can
+        // consume it as data instead of hardcoding `"criome"`.
+        let tld = self
+            .tld
+            .clone()
+            .unwrap_or_else(crate::name::ClusterTld::default_criome);
+
         // Build every Node (no viewpoint fill yet).
         let mut nodes: BTreeMap<NodeName, Node> = BTreeMap::new();
         for (name, proposal) in &self.nodes {
@@ -50,6 +58,7 @@ impl ClusterProposal {
             let ctx = NodeProjection {
                 name: name.clone(),
                 cluster: &viewpoint.cluster,
+                tld: &tld,
                 trust,
                 resolved_arch,
             };
@@ -94,6 +103,7 @@ impl ClusterProposal {
         // Cluster-level roll-up.
         let cluster = Cluster {
             name: viewpoint.cluster.clone(),
+            tld,
             trusted_build_pub_keys: nodes
                 .values()
                 .filter_map(|n| n.nix_pub_key_line.clone())

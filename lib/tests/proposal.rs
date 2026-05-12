@@ -96,6 +96,7 @@ fn cluster_proposal() -> ClusterProposal {
             nodes: BTreeMap::new(),
             users: BTreeMap::new(),
         },
+        tld: None,
     }
 }
 

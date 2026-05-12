@@ -158,6 +158,7 @@ fn cluster_proposal(viewpoint_trust: Magnitude) -> ClusterProposal {
             nodes: node_trust,
             users: user_trust,
         },
+        tld: None,
     }
 }
 

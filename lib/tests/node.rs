@@ -7,7 +7,7 @@ use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, ModelName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, ClusterTld, ModelName, NodeName, UserName};
 use horizon_lib::node::{LidSwitchAction, NodeProjection};
 use horizon_lib::proposal::{
     NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole, TailnetMembership,
@@ -89,10 +89,13 @@ fn proposal(species: NodeSpecies, size: Magnitude, with_keys: bool) -> NodePropo
 
 fn ctx_for(name: &str, trust: Magnitude) -> NodeProjection<'static> {
     static CLUSTER: std::sync::OnceLock<ClusterName> = std::sync::OnceLock::new();
+    static TLD: std::sync::OnceLock<ClusterTld> = std::sync::OnceLock::new();
     let cluster = CLUSTER.get_or_init(|| ClusterName::try_new("goldragon").unwrap());
+    let tld = TLD.get_or_init(ClusterTld::default_criome);
     NodeProjection {
         name: NodeName::try_new(name).unwrap(),
         cluster,
+        tld,
         trust,
         resolved_arch: Arch::X86_64,
     }

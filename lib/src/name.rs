@@ -50,11 +50,21 @@ macro_rules! string_newtype {
 }
 
 string_newtype!(ClusterName, "cluster name");
+string_newtype!(ClusterTld, "cluster tld");
 string_newtype!(NodeName, "node name");
 string_newtype!(UserName, "user name");
 string_newtype!(ModelName, "model name");
 string_newtype!(GithubId, "github id");
 string_newtype!(DomainName, "domain name");
+
+impl ClusterTld {
+    /// Standing default TLD used when a proposal does not author one.
+    /// Preserves the historical `*.criome` addressing scheme. New
+    /// proposals can override.
+    pub fn default_criome() -> Self {
+        Self("criome".to_string())
+    }
+}
 
 impl ModelName {
     /// Parse this model name into its `KnownModel` form, if it
@@ -72,14 +82,16 @@ impl ModelName {
     }
 }
 
-/// Derived: `<node>.<cluster>.criome` — and also `nix.<criomeDomain>` for caches.
+/// Derived: `<node>.<cluster>.<tld>` — and also `nix.<criomeDomain>` for caches.
+/// The TLD comes from `ClusterProposal.tld` (default `"criome"`); the type
+/// name is historical and predates data-driven TLDs.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
 pub struct CriomeDomainName(pub(crate) String);
 
 impl CriomeDomainName {
-    pub fn for_node(node: &NodeName, cluster: &ClusterName) -> Self {
-        Self(format!("{node}.{cluster}.criome"))
+    pub fn for_node(node: &NodeName, cluster: &ClusterName, tld: &ClusterTld) -> Self {
+        Self(format!("{node}.{cluster}.{tld}"))
     }
 
     pub fn nix_subdomain(&self) -> Self {

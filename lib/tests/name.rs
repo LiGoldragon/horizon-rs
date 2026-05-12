@@ -2,7 +2,8 @@
 //! typed dispatch.
 
 use horizon_lib::name::{
-    ClusterName, CriomeDomainName, DomainName, GithubId, Keygrip, ModelName, NodeName, UserName,
+    ClusterName, ClusterTld, CriomeDomainName, DomainName, GithubId, Keygrip, ModelName, NodeName,
+    UserName,
 };
 use horizon_lib::species::KnownModel;
 
@@ -82,7 +83,8 @@ fn domain_name_round_trip() {
 fn criome_domain_name_for_node_renders_dotted_form() {
     let cluster = ClusterName::try_new("goldragon").unwrap();
     let node = NodeName::try_new("ouranos").unwrap();
-    let domain = CriomeDomainName::for_node(&node, &cluster);
+    let tld = ClusterTld::default_criome();
+    let domain = CriomeDomainName::for_node(&node, &cluster, &tld);
     assert_eq!(domain.as_str(), "ouranos.goldragon.criome");
 }
 
@@ -90,11 +92,21 @@ fn criome_domain_name_for_node_renders_dotted_form() {
 fn criome_domain_name_nix_subdomain_prefixes_nix() {
     let cluster = ClusterName::try_new("goldragon").unwrap();
     let node = NodeName::try_new("prometheus").unwrap();
-    let domain = CriomeDomainName::for_node(&node, &cluster);
+    let tld = ClusterTld::default_criome();
+    let domain = CriomeDomainName::for_node(&node, &cluster, &tld);
     assert_eq!(
         domain.nix_subdomain().as_str(),
         "nix.prometheus.goldragon.criome",
     );
+}
+
+#[test]
+fn criome_domain_name_for_node_honours_custom_tld() {
+    let cluster = ClusterName::try_new("fieldlab").unwrap();
+    let node = NodeName::try_new("atlas").unwrap();
+    let tld = ClusterTld::try_new("example").unwrap();
+    let domain = CriomeDomainName::for_node(&node, &cluster, &tld);
+    assert_eq!(domain.as_str(), "atlas.fieldlab.example");
 }
 
 #[test]

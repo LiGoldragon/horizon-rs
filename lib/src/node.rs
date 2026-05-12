@@ -14,7 +14,7 @@ use crate::error::{Error, Result};
 use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
-use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName, UserName};
+use crate::name::{ClusterName, ClusterTld, CriomeDomainName, ModelName, NodeName, UserName};
 use crate::proposal::{NodeProposal, NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
@@ -325,6 +325,7 @@ impl BuilderConfig {
 pub struct NodeProjection<'a> {
     pub name: NodeName,
     pub cluster: &'a ClusterName,
+    pub tld: &'a ClusterTld,
     pub trust: Magnitude,
     pub resolved_arch: Arch,
 }
@@ -334,7 +335,7 @@ impl NodeProposal {
     /// are left as `None`; call `Node::fill_viewpoint` afterwards on
     /// the viewpoint node to populate them.
     pub fn project(&self, ctx: NodeProjection<'_>) -> Node {
-        let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster);
+        let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster, ctx.tld);
 
         let nix_pub_key = self.pub_keys.nix.clone();
         let ygg_entry = self.pub_keys.yggdrasil.as_ref();

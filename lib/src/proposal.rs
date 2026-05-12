@@ -14,7 +14,7 @@ use crate::address::{YggAddress, YggSubnet};
 use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, DomainName, GithubId, Keygrip, NodeName, UserName};
+use crate::name::{ClusterName, ClusterTld, DomainName, GithubId, Keygrip, NodeName, UserName};
 use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
 
@@ -29,6 +29,11 @@ pub struct ClusterProposal {
     #[serde(default)]
     pub domains: BTreeMap<DomainName, DomainProposal>,
     pub trust: ClusterTrust,
+    /// Cluster top-level domain. `None` means use the historical default
+    /// (`"criome"`). Positional-nota records keep parsing when absent
+    /// because this is at the tail and defaults via serde.
+    #[serde(default)]
+    pub tld: Option<ClusterTld>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
