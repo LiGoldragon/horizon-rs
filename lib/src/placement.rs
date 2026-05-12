@@ -56,8 +56,14 @@ pub struct ContainedPlacement {
     pub host: NodeName,
     pub substrate: ContainmentSubstrate,
     pub resources: ContainerResources,
-    pub network: ContainerNetwork,
-    pub state: ContainerState,
+    /// `None` for legacy Pod-shaped proposals that did not author
+    /// network details. New proposals should populate this.
+    #[serde(default)]
+    pub network: Option<ContainerNetwork>,
+    /// `None` for legacy Pod-shaped proposals that did not author
+    /// state details. New proposals should populate this.
+    #[serde(default)]
+    pub state: Option<ContainerState>,
     pub trust: AtLeast,
     pub user_namespace_policy: UserNamespacePolicy,
     /// User the contained node runs under on the host, if any. Migrated

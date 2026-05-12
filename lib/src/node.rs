@@ -15,6 +15,10 @@ use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, ClusterTld, CriomeDomainName, ModelName, NodeName, UserName};
+use crate::placement::{
+    ContainedPlacement, ContainmentSubstrate, ContainerResources, MetalPlacement, NodePlacement,
+    UserNamespacePolicy,
+};
 use crate::proposal::{NodeProposal, NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
@@ -97,6 +101,13 @@ pub struct Node {
     pub nix_cache_domain: Option<CriomeDomainName>,
     /// `http://<nix_cache_domain>` when `is_nix_cache`.
     pub nix_url: Option<String>,
+
+    // typed placement (replaces the implicit "machine.species + super_node"
+    // overload). Derived in `NodeProposal::project` for backward compat
+    // with legacy `MachineSpecies::Pod` proposals; new proposals will
+    // author `placement` directly once the proposal-side wire format
+    // gains the field.
+    pub placement: NodePlacement,
 
     // grouped flags
     pub behaves_as: BehavesAs,
@@ -408,12 +419,47 @@ impl NodeProposal {
 
         let link_local_ips = self.link_local_ips.iter().map(|l| l.render()).collect();
 
+        // Typed placement derived from the legacy `machine.species` axis.
+        // For `Pod` without a `super_node` this would be malformed input,
+        // but such proposals already fail `resolve_arch` above (the arch
+        // can't be inherited without a super-node), so by the time we
+        // get here a Pod has a super-node.
+        let placement = match self.machine.species {
+            crate::species::MachineSpecies::Metal => NodePlacement::Metal(MetalPlacement {
+                arch: ctx.resolved_arch,
+                model: self.machine.model.clone(),
+                motherboard: self.machine.mother_board,
+                ram_gb: self.machine.ram_gb,
+            }),
+            crate::species::MachineSpecies::Pod => {
+                let host = self
+                    .machine
+                    .super_node
+                    .clone()
+                    .expect("Pod without super_node should fail resolve_arch above");
+                NodePlacement::Contained(ContainedPlacement {
+                    host,
+                    substrate: ContainmentSubstrate::NixosContainer,
+                    resources: ContainerResources {
+                        cores: self.machine.cores,
+                        ram_gb: self.machine.ram_gb.unwrap_or(0),
+                    },
+                    network: None,
+                    state: None,
+                    trust: ctx.trust.ladder(),
+                    user_namespace_policy: UserNamespacePolicy::PrivateUsersPick,
+                    super_user: self.machine.super_user.clone(),
+                })
+            }
+        };
+
         Node {
             name: ctx.name,
             species: self.species,
             size: self.size.ladder(),
             trust: ctx.trust.ladder(),
             machine,
+            placement,
             link_local_ips,
             node_ip: self.node_ip.clone(),
             wireguard_pub_key: self.wireguard_pub_key.clone(),

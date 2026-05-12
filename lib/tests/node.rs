@@ -279,3 +279,51 @@ fn pod_arch_unresolvable_when_super_node_pointer_absent() {
         .unwrap_err();
     assert!(error.to_string().contains("no super-node"));
 }
+
+#[test]
+fn metal_machine_projects_to_metal_placement() {
+    use horizon_lib::placement::NodePlacement;
+    let node = proposal(NodeSpecies::Center, Magnitude::Min, true)
+        .project(ctx_for("prometheus", Magnitude::Max));
+    match &node.placement {
+        NodePlacement::Metal(metal) => {
+            assert_eq!(metal.arch, Arch::X86_64);
+            assert!(metal.model.is_none());
+        }
+        other => panic!("expected NodePlacement::Metal, got {:?}", other),
+    }
+}
+
+#[test]
+fn pod_machine_projects_to_contained_placement_with_nixos_container() {
+    use horizon_lib::placement::{ContainmentSubstrate, NodePlacement, UserNamespacePolicy};
+    let mut pod_proposal = proposal(NodeSpecies::Edge, Magnitude::Min, true);
+    pod_proposal.machine.species = MachineSpecies::Pod;
+    pod_proposal.machine.super_node = Some(NodeName::try_new("ouranos").unwrap());
+    pod_proposal.machine.super_user = Some(UserName::try_new("li").unwrap());
+    pod_proposal.machine.cores = 2;
+    pod_proposal.machine.ram_gb = Some(8);
+
+    let node = pod_proposal.project(ctx_for("pod-1", Magnitude::Min));
+    match &node.placement {
+        NodePlacement::Contained(contained) => {
+            assert_eq!(contained.host.as_str(), "ouranos");
+            assert_eq!(contained.substrate, ContainmentSubstrate::NixosContainer);
+            assert_eq!(contained.resources.cores, 2);
+            assert_eq!(contained.resources.ram_gb, 8);
+            assert!(matches!(
+                contained.user_namespace_policy,
+                UserNamespacePolicy::PrivateUsersPick
+            ));
+            assert_eq!(
+                contained.super_user.as_ref().map(|u| u.as_str()),
+                Some("li")
+            );
+            // Legacy Pod proposals don't author network/state — both
+            // are None during the compat-shim cycle.
+            assert!(contained.network.is_none());
+            assert!(contained.state.is_none());
+        }
+        other => panic!("expected NodePlacement::Contained, got {:?}", other),
+    }
+}
