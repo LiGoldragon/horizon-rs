@@ -10,7 +10,8 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, UserProposal, UserPubKeyEntry,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, UserProposal,
+    UserPubKeyEntry,
     YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
@@ -82,8 +83,7 @@ fn node_proposal(species: NodeSpecies, size: Magnitude, full_keys: bool) -> Node
         router_interfaces: None,
         online: None,
         number_of_build_cores: None,
-        tailnet_client: false,
-        tailnet_controller: false,
+        services: NodeServices::default(),
     }
 }
 

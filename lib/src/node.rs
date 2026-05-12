@@ -15,7 +15,7 @@ use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName, UserName};
-use crate::proposal::{NodeProposal, RouterInterfaces, WireguardProxy};
+use crate::proposal::{NodeProposal, NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
 };
@@ -45,12 +45,9 @@ pub struct Node {
     /// Router interface roles for router nodes. `None` for non-router
     /// nodes and for invalid proposals that validation rejects upstream.
     pub router_interfaces: Option<RouterInterfaces>,
-    /// Cluster tailnet client role. Projected from proposal data; never
+    /// Per-node service roles. Projected from proposal data; never
     /// inferred from the node name.
-    pub tailnet_client: bool,
-    /// Cluster tailnet controller role. CriomOS currently renders this as
-    /// headscale, but Horizon exposes the semantic role.
-    pub tailnet_controller: bool,
+    pub services: NodeServices,
 
     // identity / connectivity (always derived)
     pub criome_domain_name: CriomeDomainName,
@@ -424,8 +421,7 @@ impl NodeProposal {
             wants_printing: self.wants_printing,
             wants_hw_video_accel: self.wants_hw_video_accel,
             router_interfaces: self.router_interfaces.clone(),
-            tailnet_client: self.tailnet_client,
-            tailnet_controller: self.tailnet_controller,
+            services: self.services.clone(),
 
             criome_domain_name,
             system: ctx.resolved_arch.system(),

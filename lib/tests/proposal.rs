@@ -13,7 +13,7 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, UserProposal,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, UserProposal,
     YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
@@ -76,8 +76,7 @@ fn node_proposal(species: NodeSpecies, size: Magnitude) -> NodeProposal {
         router_interfaces: None,
         online: None,
         number_of_build_cores: None,
-        tailnet_client: false,
-        tailnet_controller: false,
+        services: NodeServices::default(),
     }
 }
 
@@ -156,7 +155,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
         "(Machine Metal Arm64 4 None None None None None None) ",
         "(Io Qwerty Uboot [] []) ",
         "(NodePubKeys \"AAA=\" None None) ",
-        "[] None None false false [] false false None None None false false)",
+        "[] None None false false [] false false None None None (NodeServices None None))",
     );
     let mut decoder = Decoder::nota(text);
     let node = NodeProposal::decode(&mut decoder).unwrap();

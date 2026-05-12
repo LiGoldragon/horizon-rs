@@ -92,17 +92,35 @@ pub struct NodeProposal {
     #[serde(default)]
     pub number_of_build_cores: Option<u32>,
 
-    /// Whether this node should join the cluster tailnet as a client.
-    /// This is cluster role data: consumers must not infer it from node
-    /// names.
+    /// Per-node service roles. This is cluster role data: consumers must
+    /// not infer it from node names.
     #[serde(default)]
-    pub tailnet_client: bool,
+    pub services: NodeServices,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeServices {
+    /// Whether this node should join the cluster tailnet. CriomOS
+    /// currently renders this with Tailscale, but the proposal names the
+    /// role rather than deriving it from node identity.
+    #[serde(default)]
+    pub tailnet: Option<TailnetMembership>,
 
     /// Whether this node hosts the cluster tailnet controller service.
-    /// CriomOS currently implements this with headscale, but the proposal
-    /// names the role, not the implementation.
+    /// CriomOS currently renders this with Headscale.
     #[serde(default)]
-    pub tailnet_controller: bool,
+    pub tailnet_controller: Option<TailnetControllerRole>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
+pub enum TailnetMembership {
+    Client,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
+pub enum TailnetControllerRole {
+    Server,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]

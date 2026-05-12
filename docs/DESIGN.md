@@ -169,8 +169,12 @@ pub struct NodeProposal {
     pub router_interfaces: Option<RouterInterfaces>,
     pub online:            Option<bool>,
     pub nb_of_build_cores: Option<u32>,
-    pub tailnet_client:    bool,
-    pub tailnet_controller: bool,
+    pub services:          NodeServices,
+}
+
+pub struct NodeServices {
+    pub tailnet:            Option<TailnetMembership>,
+    pub tailnet_controller: Option<TailnetControllerRole>,
 }
 
 pub struct RouterInterfaces {
@@ -298,8 +302,7 @@ pub struct Node {
     pub wants_printing:      bool,
     pub wants_hw_video_accel: bool,
     pub router_interfaces:   Option<RouterInterfaces>,
-    pub tailnet_client:      bool,
-    pub tailnet_controller:  bool,
+    pub services:            NodeServices,
 
     // identity / connectivity (derived)
     pub criome_domain_name:  CriomeDomainName,

@@ -9,7 +9,10 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::node::{LidSwitchAction, NodeProjection};
-use horizon_lib::proposal::{NodeProposal, NodePubKeys, YggPubKeyEntry};
+use horizon_lib::proposal::{
+    NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole, TailnetMembership,
+    YggPubKeyEntry,
+};
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
 
@@ -80,8 +83,7 @@ fn proposal(species: NodeSpecies, size: Magnitude, with_keys: bool) -> NodePropo
         router_interfaces: None,
         online: None,
         number_of_build_cores: None,
-        tailnet_client: false,
-        tailnet_controller: false,
+        services: NodeServices::default(),
     }
 }
 
@@ -195,13 +197,16 @@ fn nix_url_absent_for_non_cache() {
 #[test]
 fn tailnet_roles_project_from_proposal_not_node_name() {
     let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
-    prop.tailnet_client = true;
-    prop.tailnet_controller = true;
+    prop.services.tailnet = Some(TailnetMembership::Client);
+    prop.services.tailnet_controller = Some(TailnetControllerRole::Server);
 
     let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
 
-    assert!(node.tailnet_client);
-    assert!(node.tailnet_controller);
+    assert_eq!(node.services.tailnet, Some(TailnetMembership::Client));
+    assert_eq!(
+        node.services.tailnet_controller,
+        Some(TailnetControllerRole::Server)
+    );
 }
 
 #[test]
