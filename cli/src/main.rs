@@ -50,7 +50,7 @@ fn main() -> ExitCode {
     }
 
     let proposal: ClusterProposal = {
-        let mut decoder = Decoder::nota(&buf);
+        let mut decoder = Decoder::new(&buf);
         match ClusterProposal::decode(&mut decoder) {
             Ok(p) => p,
             Err(e) => {

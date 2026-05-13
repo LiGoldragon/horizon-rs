@@ -13,8 +13,8 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices,
-    TailnetControllerRole, UserProposal, YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
+    UserProposal, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};
@@ -119,7 +119,7 @@ fn node_proposal_carries_all_input_fields() {
 #[test]
 fn user_proposal_decodes_from_minimal_nota_record() {
     let text = "(UserProposal Code Max Colemak Emacs LiGoldragon None [] None None)";
-    let mut decoder = Decoder::nota(text);
+    let mut decoder = Decoder::new(text);
     let user = UserProposal::decode(&mut decoder).unwrap();
     assert!(matches!(user.species, UserSpecies::Code));
     assert!(matches!(user.size, Magnitude::Max));
@@ -135,7 +135,7 @@ fn user_proposal_decodes_from_minimal_nota_record() {
 #[test]
 fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
     let text = "(ClusterTrust Max [] [] [(Entry bird Medium) (Entry li Max)])";
-    let mut decoder = Decoder::nota(text);
+    let mut decoder = Decoder::new(text);
     let trust = ClusterTrust::decode(&mut decoder).unwrap();
     assert!(matches!(trust.cluster, Magnitude::Max));
     let bird = UserName::try_new("bird").unwrap();
@@ -157,7 +157,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
         "(NodePubKeys \"AAA=\" None None) ",
         "[] None None false false [] false false None None None (NodeServices None None))",
     );
-    let mut decoder = Decoder::nota(text);
+    let mut decoder = Decoder::new(text);
     let node = NodeProposal::decode(&mut decoder).unwrap();
     assert!(matches!(node.species, NodeSpecies::Center));
     assert!(matches!(node.size, Magnitude::Zero));
@@ -169,7 +169,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
 #[test]
 fn tailnet_controller_server_decodes_with_port_and_base_domain() {
     let text = "(NodeServices Client (Server 9443 \"tailnet.goldragon.criome\"))";
-    let mut decoder = Decoder::nota(text);
+    let mut decoder = Decoder::new(text);
     let services = NodeServices::decode(&mut decoder).unwrap();
 
     assert_eq!(
