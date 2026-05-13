@@ -119,7 +119,7 @@ pub enum TailnetMembership {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaSum)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all_fields = "camelCase")]
 pub enum TailnetControllerRole {
     Server { port: u16, base_domain: DomainName },
 }
