@@ -11,10 +11,10 @@ use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, UserProposal,
-    YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices,
+    TailnetControllerRole, UserProposal, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};
@@ -164,4 +164,19 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
     assert!(matches!(node.trust, Magnitude::Min));
     let cluster_name = ClusterName::try_new("c").unwrap();
     assert!(!cluster_name.as_str().is_empty()); // sanity touch
+}
+
+#[test]
+fn tailnet_controller_server_decodes_with_port_and_base_domain() {
+    let text = "(NodeServices Client (Server 9443 \"tailnet.goldragon.criome\"))";
+    let mut decoder = Decoder::nota(text);
+    let services = NodeServices::decode(&mut decoder).unwrap();
+
+    assert_eq!(
+        services.tailnet_controller,
+        Some(TailnetControllerRole::Server {
+            port: 9443,
+            base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
+        })
+    );
 }

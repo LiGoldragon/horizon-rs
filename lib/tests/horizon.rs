@@ -8,7 +8,7 @@ use horizon_lib::error::Error;
 use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath};
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
     UserProposal, UserPubKeyEntry,
@@ -49,6 +49,13 @@ fn io() -> Io {
         bootloader: Bootloader::Uefi,
         disks,
         swap_devices: Vec::new(),
+    }
+}
+
+fn tailnet_controller_server() -> TailnetControllerRole {
+    TailnetControllerRole::Server {
+        port: 9443,
+        base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
     }
 }
 
@@ -254,7 +261,7 @@ fn project_rejects_multiple_active_tailnet_controller_servers() {
             .get_mut(&NodeName::try_new(name).unwrap())
             .unwrap()
             .services
-            .tailnet_controller = Some(TailnetControllerRole::Server);
+            .tailnet_controller = Some(tailnet_controller_server());
     }
 
     let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
@@ -275,7 +282,7 @@ fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
             .get_mut(&NodeName::try_new(name).unwrap())
             .unwrap()
             .services
-            .tailnet_controller = Some(TailnetControllerRole::Server);
+            .tailnet_controller = Some(tailnet_controller_server());
     }
     proposal.trust.nodes.insert(
         NodeName::try_new("zeus").unwrap(),
@@ -286,7 +293,7 @@ fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
 
     assert_eq!(
         horizon.node.services.tailnet_controller,
-        Some(TailnetControllerRole::Server)
+        Some(tailnet_controller_server())
     );
     assert!(!horizon.ex_nodes.contains_key(&NodeName::try_new("zeus").unwrap()));
 }

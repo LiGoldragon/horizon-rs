@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use nota_codec::NotaRecord;
+use nota_codec::{NexusVerb, NotaRecord};
 use serde::{Deserialize, Serialize};
 
 use crate::address::{Interface, LinkLocalIp, NodeIp};
@@ -118,9 +118,10 @@ pub enum TailnetMembership {
     Client,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NexusVerb)]
+#[serde(rename_all = "camelCase")]
 pub enum TailnetControllerRole {
-    Server,
+    Server { port: u16, base_domain: DomainName },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]

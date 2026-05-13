@@ -152,7 +152,10 @@ impl ClusterProposal {
             if matches!(trust, Magnitude::Zero) {
                 continue;
             }
-            if proposal.services.tailnet_controller != Some(TailnetControllerRole::Server) {
+            if !matches!(
+                proposal.services.tailnet_controller,
+                Some(TailnetControllerRole::Server { .. })
+            ) {
                 continue;
             }
 

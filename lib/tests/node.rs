@@ -7,7 +7,7 @@ use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, ModelName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, DomainName, ModelName, NodeName, UserName};
 use horizon_lib::node::{LidSwitchAction, NodeProjection};
 use horizon_lib::proposal::{
     NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole, TailnetMembership,
@@ -95,6 +95,13 @@ fn ctx_for(name: &str, trust: Magnitude) -> NodeProjection<'static> {
         cluster,
         trust,
         resolved_arch: Arch::X86_64,
+    }
+}
+
+fn tailnet_controller_server() -> TailnetControllerRole {
+    TailnetControllerRole::Server {
+        port: 9443,
+        base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
     }
 }
 
@@ -198,14 +205,14 @@ fn nix_url_absent_for_non_cache() {
 fn tailnet_roles_project_from_proposal_not_node_name() {
     let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
     prop.services.tailnet = Some(TailnetMembership::Client);
-    prop.services.tailnet_controller = Some(TailnetControllerRole::Server);
+    prop.services.tailnet_controller = Some(tailnet_controller_server());
 
     let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
 
     assert_eq!(node.services.tailnet, Some(TailnetMembership::Client));
     assert_eq!(
         node.services.tailnet_controller,
-        Some(TailnetControllerRole::Server)
+        Some(tailnet_controller_server())
     );
 }
 

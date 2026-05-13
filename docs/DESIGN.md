@@ -177,6 +177,13 @@ pub struct NodeServices {
     pub tailnet_controller: Option<TailnetControllerRole>,
 }
 
+pub enum TailnetControllerRole {
+    Server {
+        port:        u16,
+        base_domain: DomainName,
+    },
+}
+
 pub struct RouterInterfaces {
     pub wan:           Iface,
     pub wlan:          Iface,
