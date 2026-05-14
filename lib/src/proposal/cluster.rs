@@ -13,6 +13,8 @@ use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, DomainName, NodeName, UserName};
 use crate::proposal::domain::DomainProposal;
+use crate::proposal::ai::AiProvider;
+use crate::proposal::vpn::VpnProfile;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::node::{NodeProjection, NodeProposal};
 use crate::proposal::secret::ClusterSecretBinding;
@@ -63,6 +65,19 @@ pub struct ClusterProposal {
     /// canonical home. Tail position.
     #[serde(default)]
     pub tailnet: Option<TailnetConfig>,
+    /// AI providers the cluster advertises to consumers (the pi
+    /// agent's model picker, future task routers, etc.). Each entry
+    /// names the providing endpoint, the node hosting it, and the
+    /// models it serves. Empty default; consumer modules that need
+    /// at least one provider gate on `cluster.aiProviders != []`.
+    #[serde(default)]
+    pub ai_providers: Vec<AiProvider>,
+    /// VPN provider profiles (NordVPN today; WireguardMesh later).
+    /// Cluster-level catalog. Replaces the per-CriomOS
+    /// `data/config/nordvpn/servers-lock.json` shadow. Empty default.
+    /// Tail position.
+    #[serde(default)]
+    pub vpn_profiles: Vec<VpnProfile>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -151,6 +166,8 @@ impl ClusterProposal {
             lan: self.lan.clone(),
             resolver: self.resolver.clone(),
             tailnet: self.tailnet.clone(),
+            ai_providers: self.ai_providers.clone(),
+            vpn_profiles: self.vpn_profiles.clone(),
         };
 
         // Clone the viewpoint node so we can fill it while the full

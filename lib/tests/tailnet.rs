@@ -138,6 +138,8 @@ fn cluster_with_one_controller(tailnet: Option<TailnetConfig>) -> ClusterProposa
         lan: None,
         resolver: None,
         tailnet,
+        ai_providers: Vec::new(),
+        vpn_profiles: Vec::new(),
     }
 }
 

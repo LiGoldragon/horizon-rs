@@ -10,6 +10,18 @@ pub enum Error {
     #[error("invalid secret name {got:?} — must be non-empty ASCII letters, digits, or dashes")]
     InvalidSecretName { got: String },
 
+    #[error("invalid AI provider name {got:?} — must be non-empty ASCII letters, digits, or dashes")]
+    InvalidAiProviderName { got: String },
+
+    #[error("invalid AI model id {got:?} — must be non-empty ASCII letters, digits, dashes, dots, or underscores")]
+    InvalidAiModelId { got: String },
+
+    #[error("invalid NordVPN server name {got:?} — must be non-empty ASCII letters, digits, or dashes")]
+    InvalidNordvpnServerName { got: String },
+
+    #[error("invalid VPN country code {got:?} — must be ISO 3166-1 alpha-2 (two ASCII uppercase letters)")]
+    InvalidVpnCountryCode { got: String },
+
     #[error("invalid keygrip: expected 40 hex chars, got {got:?}")]
     InvalidKeygrip { got: String },
 

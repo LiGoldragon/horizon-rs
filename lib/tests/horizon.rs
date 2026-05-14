@@ -175,6 +175,8 @@ fn cluster_proposal(viewpoint_trust: Magnitude) -> ClusterProposal {
         // Set so that the tailnet-controller tests below get past the
         // cluster.tailnet-required check and reach the singleton check.
         tailnet: Some(cluster_tailnet()),
+        ai_providers: Vec::new(),
+        vpn_profiles: Vec::new(),
     }
 }
 

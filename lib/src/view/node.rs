@@ -75,15 +75,8 @@ pub struct Node {
     pub is_fully_trusted: bool,
     pub is_remote_nix_builder: bool,
     pub is_dispatcher: bool,
-    pub is_nix_cache: bool,
     pub is_large_edge: bool,
     pub enable_network_manager: bool,
-    pub has_nix_pub_key: bool,
-    pub has_ygg_pub_key: bool,
-    pub has_wireguard_pub_key: bool,
-    pub has_nordvpn_pub_key: bool,
-    pub has_wifi_cert_pub_key: bool,
-    pub has_base_pub_keys: bool,
     pub has_video_output: bool,
     pub chip_is_intel: bool,
     pub model_is_thinkpad: bool,
@@ -96,9 +89,12 @@ pub struct Node {
     // computed strings
     pub ssh_pub_key_line: SshPubKeyLine,
     pub nix_pub_key_line: Option<NixPubKeyLine>,
-    pub nix_cache_domain: Option<CriomeDomainName>,
-    /// `http://<nix_cache_domain>` when `is_nix_cache`.
-    pub nix_url: Option<String>,
+    /// Nix binary cache served by this node (for the viewpoint node)
+    /// or by an ex-node (when iterating siblings). `None` when the
+    /// node does not serve a binary cache. Replaces the previous
+    /// `is_nix_cache` / `nix_cache_domain` / `nix_url` sibling fields:
+    /// presence ⇔ serves a cache, and the entry carries the data.
+    pub nix_cache: Option<NixCache>,
 
     // grouped flags
     pub behaves_as: BehavesAs,
@@ -123,6 +119,18 @@ pub struct Node {
     pub admin_ssh_pub_keys: Option<Vec<SshPubKeyLine>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub wireguard_untrusted_proxies: Option<Vec<WireguardProxy>>,
+}
+
+/// Nix binary cache served by a node. Presence on `Node.nix_cache`
+/// signals that the node serves a binary cache; absence means it
+/// does not. Replaces the previous `is_nix_cache: bool` +
+/// `nix_cache_domain: Option<...>` + `nix_url: Option<String>` trio
+/// (same yggdrasil-style collapse from step 14).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NixCache {
+    pub domain: CriomeDomainName,
+    pub url: String,
 }
 
 /// systemd-logind lid-switch policy. Serialises to the lowercase
@@ -352,7 +360,10 @@ impl Node {
             .map(|n| BuilderConfig::from_node(n))
             .collect();
 
-        let cache_urls: Vec<String> = ex_nodes.iter().filter_map(|n| n.nix_url.clone()).collect();
+        let cache_urls: Vec<String> = ex_nodes
+            .iter()
+            .filter_map(|n| n.nix_cache.as_ref().map(|c| c.url.clone()))
+            .collect();
 
         let ex_nodes_ssh_pub_keys: Vec<SshPubKeyLine> = ex_nodes
             .iter()

@@ -5,6 +5,7 @@
 //! `ClusterProposal::project` is the single entry-point; it produces a
 //! typed `view::Horizon` from a viewpoint `(cluster, node)`.
 
+pub mod ai;
 pub mod cluster;
 pub mod domain;
 pub mod io;
@@ -16,8 +17,13 @@ pub mod router;
 pub mod secret;
 pub mod services;
 pub mod user;
+pub mod vpn;
 pub mod wireguard;
 
+pub use ai::{
+    AiFit, AiModel, AiModelFetchurl, AiModelId, AiModelMultiShard, AiModelServing, AiModelShard,
+    AiModelSource, AiProtocol, AiProvider, AiProviderName, AiServingConfig,
+};
 pub use cluster::{ClusterProposal, ClusterTrust};
 pub use domain::DomainProposal;
 pub use io::Io;
@@ -35,4 +41,8 @@ pub use services::{
     TlsTrustPolicy,
 };
 pub use user::{UserProjection, UserProposal, UserPubKeyEntry};
+pub use vpn::{
+    NordvpnProfile, NordvpnServer, NordvpnServerName, VpnClient, VpnClientAddress, VpnCountryCode,
+    VpnDns, VpnIpAddress, VpnProfile,
+};
 pub use wireguard::WireguardProxy;

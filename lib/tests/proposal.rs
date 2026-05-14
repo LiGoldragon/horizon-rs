@@ -98,6 +98,8 @@ fn cluster_proposal() -> ClusterProposal {
         lan: None,
         resolver: None,
         tailnet: None,
+        ai_providers: Vec::new(),
+        vpn_profiles: Vec::new(),
     }
 }
 

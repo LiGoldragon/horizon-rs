@@ -111,17 +111,15 @@ impl NodeProposal {
         // on `node.yggdrasil != null`.
         let yggdrasil = self.pub_keys.yggdrasil.clone();
 
-        let has_nix_pub_key = nix_pub_key.is_some();
-        let has_ygg_pub_key = yggdrasil.is_some();
-        let has_wireguard_pub_key = self.wireguard_pub_key.is_some();
-        let has_nordvpn_pub_key = self.nordvpn;
-        let has_wifi_cert_pub_key = self.wifi_cert;
-        // SSH is required at the proposal schema level (see
-        // proposal/pub_keys.rs:NodePubKeys.ssh — non-optional). The old
-        // `has_ssh_pub_key` view field was always true and got deleted in
-        // step 14; `has_base_pub_keys` is therefore equivalent to
-        // `has_nix_pub_key && has_ygg_pub_key`.
-        let has_base_pub_keys = has_nix_pub_key && has_ygg_pub_key;
+        // Step 7b: has_*_pub_key sibling fields deleted. Where derivation
+        // logic in this projector still needs the boolean form, compute
+        // it locally (this stays Rust-side only). Consumers gate on the
+        // underlying typed field directly: `node.nixPubKey != null`,
+        // `node.yggdrasil != null`, `node.wireguardPubKey != null`,
+        // `node.nordvpn`, `node.wifiCert`. SSH is required at the proposal
+        // schema (see proposal/pub_keys.rs:NodePubKeys.ssh, non-optional);
+        // the old `has_ssh_pub_key` was always true and was deleted in step 14.
+        let has_base_pub_keys = nix_pub_key.is_some() && yggdrasil.is_some();
 
         let is_fully_trusted = matches!(ctx.trust, Magnitude::Max);
         let sized_at_least = self.size.ladder();
@@ -152,12 +150,13 @@ impl NodeProposal {
         let lid_policy = behaves_as.lid_switch_policy();
 
         let nix_pub_key_line = nix_pub_key.as_ref().map(|k| k.line(&criome_domain_name));
-        let nix_cache_domain = if is_nix_cache {
-            Some(criome_domain_name.nix_subdomain())
+        let nix_cache = if is_nix_cache {
+            let domain = criome_domain_name.nix_subdomain();
+            let url = format!("http://{domain}");
+            Some(view::NixCache { domain, url })
         } else {
             None
         };
-        let nix_url = nix_cache_domain.as_ref().map(|d| format!("http://{d}"));
 
         let ssh_pub_key = self.pub_keys.ssh.clone();
         let ssh_pub_key_line = ssh_pub_key.line();
@@ -209,23 +208,15 @@ impl NodeProposal {
             is_fully_trusted,
             is_remote_nix_builder,
             is_dispatcher,
-            is_nix_cache,
             is_large_edge,
             enable_network_manager,
-            has_nix_pub_key,
-            has_ygg_pub_key,
-            has_wireguard_pub_key,
-            has_nordvpn_pub_key,
-            has_wifi_cert_pub_key,
-            has_base_pub_keys,
             has_video_output,
             chip_is_intel,
             model_is_thinkpad,
 
             ssh_pub_key_line,
             nix_pub_key_line,
-            nix_cache_domain,
-            nix_url,
+            nix_cache,
 
             behaves_as,
             type_is,

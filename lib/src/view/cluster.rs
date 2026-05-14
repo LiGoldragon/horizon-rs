@@ -3,8 +3,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::name::ClusterName;
+use crate::proposal::ai::AiProvider;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::services::TailnetConfig;
+use crate::proposal::vpn::VpnProfile;
 use crate::pub_key::NixPubKeyLine;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,4 +28,13 @@ pub struct Cluster {
     /// controller; validated at projection time. `None` means the
     /// cluster has no tailnet.
     pub tailnet: Option<TailnetConfig>,
+    /// AI providers the cluster advertises. Empty means the cluster
+    /// has no AI inference endpoints; consumers (pi-models, future
+    /// task routers) gate on `aiProviders != []`.
+    pub ai_providers: Vec<AiProvider>,
+    /// VPN provider profiles (NordVPN, future WireguardMesh). Empty
+    /// means the cluster has no VPN catalog; CriomOS nordvpn.nix
+    /// is inert when there is no Nordvpn variant in this list AND
+    /// `node.nordvpn` is false.
+    pub vpn_profiles: Vec<VpnProfile>,
 }

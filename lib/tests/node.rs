@@ -106,10 +106,10 @@ fn tailnet_controller_server() -> TailnetControllerRole {
 fn center_node_with_full_keys_is_nix_cache_and_dispatcher() {
     let node = proposal(NodeSpecies::Center, Magnitude::Min, true)
         .project(ctx_for("prometheus", Magnitude::Max));
-    assert!(node.is_nix_cache);
+    assert!(node.nix_cache.is_some());
     assert!(!node.is_dispatcher); // center → not a dispatcher (dispatcher is non-center)
     assert!(node.is_fully_trusted);
-    assert!(node.has_base_pub_keys);
+    assert!(node.nix_pub_key.is_some() && node.yggdrasil.is_some());
     assert!(node.behaves_as.center);
     assert!(node.type_is.center);
 }
@@ -137,7 +137,7 @@ fn node_without_full_pub_keys_is_not_remote_nix_builder() {
     let node = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, false)
         .project(ctx_for("zeus", Magnitude::Max));
     assert!(!node.is_remote_nix_builder);
-    assert!(!node.has_base_pub_keys);
+    assert!(node.nix_pub_key.is_none() || node.yggdrasil.is_none());
 }
 
 #[test]
@@ -179,23 +179,19 @@ fn lid_switch_policy_for_edge_locks_when_docked_and_on_external_power() {
 }
 
 #[test]
-fn nix_url_present_when_nix_cache() {
+fn nix_cache_present_for_center_node() {
     let node = proposal(NodeSpecies::Center, Magnitude::Min, true)
         .project(ctx_for("prometheus", Magnitude::Max));
-    let url = node.nix_url.as_ref().unwrap();
-    assert_eq!(url, "http://nix.prometheus.goldragon.criome");
-    assert_eq!(
-        node.nix_cache_domain.as_ref().unwrap().as_str(),
-        "nix.prometheus.goldragon.criome",
-    );
+    let cache = node.nix_cache.as_ref().unwrap();
+    assert_eq!(cache.url, "http://nix.prometheus.goldragon.criome");
+    assert_eq!(cache.domain.as_str(), "nix.prometheus.goldragon.criome");
 }
 
 #[test]
-fn nix_url_absent_for_non_cache() {
+fn nix_cache_absent_for_non_cache_node() {
     let node = proposal(NodeSpecies::Edge, Magnitude::Large, true)
         .project(ctx_for("zeus", Magnitude::Max));
-    assert!(node.nix_url.is_none());
-    assert!(node.nix_cache_domain.is_none());
+    assert!(node.nix_cache.is_none());
 }
 
 #[test]

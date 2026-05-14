@@ -14,5 +14,7 @@ pub use cluster::Cluster;
 pub use horizon::{Horizon, Viewpoint};
 pub use io::Io;
 pub use machine::Machine;
-pub use node::{BehavesAs, BuilderConfig, ComputerIs, LidSwitchAction, Node, TypeIs, ViewpointFill};
+pub use node::{
+    BehavesAs, BuilderConfig, ComputerIs, LidSwitchAction, NixCache, Node, TypeIs, ViewpointFill,
+};
 pub use user::User;
