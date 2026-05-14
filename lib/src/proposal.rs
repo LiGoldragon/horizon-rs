@@ -14,7 +14,7 @@ use crate::address::{YggAddress, YggSubnet};
 use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, DomainName, GithubId, Keygrip, NodeName, UserName};
+use crate::name::{ClusterName, DomainName, GithubId, Keygrip, NodeName, SecretName, UserName};
 use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
 
@@ -124,7 +124,7 @@ pub enum TailnetControllerRole {
     Server { port: u16, base_domain: DomainName },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct RouterInterfaces {
     pub wan: Interface,
@@ -132,6 +132,17 @@ pub struct RouterInterfaces {
     pub wlan_band: WlanBand,
     pub wlan_channel: u16,
     pub wlan_standard: WlanStandard,
+    /// Runtime secret reference for the transitional WPA3-SAE network.
+    /// CriomOS resolves this to a sops-nix secret file and passes the
+    /// decrypted path to hostapd's `saePasswordsFile`.
+    #[serde(default)]
+    pub wpa3_sae_password: Option<SecretReference>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct SecretReference {
+    pub name: SecretName,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]

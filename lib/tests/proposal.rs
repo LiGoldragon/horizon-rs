@@ -7,14 +7,14 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::address::{YggAddress, YggSubnet};
+use horizon_lib::address::{Interface, YggAddress, YggSubnet};
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, DomainName, NodeName, SecretName, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
-    UserProposal, YggPubKeyEntry,
+    RouterInterfaces, SecretReference, UserProposal, WlanBand, WlanStandard, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};
@@ -177,6 +177,26 @@ fn tailnet_controller_server_decodes_with_port_and_base_domain() {
         Some(TailnetControllerRole::Server {
             port: 9443,
             base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
+        })
+    );
+}
+
+#[test]
+fn router_interfaces_decode_transitional_wifi_secret_reference() {
+    let text =
+        "(RouterInterfaces eno1 wlp195s0 TwoG 6 Wifi4 (SecretReference routerWifiSaePasswords))";
+    let mut decoder = Decoder::new(text);
+    let interfaces = RouterInterfaces::decode(&mut decoder).unwrap();
+
+    assert_eq!(interfaces.wan, Interface::new("eno1"));
+    assert_eq!(interfaces.wlan, Interface::new("wlp195s0"));
+    assert_eq!(interfaces.wlan_band, WlanBand::TwoG);
+    assert_eq!(interfaces.wlan_channel, 6);
+    assert_eq!(interfaces.wlan_standard, WlanStandard::Wifi4);
+    assert_eq!(
+        interfaces.wpa3_sae_password,
+        Some(SecretReference {
+            name: SecretName::try_new("routerWifiSaePasswords").unwrap(),
         })
     );
 }

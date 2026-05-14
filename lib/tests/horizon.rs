@@ -3,15 +3,15 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::address::{YggAddress, YggSubnet};
+use horizon_lib::address::{Interface, YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath};
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, DomainName, NodeName, SecretName, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
-    UserProposal, UserPubKeyEntry,
+    RouterInterfaces, SecretReference, UserProposal, UserPubKeyEntry, WlanBand, WlanStandard,
     YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
@@ -349,4 +349,28 @@ fn project_node_trust_clamps_at_cluster_floor() {
     // Cluster trust floor of Min clamps every node's trust ladder.
     assert!(horizon.node.trust.min);
     assert!(!horizon.node.trust.max);
+}
+
+#[test]
+fn project_preserves_router_wifi_secret_reference() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    let router_interfaces = RouterInterfaces {
+        wan: Interface::new("eno1"),
+        wlan: Interface::new("wlp195s0"),
+        wlan_band: WlanBand::TwoG,
+        wlan_channel: 6,
+        wlan_standard: WlanStandard::Wifi4,
+        wpa3_sae_password: Some(SecretReference {
+            name: SecretName::try_new("routerWifiSaePasswords").unwrap(),
+        }),
+    };
+    proposal
+        .nodes
+        .get_mut(&NodeName::try_new("prometheus").unwrap())
+        .unwrap()
+        .router_interfaces = Some(router_interfaces.clone());
+
+    let horizon = proposal.project(&viewpoint("prometheus")).unwrap();
+
+    assert_eq!(horizon.node.router_interfaces, Some(router_interfaces));
 }

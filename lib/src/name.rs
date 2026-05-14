@@ -55,6 +55,7 @@ string_newtype!(UserName, "user name");
 string_newtype!(ModelName, "model name");
 string_newtype!(GithubId, "github id");
 string_newtype!(DomainName, "domain name");
+string_newtype!(SecretName, "secret name");
 
 impl ModelName {
     /// Parse this model name into its `KnownModel` form, if it
