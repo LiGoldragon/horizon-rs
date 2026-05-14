@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, DomainName, ModelName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::proposal::{
     Io, Machine, NodeProjection, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
     TailnetMembership, YggPubKeyEntry,
@@ -97,10 +97,9 @@ fn ctx_for(name: &str, trust: Magnitude) -> NodeProjection<'static> {
 }
 
 fn tailnet_controller_server() -> TailnetControllerRole {
-    TailnetControllerRole::Server {
-        port: 9443,
-        base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
-    }
+    // Step 11 collapse — base_domain lives on Cluster.tailnet, not
+    // per-controller.
+    TailnetControllerRole::Server { port: 9443 }
 }
 
 #[test]

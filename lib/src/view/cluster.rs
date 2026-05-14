@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::name::ClusterName;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
+use crate::proposal::services::TailnetConfig;
 use crate::pub_key::NixPubKeyLine;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,4 +21,9 @@ pub struct Cluster {
     /// addresses) passed through from the proposal. `None` means
     /// CriomOS modules use their current implementation defaults.
     pub resolver: Option<ResolverPolicy>,
+    /// Cluster tailnet configuration (base DNS domain plus optional
+    /// CA-trust material). Required when any node hosts a tailnet
+    /// controller; validated at projection time. `None` means the
+    /// cluster has no tailnet.
+    pub tailnet: Option<TailnetConfig>,
 }

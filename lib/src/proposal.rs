@@ -30,6 +30,9 @@ pub use secret::{
     ClusterSecretBinding, SecretBackend, SecretName, SecretPurpose, SecretReference, SopsFilePath,
     SopsKeyPath,
 };
-pub use services::{NodeServices, TailnetControllerRole, TailnetMembership};
+pub use services::{
+    NodeServices, PublicCertificate, TailnetConfig, TailnetControllerRole, TailnetMembership,
+    TlsTrustPolicy,
+};
 pub use user::{UserProjection, UserProposal, UserPubKeyEntry};
 pub use wireguard::WireguardProxy;

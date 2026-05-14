@@ -46,6 +46,12 @@ pub enum Error {
         second: NodeName,
     },
 
+    #[error("tailnet controller declared on node {node:?} but cluster.tailnet is unset (base_domain required)")]
+    TailnetControllerWithoutClusterConfig { node: NodeName },
+
+    #[error("invalid public certificate {got:?} — must start with -----BEGIN CERTIFICATE-----")]
+    InvalidPublicCertificate { got: String },
+
     #[error("pod node {0:?} references missing super-node {1:?}")]
     MissingSuperNode(NodeName, NodeName),
 

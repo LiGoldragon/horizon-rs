@@ -10,7 +10,7 @@ use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, Io, Machine, NodeProposal, NodePubKeys, NodeServices,
-    TailnetControllerRole, UserProposal, UserPubKeyEntry, YggPubKeyEntry,
+    TailnetConfig, TailnetControllerRole, UserProposal, UserPubKeyEntry, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};
@@ -51,9 +51,15 @@ fn io() -> Io {
 }
 
 fn tailnet_controller_server() -> TailnetControllerRole {
-    TailnetControllerRole::Server {
-        port: 9443,
+    // Step 11 collapse — base_domain lives on Cluster.tailnet, not
+    // per-controller.
+    TailnetControllerRole::Server { port: 9443 }
+}
+
+fn cluster_tailnet() -> TailnetConfig {
+    TailnetConfig {
         base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
+        tls: None,
     }
 }
 
@@ -166,6 +172,9 @@ fn cluster_proposal(viewpoint_trust: Magnitude) -> ClusterProposal {
         secret_bindings: Vec::new(),
         lan: None,
         resolver: None,
+        // Set so that the tailnet-controller tests below get past the
+        // cluster.tailnet-required check and reach the singleton check.
+        tailnet: Some(cluster_tailnet()),
     }
 }
 

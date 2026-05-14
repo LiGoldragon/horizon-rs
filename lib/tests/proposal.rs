@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, NodeName, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, Io, Machine, NodeProposal, NodePubKeys, NodeServices,
     TailnetControllerRole, UserProposal, YggPubKeyEntry,
@@ -97,6 +97,7 @@ fn cluster_proposal() -> ClusterProposal {
         secret_bindings: Vec::new(),
         lan: None,
         resolver: None,
+        tailnet: None,
     }
 }
 
@@ -168,16 +169,15 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
 }
 
 #[test]
-fn tailnet_controller_server_decodes_with_port_and_base_domain() {
-    let text = "(NodeServices Client (Server 9443 \"tailnet.goldragon.criome\"))";
+fn tailnet_controller_server_decodes_with_port_only() {
+    // Step 11 collapse — base_domain moved to Cluster.tailnet, so the
+    // controller variant carries port alone.
+    let text = "(NodeServices Client (Server 9443))";
     let mut decoder = Decoder::new(text);
     let services = NodeServices::decode(&mut decoder).unwrap();
 
     assert_eq!(
         services.tailnet_controller,
-        Some(TailnetControllerRole::Server {
-            port: 9443,
-            base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
-        })
+        Some(TailnetControllerRole::Server { port: 9443 })
     );
 }

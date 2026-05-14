@@ -1,12 +1,25 @@
-//! Per-node service-role records authored as cluster-proposal data.
+//! Per-node service-role records + cluster-level tailnet config.
 //!
-//! Names the role (e.g. tailnet membership, tailnet-controller server)
-//! rather than deriving it from node identity. CriomOS renders these
-//! with concrete services (Tailscale, Headscale) at deploy time.
+//! Per-node:
+//! - `NodeServices` containers `tailnet` (membership) and
+//!   `tailnet_controller` (which node hosts the controller).
+//! - `TailnetMembership` and `TailnetControllerRole` name the role
+//!   declaratively; CriomOS renders them with concrete services
+//!   (Tailscale, Headscale) at deploy time.
+//!
+//! Cluster-level:
+//! - `TailnetConfig` carries the cluster's base DNS domain for
+//!   tailnet hosts plus optional CA-trust material so consumers
+//!   stop self-signing on first boot.
+//! - `TlsTrustPolicy { ca_certificate }` carries the PEM-form CA
+//!   public certificate (the operator generates it once and pastes
+//!   it into goldragon datom).
+//! - `PublicCertificate` is a typed PEM newtype.
 
-use nota_codec::{NotaEnum, NotaRecord, NotaSum};
+use nota_codec::{NotaEnum, NotaRecord, NotaSum, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
+use crate::error::{Error, Result};
 use crate::name::DomainName;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, NotaRecord)]
@@ -19,7 +32,10 @@ pub struct NodeServices {
     pub tailnet: Option<TailnetMembership>,
 
     /// Whether this node hosts the cluster tailnet controller service.
-    /// CriomOS currently renders this with Headscale.
+    /// CriomOS currently renders this with Headscale. The controller's
+    /// base DNS domain lives once on `Cluster.tailnet.base_domain`,
+    /// not per-controller — collapsed in step 11 of the horizon
+    /// re-engineering arc.
     #[serde(default)]
     pub tailnet_controller: Option<TailnetControllerRole>,
 }
@@ -29,8 +45,71 @@ pub enum TailnetMembership {
     Client,
 }
 
+/// Per-node tailnet-controller role. The previous shape carried
+/// `base_domain` per controller; that field collapsed onto
+/// `Cluster.tailnet.base_domain` (one cluster, one tailnet domain).
+/// `port` stays per-controller because future clusters might host
+/// controllers on different ports for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaSum)]
 #[serde(rename_all_fields = "camelCase")]
 pub enum TailnetControllerRole {
-    Server { port: u16, base_domain: DomainName },
+    Server { port: u16 },
+}
+
+/// Cluster-level tailnet configuration. `base_domain` is required
+/// when any node hosts a tailnet controller (validated at
+/// projection). `tls` is optional during the migration period —
+/// once the operator generates a CA and authors it in datom,
+/// CriomOS modules read the cert from horizon instead of
+/// self-signing on first boot.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct TailnetConfig {
+    pub base_domain: DomainName,
+    #[serde(default)]
+    pub tls: Option<TlsTrustPolicy>,
+}
+
+/// TLS trust material for the cluster's tailnet controller. Today
+/// just a CA certificate; consumers verify by either trust-bundling
+/// the cert or comparing fingerprints (sha256 derivable from the
+/// PEM at consumer time).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct TlsTrustPolicy {
+    pub ca_certificate: PublicCertificate,
+}
+
+/// PEM-encoded X.509 public certificate. Validated by checking
+/// that the value starts with the standard PEM begin marker —
+/// deeper validation (parsing the cert) happens at consumer time
+/// where errors can name the right service.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
+#[serde(transparent)]
+pub struct PublicCertificate(pub(crate) String);
+
+impl PublicCertificate {
+    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+        let s = s.into();
+        if !s.starts_with("-----BEGIN CERTIFICATE-----") {
+            return Err(Error::InvalidPublicCertificate { got: s });
+        }
+        Ok(Self(s))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for PublicCertificate {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for PublicCertificate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
 }

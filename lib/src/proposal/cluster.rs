@@ -16,7 +16,7 @@ use crate::proposal::domain::DomainProposal;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::node::{NodeProjection, NodeProposal};
 use crate::proposal::secret::ClusterSecretBinding;
-use crate::proposal::services::TailnetControllerRole;
+use crate::proposal::services::{TailnetConfig, TailnetControllerRole};
 use crate::proposal::user::{UserProjection, UserProposal};
 use crate::view::cluster::Cluster;
 use crate::view::horizon::{Horizon, Viewpoint};
@@ -56,6 +56,13 @@ pub struct ClusterProposal {
     /// position for positional nota compatibility.
     #[serde(default)]
     pub resolver: Option<ResolverPolicy>,
+    /// Per-cluster tailnet configuration: base DNS domain for tailnet
+    /// hosts plus optional CA-trust material. Required (non-`None`)
+    /// when any node hosts a tailnet controller — validated at
+    /// projection time so the controller's DNS basename has a
+    /// canonical home. Tail position.
+    #[serde(default)]
+    pub tailnet: Option<TailnetConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -78,7 +85,7 @@ impl ClusterProposal {
         }
 
         let cluster_trust_floor = self.trust.cluster;
-        self.validate_tailnet_controller_singleton(cluster_trust_floor)?;
+        self.validate_tailnet_topology(cluster_trust_floor)?;
 
         // Build every Node (no viewpoint fill yet).
         let mut nodes: BTreeMap<NodeName, Node> = BTreeMap::new();
@@ -143,6 +150,7 @@ impl ClusterProposal {
                 .collect(),
             lan: self.lan.clone(),
             resolver: self.resolver.clone(),
+            tailnet: self.tailnet.clone(),
         };
 
         // Clone the viewpoint node so we can fill it while the full
@@ -186,7 +194,8 @@ impl ClusterProposal {
         })
     }
 
-    fn validate_tailnet_controller_singleton(&self, cluster_trust_floor: Magnitude) -> Result<()> {
+    fn validate_tailnet_topology(&self, cluster_trust_floor: Magnitude) -> Result<()> {
+        let cluster_tailnet_present = self.tailnet.is_some();
         let mut server: Option<NodeName> = None;
 
         for (name, proposal) in &self.nodes {
@@ -199,6 +208,15 @@ impl ClusterProposal {
                 Some(TailnetControllerRole::Server { .. })
             ) {
                 continue;
+            }
+
+            // The controller's DNS basename lives on
+            // `cluster.tailnet.base_domain`; without it the projection
+            // can't render the controller's hostname.
+            if !cluster_tailnet_present {
+                return Err(Error::TailnetControllerWithoutClusterConfig {
+                    node: name.clone(),
+                });
             }
 
             if let Some(first) = server {

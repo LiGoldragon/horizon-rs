@@ -15,6 +15,7 @@ fn cluster_round_trips_name_and_keys() {
         trusted_build_pub_keys: Vec::new(),
         lan: None,
         resolver: None,
+        tailnet: None,
     };
     assert_eq!(cluster.name.as_str(), "goldragon");
     assert!(cluster.trusted_build_pub_keys.is_empty());
@@ -33,6 +34,7 @@ fn cluster_collects_trusted_build_pub_keys() {
         trusted_build_pub_keys: vec![line.clone()],
         lan: None,
         resolver: None,
+        tailnet: None,
     };
     assert_eq!(cluster.trusted_build_pub_keys.len(), 1);
     assert!(cluster.trusted_build_pub_keys[0].as_str().contains("prometheus.goldragon.criome:"));
