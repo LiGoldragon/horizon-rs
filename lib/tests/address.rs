@@ -1,7 +1,7 @@
 //! Tests for `address` — yggdrasil identifiers, node IPs, link-local
 //! per-interface addresses.
 
-use horizon_lib::address::{Interface, LinkLocalIp, NodeIp, YggAddress, YggSubnet};
+use horizon_lib::address::{Interface, IpAddress, LinkLocalIp, NodeIp, YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 
 #[test]
@@ -55,4 +55,38 @@ fn link_local_ip_render_concatenates_fe80_prefix_suffix_and_iface() {
     };
     let rendered = link.render();
     assert_eq!(rendered.as_str(), "fe80::1234:abcd%enp0s25");
+}
+
+#[test]
+fn ip_address_accepts_ipv4() {
+    let address = IpAddress::try_new("10.18.0.1").unwrap();
+    assert_eq!(address.to_string(), "10.18.0.1");
+}
+
+#[test]
+fn ip_address_accepts_ipv6() {
+    let address = IpAddress::try_new("2001:db8::1").unwrap();
+    assert_eq!(address.to_string(), "2001:db8::1");
+}
+
+#[test]
+fn ip_address_accepts_loopback() {
+    let v4 = IpAddress::try_new("127.0.0.1").unwrap();
+    let v6 = IpAddress::try_new("::1").unwrap();
+    assert!(v4.ip().is_loopback());
+    assert!(v6.ip().is_loopback());
+}
+
+#[test]
+fn ip_address_rejects_non_ip_string() {
+    let error = IpAddress::try_new("not-an-ip").unwrap_err();
+    assert!(matches!(error, Error::InvalidIpAddress { .. }));
+}
+
+#[test]
+fn ip_address_rejects_cidr_form() {
+    // CIDR is for `NodeIp` / `LanCidr`; bare `IpAddress` rejects a
+    // prefix length so the type system catches misuse.
+    let error = IpAddress::try_new("10.18.0.1/24").unwrap_err();
+    assert!(matches!(error, Error::InvalidIpAddress { .. }));
 }

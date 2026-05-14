@@ -1,13 +1,68 @@
 //! Network addresses: yggdrasil identifiers, node IPs, link-local
-//! per-interface addresses.
+//! per-interface addresses, generic IP addresses.
 
-use std::net::Ipv6Addr;
+use std::net::{IpAddr, Ipv6Addr};
 
 use ipnet::IpNet;
 use nota_codec::{NotaDecode, NotaEncode, NotaRecord, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+
+/// A single IPv4 or IPv6 address. Distinct from `NodeIp` (which is
+/// always a CIDR) — used for fields that name one host (DNS upstream,
+/// LAN gateway, listen address, etc.).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct IpAddress(IpAddr);
+
+impl IpAddress {
+    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+        let s = s.into();
+        s.parse()
+            .map(Self)
+            .map_err(|e| Error::InvalidIpAddress { got: s, source: e })
+    }
+
+    pub fn ip(self) -> IpAddr {
+        self.0
+    }
+}
+
+impl TryFrom<String> for IpAddress {
+    type Error = Error;
+    fn try_from(s: String) -> Result<Self> {
+        Self::try_new(s)
+    }
+}
+
+impl From<IpAddress> for String {
+    fn from(a: IpAddress) -> Self {
+        a.0.to_string()
+    }
+}
+
+impl std::fmt::Display for IpAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl NotaEncode for IpAddress {
+    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
+        encoder.write_string(&self.0.to_string())
+    }
+}
+
+impl NotaDecode for IpAddress {
+    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
+        let s = decoder.read_string()?;
+        IpAddress::try_new(s.clone()).map_err(|e| nota_codec::Error::Validation {
+            type_name: "IpAddress",
+            message: format!("invalid IpAddress {s:?}: {e}"),
+        })
+    }
+}
 
 /// Yggdrasil-mesh IPv6 address. Always within `200::/7`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -28,6 +28,12 @@ pub enum Error {
     #[error("invalid node ip {got:?}: {source}")]
     InvalidNodeIp { got: String, source: ipnet::AddrParseError },
 
+    #[error("invalid ip address {got:?}: {source}")]
+    InvalidIpAddress { got: String, source: std::net::AddrParseError },
+
+    #[error("invalid lan cidr {got:?}: {source}")]
+    InvalidLanCidr { got: String, source: ipnet::AddrParseError },
+
     #[error("unknown {kind}: {got:?}")]
     UnknownVariant { kind: &'static str, got: String },
 

@@ -164,6 +164,8 @@ fn cluster_proposal(viewpoint_trust: Magnitude) -> ClusterProposal {
             users: user_trust,
         },
         secret_bindings: Vec::new(),
+        lan: None,
+        resolver: None,
     }
 }
 

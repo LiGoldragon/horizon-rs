@@ -13,6 +13,7 @@ use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, DomainName, NodeName, UserName};
 use crate::proposal::domain::DomainProposal;
+use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::node::{NodeProjection, NodeProposal};
 use crate::proposal::secret::ClusterSecretBinding;
 use crate::proposal::services::TailnetControllerRole;
@@ -42,6 +43,19 @@ pub struct ClusterProposal {
     /// records keep decoding.
     #[serde(default)]
     pub secret_bindings: Vec<ClusterSecretBinding>,
+    /// Per-cluster LAN configuration (subnet, gateway, DHCP pool,
+    /// lease policy). `None` means the cluster has no horizon-authored
+    /// LAN policy; CriomOS modules fall back to whatever current
+    /// implementation defaults exist until the second pass of step 4
+    /// rewrites them to read this field. Tail position for positional
+    /// nota compatibility.
+    #[serde(default)]
+    pub lan: Option<LanNetwork>,
+    /// Per-cluster DNS-resolver policy (upstreams, fallbacks, local
+    /// listen addresses). Same `None` semantics as `lan` above. Tail
+    /// position for positional nota compatibility.
+    #[serde(default)]
+    pub resolver: Option<ResolverPolicy>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -127,6 +141,8 @@ impl ClusterProposal {
                 .values()
                 .filter_map(|n| n.nix_pub_key_line.clone())
                 .collect(),
+            lan: self.lan.clone(),
+            resolver: self.resolver.clone(),
         };
 
         // Clone the viewpoint node so we can fill it while the full
