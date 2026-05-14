@@ -7,6 +7,9 @@ pub enum Error {
     #[error("invalid name: {kind} cannot be empty")]
     EmptyName { kind: &'static str },
 
+    #[error("invalid secret name {got:?} — must be non-empty ASCII letters, digits, or dashes")]
+    InvalidSecretName { got: String },
+
     #[error("invalid keygrip: expected 40 hex chars, got {got:?}")]
     InvalidKeygrip { got: String },
 

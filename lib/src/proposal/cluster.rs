@@ -14,6 +14,7 @@ use crate::magnitude::Magnitude;
 use crate::name::{ClusterName, DomainName, NodeName, UserName};
 use crate::proposal::domain::DomainProposal;
 use crate::proposal::node::{NodeProjection, NodeProposal};
+use crate::proposal::secret::ClusterSecretBinding;
 use crate::proposal::services::TailnetControllerRole;
 use crate::proposal::user::{UserProjection, UserProposal};
 use crate::view::cluster::Cluster;
@@ -32,6 +33,15 @@ pub struct ClusterProposal {
     #[serde(default)]
     pub domains: BTreeMap<DomainName, DomainProposal>,
     pub trust: ClusterTrust,
+    /// Resolves logical `SecretReference` names that appear on node-level
+    /// records (Wi-Fi passwords, VPN credentials, etc.) to a concrete
+    /// `SecretBackend`. Empty default keeps existing datom records
+    /// parsing; nodes that author secret references require matching
+    /// entries here, validated at projection time once a consumer is in
+    /// place. Must stay near the tail so existing positional nota
+    /// records keep decoding.
+    #[serde(default)]
+    pub secret_bindings: Vec<ClusterSecretBinding>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]

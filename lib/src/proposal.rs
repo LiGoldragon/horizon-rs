@@ -12,6 +12,7 @@ pub mod machine;
 pub mod node;
 pub mod pub_keys;
 pub mod router;
+pub mod secret;
 pub mod services;
 pub mod user;
 pub mod wireguard;
@@ -23,6 +24,10 @@ pub use machine::Machine;
 pub use node::{NodeProjection, NodeProposal};
 pub use pub_keys::{NodePubKeys, YggPubKeyEntry};
 pub use router::{RouterInterfaces, WlanBand, WlanStandard};
+pub use secret::{
+    ClusterSecretBinding, SecretBackend, SecretName, SecretPurpose, SecretReference, SopsFilePath,
+    SopsKeyPath,
+};
 pub use services::{NodeServices, TailnetControllerRole, TailnetMembership};
 pub use user::{UserProjection, UserProposal, UserPubKeyEntry};
 pub use wireguard::WireguardProxy;

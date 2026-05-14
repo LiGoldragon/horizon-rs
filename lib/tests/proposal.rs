@@ -94,6 +94,7 @@ fn cluster_proposal() -> ClusterProposal {
             nodes: BTreeMap::new(),
             users: BTreeMap::new(),
         },
+        secret_bindings: Vec::new(),
     }
 }
 
