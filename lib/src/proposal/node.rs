@@ -106,18 +106,22 @@ impl NodeProposal {
         let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster);
 
         let nix_pub_key = self.pub_keys.nix.clone();
-        let ygg_entry = self.pub_keys.yggdrasil.as_ref();
-        let ygg_pub_key = ygg_entry.map(|e| e.pub_key.clone());
-        let ygg_address = ygg_entry.map(|e| e.address.clone());
-        let ygg_subnet = ygg_entry.map(|e| e.subnet.clone());
+        // Step 14: yggdrasil presence travels as one typed sub-record on
+        // the view side rather than three sibling fields; consumers gate
+        // on `node.yggdrasil != null`.
+        let yggdrasil = self.pub_keys.yggdrasil.clone();
 
         let has_nix_pub_key = nix_pub_key.is_some();
-        let has_ygg_pub_key = ygg_pub_key.is_some();
-        let has_ssh_pub_key = true; // ssh is required in the proposal schema
+        let has_ygg_pub_key = yggdrasil.is_some();
         let has_wireguard_pub_key = self.wireguard_pub_key.is_some();
         let has_nordvpn_pub_key = self.nordvpn;
         let has_wifi_cert_pub_key = self.wifi_cert;
-        let has_base_pub_keys = has_nix_pub_key && has_ygg_pub_key && has_ssh_pub_key;
+        // SSH is required at the proposal schema level (see
+        // proposal/pub_keys.rs:NodePubKeys.ssh — non-optional). The old
+        // `has_ssh_pub_key` view field was always true and got deleted in
+        // step 14; `has_base_pub_keys` is therefore equivalent to
+        // `has_nix_pub_key && has_ygg_pub_key`.
+        let has_base_pub_keys = has_nix_pub_key && has_ygg_pub_key;
 
         let is_fully_trusted = matches!(ctx.trust, Magnitude::Max);
         let sized_at_least = self.size.ladder();
@@ -200,9 +204,7 @@ impl NodeProposal {
 
             ssh_pub_key,
             nix_pub_key,
-            ygg_pub_key,
-            ygg_address,
-            ygg_subnet,
+            yggdrasil,
 
             is_fully_trusted,
             is_remote_nix_builder,
@@ -212,7 +214,6 @@ impl NodeProposal {
             enable_network_manager,
             has_nix_pub_key,
             has_ygg_pub_key,
-            has_ssh_pub_key,
             has_wireguard_pub_key,
             has_nordvpn_pub_key,
             has_wifi_cert_pub_key,

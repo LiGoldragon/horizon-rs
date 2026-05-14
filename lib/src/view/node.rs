@@ -11,12 +11,12 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::address::{LinkLocalAddress, NodeIp, YggAddress, YggSubnet};
+use crate::address::{LinkLocalAddress, NodeIp};
 use crate::magnitude::AtLeast;
 use crate::name::{CriomeDomainName, ModelName, NodeName, UserName};
 use crate::proposal::{NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
-    NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
+    NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey,
 };
 use crate::species::{KnownModel, NodeSpecies, System};
 use crate::view::io::Io;
@@ -62,12 +62,14 @@ pub struct Node {
     /// individual derivation. Universal default.
     pub build_cores: u32,
 
-    // pubkey shadow flattened from input pub_keys
+    // pubkey shadow from input pub_keys
     pub ssh_pub_key: SshPubKey,
     pub nix_pub_key: Option<NixPubKey>,
-    pub ygg_pub_key: Option<YggPubKey>,
-    pub ygg_address: Option<YggAddress>,
-    pub ygg_subnet: Option<YggSubnet>,
+    /// Yggdrasil presence as a typed sub-record (pub_key + address +
+    /// subnet travel together). `None` when this node is not on the
+    /// mesh. Replaces the previous `ygg_pub_key` / `ygg_address` /
+    /// `ygg_subnet` sibling fields per step 14 (address grouping).
+    pub yggdrasil: Option<crate::proposal::YggPubKeyEntry>,
 
     // computed booleans (always derived)
     pub is_fully_trusted: bool,
@@ -78,7 +80,6 @@ pub struct Node {
     pub enable_network_manager: bool,
     pub has_nix_pub_key: bool,
     pub has_ygg_pub_key: bool,
-    pub has_ssh_pub_key: bool,
     pub has_wireguard_pub_key: bool,
     pub has_nordvpn_pub_key: bool,
     pub has_wifi_cert_pub_key: bool,
