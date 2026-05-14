@@ -1,0 +1,273 @@
+//! Proposal-side `NodeProposal` — the per-node input shape goldragon
+//! emits.
+//!
+//! `NodeProposal::project` is the constructor for `view::Node`;
+//! `NodeProposal::resolve_arch` resolves a pod's arch via its
+//! super-node when not explicitly set.
+
+use std::collections::BTreeMap;
+
+use nota_codec::NotaRecord;
+use serde::{Deserialize, Serialize};
+
+use crate::address::{LinkLocalIp, NodeIp};
+use crate::error::{Error, Result};
+use crate::magnitude::Magnitude;
+use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName};
+use crate::proposal::io::Io;
+use crate::proposal::machine::Machine;
+use crate::proposal::pub_keys::NodePubKeys;
+use crate::proposal::router::RouterInterfaces;
+use crate::proposal::services::NodeServices;
+use crate::proposal::wireguard::WireguardProxy;
+use crate::pub_key::WireguardPubKey;
+use crate::species::{Arch, KnownModel, NodeSpecies};
+use crate::view;
+
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeProposal {
+    pub species: NodeSpecies,
+    #[serde(default = "Magnitude::default_zero")]
+    pub size: Magnitude,
+    #[serde(default = "Magnitude::default_min")]
+    pub trust: Magnitude,
+    pub machine: Machine,
+    pub io: Io,
+    pub pub_keys: NodePubKeys,
+    #[serde(default)]
+    pub link_local_ips: Vec<LinkLocalIp>,
+    #[serde(default)]
+    pub node_ip: Option<NodeIp>,
+    #[serde(default)]
+    pub wireguard_pub_key: Option<WireguardPubKey>,
+    #[serde(default)]
+    pub nordvpn: bool,
+    #[serde(default)]
+    pub wifi_cert: bool,
+    #[serde(default)]
+    pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
+    /// Operator opt-in for the printer driver bundle (hplip, samsung,
+    /// epson, gutenprint). Default false. Must stay near the end of
+    /// this struct so existing positional nota files still parse.
+    #[serde(default)]
+    pub wants_printing: bool,
+    /// Operator opt-in for hardware-accelerated video decode (browser
+    /// playback, mpv, etc.). Modules pick the codec driver based on
+    /// `machine.chip_gen`: Gen >= 12 → `vpl-gpu-rt` (AV1/HEVC); older
+    /// Intel → `intel-vaapi-driver`. Default false; software fallback
+    /// is silent.
+    #[serde(default)]
+    pub wants_hw_video_accel: bool,
+
+    /// Router interface roles for nodes that behave as routers. These
+    /// are deployment facts, not machine-model facts: two machines with
+    /// the same model may have different interface names.
+    #[serde(default)]
+    pub router_interfaces: Option<RouterInterfaces>,
+
+    /// Whether this node is currently reachable on the network.
+    /// `None` (= default `Some(true)`) means online; `Some(false)`
+    /// declares the node as administratively offline so dispatchers
+    /// don't list it in `nix.buildMachines` and stall on TCP timeouts
+    /// trying to reach it. Nodes that are offline still get projected
+    /// (so other consumers can see they exist) but the
+    /// `is_remote_nix_builder` predicate is gated on `online`.
+    #[serde(default)]
+    pub online: Option<bool>,
+
+    /// `nix.buildMachines.<this>.maxJobs` from each dispatcher's
+    /// viewpoint when this node acts as a remote builder; also drives
+    /// `nix.settings.build-cores` locally on the node itself. `None`
+    /// (= default `Some(1)`) means single-job-at-a-time, matching
+    /// nix's default. Bump this up on large builders to unlock
+    /// parallel dispatch.
+    #[serde(default)]
+    pub number_of_build_cores: Option<u32>,
+
+    /// Per-node service roles. This is cluster role data: consumers must
+    /// not infer it from node names.
+    #[serde(default)]
+    pub services: NodeServices,
+}
+
+pub struct NodeProjection<'a> {
+    pub name: NodeName,
+    pub cluster: &'a ClusterName,
+    pub trust: Magnitude,
+    pub resolved_arch: Arch,
+}
+
+impl NodeProposal {
+    /// Project a single node from the proposal. Viewpoint-only fields
+    /// are left as `None`; call `view::Node::fill_viewpoint` afterwards
+    /// on the viewpoint node to populate them.
+    pub fn project(&self, ctx: NodeProjection<'_>) -> view::Node {
+        let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster);
+
+        let nix_pub_key = self.pub_keys.nix.clone();
+        let ygg_entry = self.pub_keys.yggdrasil.as_ref();
+        let ygg_pub_key = ygg_entry.map(|e| e.pub_key.clone());
+        let ygg_address = ygg_entry.map(|e| e.address.clone());
+        let ygg_subnet = ygg_entry.map(|e| e.subnet.clone());
+
+        let has_nix_pub_key = nix_pub_key.is_some();
+        let has_ygg_pub_key = ygg_pub_key.is_some();
+        let has_ssh_pub_key = true; // ssh is required in the proposal schema
+        let has_wireguard_pub_key = self.wireguard_pub_key.is_some();
+        let has_nordvpn_pub_key = self.nordvpn;
+        let has_wifi_cert_pub_key = self.wifi_cert;
+        let has_base_pub_keys = has_nix_pub_key && has_ygg_pub_key && has_ssh_pub_key;
+
+        let is_fully_trusted = matches!(ctx.trust, Magnitude::Max);
+        let sized_at_least = self.size.ladder();
+
+        let type_is = view::TypeIs::from_species(self.species);
+        let io_disks_empty = self.io.disks.is_empty();
+
+        let mut machine: view::Machine = self.machine.clone().into();
+        machine.arch = Some(ctx.resolved_arch);
+
+        let behaves_as = view::BehavesAs::derive(&type_is, &machine, io_disks_empty);
+
+        let online = self.online.unwrap_or(true);
+        let is_remote_nix_builder = online
+            && !type_is.edge
+            && is_fully_trusted
+            && (sized_at_least.medium || behaves_as.center)
+            && has_base_pub_keys;
+        let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.min;
+        let is_nix_cache = behaves_as.center && sized_at_least.min && has_base_pub_keys;
+        let is_large_edge = sized_at_least.large && behaves_as.edge;
+        let enable_network_manager = sized_at_least.min
+            && !behaves_as.iso
+            && !behaves_as.center
+            && !behaves_as.router;
+        let has_video_output = behaves_as.edge;
+
+        let lid_policy = behaves_as.lid_switch_policy();
+
+        let nix_pub_key_line = nix_pub_key.as_ref().map(|k| k.line(&criome_domain_name));
+        let nix_cache_domain = if is_nix_cache {
+            Some(criome_domain_name.nix_subdomain())
+        } else {
+            None
+        };
+        let nix_url = nix_cache_domain.as_ref().map(|d| format!("http://{d}"));
+
+        let ssh_pub_key = self.pub_keys.ssh.clone();
+        let ssh_pub_key_line = ssh_pub_key.line();
+
+        let chip_is_intel = ctx.resolved_arch.is_intel();
+        // Per-node `number_of_build_cores` from the datom drives
+        // both `nix.buildMachines.<n>.maxJobs` (when this node
+        // acts as a remote builder) and `nix.settings.build-cores`
+        // locally on the node itself. `None` defaults to 1 —
+        // matches nix's out-of-the-box single-job-at-a-time and
+        // keeps the wire backward-compat with datoms that don't
+        // set the field.
+        let max_jobs = self.number_of_build_cores.unwrap_or(1);
+        let build_cores = max_jobs;
+        let model_is_thinkpad = self
+            .machine
+            .model
+            .as_ref()
+            .and_then(ModelName::known)
+            .is_some_and(KnownModel::is_thinkpad);
+
+        let link_local_ips = self.link_local_ips.iter().map(|l| l.render()).collect();
+
+        view::Node {
+            name: ctx.name,
+            species: self.species,
+            size: self.size.ladder(),
+            trust: ctx.trust.ladder(),
+            machine,
+            link_local_ips,
+            node_ip: self.node_ip.clone(),
+            wireguard_pub_key: self.wireguard_pub_key.clone(),
+            nordvpn: self.nordvpn,
+            wifi_cert: self.wifi_cert,
+            wants_printing: self.wants_printing,
+            wants_hw_video_accel: self.wants_hw_video_accel,
+            router_interfaces: self.router_interfaces.clone(),
+            services: self.services.clone(),
+
+            criome_domain_name,
+            system: ctx.resolved_arch.system(),
+            max_jobs,
+            build_cores,
+
+            ssh_pub_key,
+            nix_pub_key,
+            ygg_pub_key,
+            ygg_address,
+            ygg_subnet,
+
+            is_fully_trusted,
+            is_remote_nix_builder,
+            is_dispatcher,
+            is_nix_cache,
+            is_large_edge,
+            enable_network_manager,
+            has_nix_pub_key,
+            has_ygg_pub_key,
+            has_ssh_pub_key,
+            has_wireguard_pub_key,
+            has_nordvpn_pub_key,
+            has_wifi_cert_pub_key,
+            has_base_pub_keys,
+            has_video_output,
+            chip_is_intel,
+            model_is_thinkpad,
+
+            ssh_pub_key_line,
+            nix_pub_key_line,
+            nix_cache_domain,
+            nix_url,
+
+            behaves_as,
+            type_is,
+
+            handle_lid_switch: lid_policy.on_battery,
+            handle_lid_switch_external_power: lid_policy.on_external_power,
+            handle_lid_switch_docked: lid_policy.docked,
+
+            io: None,
+            use_colemak: None,
+            computer_is: None,
+            builder_configs: None,
+            cache_urls: None,
+            ex_nodes_ssh_pub_keys: None,
+            dispatchers_ssh_pub_keys: None,
+            admin_ssh_pub_keys: None,
+            wireguard_untrusted_proxies: None,
+        }
+    }
+
+    /// Resolve this proposal's machine arch — concrete if specified,
+    /// otherwise looked up from the super-node's arch (single hop;
+    /// no chained pods). `name` identifies this proposal in the
+    /// surrounding map for error reporting.
+    pub fn resolve_arch(
+        &self,
+        name: &NodeName,
+        proposals: &BTreeMap<NodeName, NodeProposal>,
+    ) -> Result<Arch> {
+        if let Some(a) = self.machine.arch {
+            return Ok(a);
+        }
+        let super_name = self
+            .machine
+            .super_node
+            .as_ref()
+            .ok_or_else(|| Error::UnresolvableArch(name.clone()))?;
+        let super_proposal = proposals
+            .get(super_name)
+            .ok_or_else(|| Error::MissingSuperNode(name.clone(), super_name.clone()))?;
+        super_proposal
+            .machine
+            .arch
+            .ok_or_else(|| Error::UnresolvableArch(name.clone()))
+    }
+}

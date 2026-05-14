@@ -1,26 +1,27 @@
-//! Output `Node`: per-node view with every computed field present.
+//! View-side `Node` — per-node view with every computed field present.
 //!
 //! Two kinds of fields:
 //! - **Always-derived**: present on every `Node` (viewpoint and ex-nodes).
 //! - **Viewpoint-only**: `Some` on `horizon.node`, `None` on entries
 //!   in `horizon.ex_nodes`. Filled by `Node::fill_viewpoint`.
+//!
+//! `NodeProposal::project` (in `proposal::node`) is the constructor.
 
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
 use crate::address::{LinkLocalAddress, NodeIp, YggAddress, YggSubnet};
-use crate::error::{Error, Result};
-use crate::io::Io;
-use crate::machine::Machine;
-use crate::magnitude::{AtLeast, Magnitude};
-use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName, UserName};
-use crate::proposal::{NodeProposal, NodeServices, RouterInterfaces, WireguardProxy};
+use crate::magnitude::AtLeast;
+use crate::name::{CriomeDomainName, ModelName, NodeName, UserName};
+use crate::proposal::{NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
 };
-use crate::species::{Arch, KnownModel, NodeSpecies, System};
-use crate::user::User;
+use crate::species::{KnownModel, NodeSpecies, System};
+use crate::view::io::Io;
+use crate::view::machine::Machine;
+use crate::view::user::User;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -162,7 +163,7 @@ pub struct TypeIs {
 }
 
 impl TypeIs {
-    fn from_species(s: NodeSpecies) -> Self {
+    pub(crate) fn from_species(s: NodeSpecies) -> Self {
         TypeIs {
             center: matches!(s, NodeSpecies::Center),
             edge: matches!(s, NodeSpecies::Edge),
@@ -178,7 +179,7 @@ impl TypeIs {
 }
 
 impl BehavesAs {
-    fn derive(type_is: &TypeIs, machine: &Machine, io_disks_empty: bool) -> Self {
+    pub(crate) fn derive(type_is: &TypeIs, machine: &Machine, io_disks_empty: bool) -> Self {
         let large_ai = type_is.large_ai || type_is.large_ai_router;
         let router = type_is.hybrid || type_is.router || type_is.large_ai_router;
         let edge = type_is.edge || type_is.hybrid || type_is.edge_testing;
@@ -205,7 +206,7 @@ impl BehavesAs {
     /// behaves-as flags. Centers ignore lid events entirely; edges
     /// lock when docked; otherwise the policy depends on the
     /// power state.
-    fn lid_switch_policy(&self) -> LidSwitchPolicy {
+    pub(crate) fn lid_switch_policy(&self) -> LidSwitchPolicy {
         let on_battery = if self.center {
             LidSwitchAction::Ignore
         } else {
@@ -231,10 +232,10 @@ impl BehavesAs {
     }
 }
 
-struct LidSwitchPolicy {
-    on_battery: LidSwitchAction,
-    on_external_power: LidSwitchAction,
-    docked: LidSwitchAction,
+pub(crate) struct LidSwitchPolicy {
+    pub(crate) on_battery: LidSwitchAction,
+    pub(crate) on_external_power: LidSwitchAction,
+    pub(crate) docked: LidSwitchAction,
 }
 
 /// Closed set of computer-model flags downstream consumers gate on.
@@ -251,7 +252,7 @@ pub struct ComputerIs {
 }
 
 impl ComputerIs {
-    fn from_model(model: Option<&ModelName>) -> Self {
+    pub(crate) fn from_model(model: Option<&ModelName>) -> Self {
         let known = model.and_then(ModelName::known);
         ComputerIs {
             thinkpad_t14_gen2_intel: known == Some(KnownModel::ThinkPadT14Gen2Intel),
@@ -322,162 +323,8 @@ impl BuilderConfig {
     }
 }
 
-pub struct NodeProjection<'a> {
-    pub name: NodeName,
-    pub cluster: &'a ClusterName,
-    pub trust: Magnitude,
-    pub resolved_arch: Arch,
-}
-
-impl NodeProposal {
-    /// Project a single node from the proposal. Viewpoint-only fields
-    /// are left as `None`; call `Node::fill_viewpoint` afterwards on
-    /// the viewpoint node to populate them.
-    pub fn project(&self, ctx: NodeProjection<'_>) -> Node {
-        let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster);
-
-        let nix_pub_key = self.pub_keys.nix.clone();
-        let ygg_entry = self.pub_keys.yggdrasil.as_ref();
-        let ygg_pub_key = ygg_entry.map(|e| e.pub_key.clone());
-        let ygg_address = ygg_entry.map(|e| e.address.clone());
-        let ygg_subnet = ygg_entry.map(|e| e.subnet.clone());
-
-        let has_nix_pub_key = nix_pub_key.is_some();
-        let has_ygg_pub_key = ygg_pub_key.is_some();
-        let has_ssh_pub_key = true; // ssh is required in the proposal schema
-        let has_wireguard_pub_key = self.wireguard_pub_key.is_some();
-        let has_nordvpn_pub_key = self.nordvpn;
-        let has_wifi_cert_pub_key = self.wifi_cert;
-        let has_base_pub_keys = has_nix_pub_key && has_ygg_pub_key && has_ssh_pub_key;
-
-        let is_fully_trusted = matches!(ctx.trust, Magnitude::Max);
-        let sized_at_least = self.size.ladder();
-
-        let type_is = TypeIs::from_species(self.species);
-        let io_disks_empty = self.io.disks.is_empty();
-        let behaves_as = BehavesAs::derive(&type_is, &self.machine, io_disks_empty);
-
-        let online = self.online.unwrap_or(true);
-        let is_remote_nix_builder = online
-            && !type_is.edge
-            && is_fully_trusted
-            && (sized_at_least.medium || behaves_as.center)
-            && has_base_pub_keys;
-        let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.min;
-        let is_nix_cache = behaves_as.center && sized_at_least.min && has_base_pub_keys;
-        let is_large_edge = sized_at_least.large && behaves_as.edge;
-        let enable_network_manager = sized_at_least.min
-            && !behaves_as.iso
-            && !behaves_as.center
-            && !behaves_as.router;
-        let has_video_output = behaves_as.edge;
-
-        let lid_policy = behaves_as.lid_switch_policy();
-
-        let nix_pub_key_line = nix_pub_key.as_ref().map(|k| k.line(&criome_domain_name));
-        let nix_cache_domain = if is_nix_cache {
-            Some(criome_domain_name.nix_subdomain())
-        } else {
-            None
-        };
-        let nix_url = nix_cache_domain.as_ref().map(|d| format!("http://{d}"));
-
-        let ssh_pub_key = self.pub_keys.ssh.clone();
-        let ssh_pub_key_line = ssh_pub_key.line();
-
-        let chip_is_intel = ctx.resolved_arch.is_intel();
-        // Per-node `number_of_build_cores` from the datom drives
-        // both `nix.buildMachines.<n>.maxJobs` (when this node
-        // acts as a remote builder) and `nix.settings.build-cores`
-        // locally on the node itself. `None` defaults to 1 —
-        // matches nix's out-of-the-box single-job-at-a-time and
-        // keeps the wire backward-compat with datoms that don't
-        // set the field.
-        let max_jobs = self.number_of_build_cores.unwrap_or(1);
-        let build_cores = max_jobs;
-        let model_is_thinkpad = self
-            .machine
-            .model
-            .as_ref()
-            .and_then(ModelName::known)
-            .is_some_and(KnownModel::is_thinkpad);
-
-        let mut machine = self.machine.clone();
-        machine.arch = Some(ctx.resolved_arch);
-
-        let link_local_ips = self.link_local_ips.iter().map(|l| l.render()).collect();
-
-        Node {
-            name: ctx.name,
-            species: self.species,
-            size: self.size.ladder(),
-            trust: ctx.trust.ladder(),
-            machine,
-            link_local_ips,
-            node_ip: self.node_ip.clone(),
-            wireguard_pub_key: self.wireguard_pub_key.clone(),
-            nordvpn: self.nordvpn,
-            wifi_cert: self.wifi_cert,
-            wants_printing: self.wants_printing,
-            wants_hw_video_accel: self.wants_hw_video_accel,
-            router_interfaces: self.router_interfaces.clone(),
-            services: self.services.clone(),
-
-            criome_domain_name,
-            system: ctx.resolved_arch.system(),
-            max_jobs,
-            build_cores,
-
-            ssh_pub_key,
-            nix_pub_key,
-            ygg_pub_key,
-            ygg_address,
-            ygg_subnet,
-
-            is_fully_trusted,
-            is_remote_nix_builder,
-            is_dispatcher,
-            is_nix_cache,
-            is_large_edge,
-            enable_network_manager,
-            has_nix_pub_key,
-            has_ygg_pub_key,
-            has_ssh_pub_key,
-            has_wireguard_pub_key,
-            has_nordvpn_pub_key,
-            has_wifi_cert_pub_key,
-            has_base_pub_keys,
-            has_video_output,
-            chip_is_intel,
-            model_is_thinkpad,
-
-            ssh_pub_key_line,
-            nix_pub_key_line,
-            nix_cache_domain,
-            nix_url,
-
-            behaves_as,
-            type_is,
-
-            handle_lid_switch: lid_policy.on_battery,
-            handle_lid_switch_external_power: lid_policy.on_external_power,
-            handle_lid_switch_docked: lid_policy.docked,
-
-            io: None,
-            use_colemak: None,
-            computer_is: None,
-            builder_configs: None,
-            cache_urls: None,
-            ex_nodes_ssh_pub_keys: None,
-            dispatchers_ssh_pub_keys: None,
-            admin_ssh_pub_keys: None,
-            wireguard_untrusted_proxies: None,
-        }
-    }
-}
-
 pub struct ViewpointFill<'a> {
-    pub proposal_io: Io,
+    pub proposal_io: crate::proposal::Io,
     pub all_nodes: &'a BTreeMap<NodeName, Node>,
     pub all_users: &'a BTreeMap<UserName, User>,
     pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
@@ -535,7 +382,7 @@ impl Node {
             }
         }
 
-        self.io = Some(fill.proposal_io);
+        self.io = Some(Io::from(fill.proposal_io));
         self.use_colemak = Some(use_colemak);
         self.computer_is = Some(computer_is);
         self.builder_configs = Some(builder_configs);
@@ -544,33 +391,5 @@ impl Node {
         self.dispatchers_ssh_pub_keys = Some(dispatchers_ssh_pub_keys);
         self.admin_ssh_pub_keys = Some(admin_ssh_pub_keys);
         self.wireguard_untrusted_proxies = Some(fill.wireguard_untrusted_proxies);
-    }
-}
-
-impl NodeProposal {
-    /// Resolve this proposal's machine arch — concrete if specified,
-    /// otherwise looked up from the super-node's arch (single hop;
-    /// no chained pods). `name` identifies this proposal in the
-    /// surrounding map for error reporting.
-    pub fn resolve_arch(
-        &self,
-        name: &NodeName,
-        proposals: &BTreeMap<NodeName, NodeProposal>,
-    ) -> Result<Arch> {
-        if let Some(a) = self.machine.arch {
-            return Ok(a);
-        }
-        let super_name = self
-            .machine
-            .super_node
-            .as_ref()
-            .ok_or_else(|| Error::UnresolvableArch(name.clone()))?;
-        let super_proposal = proposals
-            .get(super_name)
-            .ok_or_else(|| Error::MissingSuperNode(name.clone(), super_name.clone()))?;
-        super_proposal
-            .machine
-            .arch
-            .ok_or_else(|| Error::UnresolvableArch(name.clone()))
     }
 }

@@ -1,6 +1,6 @@
-//! Tests for `cluster::Cluster` — the cluster-level roll-up.
+//! Tests for `view::Cluster` — the cluster-level roll-up.
 
-use horizon_lib::cluster::Cluster;
+use horizon_lib::view::Cluster;
 use horizon_lib::name::ClusterName;
 use horizon_lib::pub_key::{NixPubKey, NixPubKeyLine};
 

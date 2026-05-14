@@ -1,4 +1,4 @@
-//! Output `Cluster`: cluster-level identity and roll-ups.
+//! Cluster-level identity and roll-ups in the projected view.
 
 use serde::{Deserialize, Serialize};
 

@@ -1,35 +1,53 @@
-//! `Horizon` — the projected view from one node, plus the
-//! `ClusterProposal::project` entry-point.
+//! Proposal-side `ClusterProposal` — the cluster-shaped input goldragon
+//! emits as `datom.nota`.
+//!
+//! `ClusterProposal::project` is the single entry-point that produces
+//! a typed `view::Horizon` from a viewpoint `(cluster, node)`.
 
 use std::collections::BTreeMap;
 
+use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
 
-use crate::cluster::Cluster;
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, NodeName, UserName};
-use crate::node::{Node, NodeProjection, ViewpointFill};
-use crate::proposal::{ClusterProposal, TailnetControllerRole};
-use crate::user::{User, UserProjection};
+use crate::name::{ClusterName, DomainName, NodeName, UserName};
+use crate::proposal::domain::DomainProposal;
+use crate::proposal::node::{NodeProjection, NodeProposal};
+use crate::proposal::services::TailnetControllerRole;
+use crate::proposal::user::{UserProjection, UserProposal};
+use crate::view::cluster::Cluster;
+use crate::view::horizon::{Horizon, Viewpoint};
+use crate::view::node::{Node, ViewpointFill};
+use crate::view::user::User;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// The proposal a cluster owner emits.
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
-pub struct Horizon {
-    pub cluster: Cluster,
-    pub node: Node,
-    pub ex_nodes: BTreeMap<NodeName, Node>,
-    pub users: BTreeMap<UserName, User>,
+pub struct ClusterProposal {
+    #[serde(default)]
+    pub nodes: BTreeMap<NodeName, NodeProposal>,
+    #[serde(default)]
+    pub users: BTreeMap<UserName, UserProposal>,
+    #[serde(default)]
+    pub domains: BTreeMap<DomainName, DomainProposal>,
+    pub trust: ClusterTrust,
 }
 
-#[derive(Debug, Clone)]
-pub struct Viewpoint {
-    pub cluster: ClusterName,
-    pub node: NodeName,
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct ClusterTrust {
+    pub cluster: Magnitude,
+    #[serde(default)]
+    pub clusters: BTreeMap<ClusterName, Magnitude>,
+    #[serde(default)]
+    pub nodes: BTreeMap<NodeName, Magnitude>,
+    #[serde(default)]
+    pub users: BTreeMap<UserName, Magnitude>,
 }
 
 impl ClusterProposal {
-    /// Project this proposal from a viewpoint into a typed `Horizon`.
+    /// Project this proposal from a viewpoint into a typed `view::Horizon`.
     pub fn project(&self, viewpoint: &Viewpoint) -> Result<Horizon> {
         if !self.nodes.contains_key(&viewpoint.node) {
             return Err(Error::NodeNotInCluster(viewpoint.node.clone()));
@@ -141,9 +159,7 @@ impl ClusterProposal {
             users,
         })
     }
-}
 
-impl ClusterProposal {
     fn validate_tailnet_controller_singleton(&self, cluster_trust_floor: Magnitude) -> Result<()> {
         let mut server: Option<NodeName> = None;
 

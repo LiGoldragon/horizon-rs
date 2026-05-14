@@ -4,15 +4,13 @@
 use std::collections::BTreeMap;
 
 use horizon_lib::address::{YggAddress, YggSubnet};
-use horizon_lib::io::Io;
-use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, DomainName, ModelName, NodeName, UserName};
-use horizon_lib::node::{LidSwitchAction, NodeProjection};
 use horizon_lib::proposal::{
-    NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole, TailnetMembership,
-    YggPubKeyEntry,
+    Io, Machine, NodeProjection, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
+    TailnetMembership, YggPubKeyEntry,
 };
+use horizon_lib::view::LidSwitchAction;
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
 
@@ -34,7 +32,7 @@ fn machine_x86() -> Machine {
 
 fn io_with_root_disk() -> Io {
     use std::collections::BTreeMap;
-    use horizon_lib::io::{DevicePath, Disk, FsType, MountPath};
+    use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
     let mut disks = BTreeMap::new();
     disks.insert(
         MountPath::new("/"),

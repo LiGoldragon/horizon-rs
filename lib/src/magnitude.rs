@@ -34,6 +34,18 @@ impl Magnitude {
             max: self >= Magnitude::Max,
         }
     }
+
+    /// `#[serde(default = "Magnitude::default_zero")]` helper for
+    /// proposal records that treat absence as Zero.
+    pub(crate) fn default_zero() -> Self {
+        Magnitude::Zero
+    }
+
+    /// `#[serde(default = "Magnitude::default_min")]` helper for
+    /// proposal records that treat absence as Min.
+    pub(crate) fn default_min() -> Self {
+        Magnitude::Min
+    }
 }
 
 /// Monotonic ladder of at-least predicates for a `Magnitude`.

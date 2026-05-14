@@ -5,10 +5,9 @@ use std::collections::BTreeMap;
 
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, GithubId, Keygrip, NodeName, UserName};
-use horizon_lib::proposal::{UserProposal, UserPubKeyEntry};
+use horizon_lib::proposal::{UserProjection, UserProposal, UserPubKeyEntry};
 use horizon_lib::pub_key::SshPubKey;
 use horizon_lib::species::{Editor, Keyboard, Style, TextSize, UserSpecies};
-use horizon_lib::user::UserProjection;
 
 fn pubkey_entry() -> UserPubKeyEntry {
     UserPubKeyEntry {

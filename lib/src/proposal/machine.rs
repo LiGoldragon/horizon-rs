@@ -1,4 +1,8 @@
-//! Hardware description.
+//! Proposal-side hardware description.
+//!
+//! `arch` is `Option` because pod (virtual) machines defer it to their
+//! super-node; resolution into a concrete arch happens at projection
+//! time. The view-side `Machine` carries the resolved arch.
 
 use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
@@ -6,9 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::name::{ModelName, NodeName, UserName};
 use crate::species::{Arch, MachineSpecies, MotherBoard};
 
-/// Per-node hardware description. `arch` is `Option` because pod
-/// (virtual) machines defer it to their super-node; resolution into
-/// a concrete arch happens at projection time.
+/// Per-node hardware description as authored in the proposal.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct Machine {

@@ -1,7 +1,8 @@
-//! Tests for `machine::Machine` — the per-node hardware record.
+//! Tests for `proposal::Machine` — the per-node hardware record on
+//! the input side.
 
-use horizon_lib::machine::Machine;
 use horizon_lib::name::ModelName;
+use horizon_lib::proposal::Machine;
 use horizon_lib::species::{Arch, MachineSpecies};
 
 fn metal_x86() -> Machine {

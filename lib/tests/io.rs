@@ -1,8 +1,10 @@
-//! Tests for `io` — filesystem and I/O configuration types.
+//! Tests for `disk` shared types + `proposal::Io` — filesystem and
+//! I/O configuration on the input side.
 
 use std::collections::BTreeMap;
 
-use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath, SwapDevice};
+use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath, SwapDevice};
+use horizon_lib::proposal::Io;
 use horizon_lib::species::{Bootloader, Keyboard};
 
 #[test]

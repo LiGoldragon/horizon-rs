@@ -1,21 +1,12 @@
-//! Filesystem and I/O configuration.
-
-use std::collections::BTreeMap;
+//! Filesystem and storage types shared between proposal and view.
+//!
+//! `MountPath`, `DevicePath`, `Disk`, `FsType`, and `SwapDevice` describe
+//! the same physical filesystem on both sides; the input and output
+//! shapes do not diverge for these. Kept as one module so both
+//! `proposal::Io` and `view::Io` can reference the same canonical types.
 
 use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
 use serde::{Deserialize, Serialize};
-
-use crate::species::{Bootloader, Keyboard};
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
-#[serde(rename_all = "camelCase")]
-pub struct Io {
-    pub keyboard: Keyboard,
-    pub bootloader: Bootloader,
-    pub disks: BTreeMap<MountPath, Disk>,
-    #[serde(default)]
-    pub swap_devices: Vec<SwapDevice>,
-}
 
 /// A filesystem mount point.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]

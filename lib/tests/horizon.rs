@@ -4,15 +4,13 @@
 use std::collections::BTreeMap;
 
 use horizon_lib::address::{YggAddress, YggSubnet};
+use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
 use horizon_lib::error::Error;
-use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath};
-use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
-    UserProposal, UserPubKeyEntry,
-    YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, Io, Machine, NodeProposal, NodePubKeys, NodeServices,
+    TailnetControllerRole, UserProposal, UserPubKeyEntry, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};

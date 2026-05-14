@@ -1,61 +1,51 @@
-//! Output `User`: per-user view from a viewpoint node, with every
-//! computed field already filled.
+//! Proposal-side `UserProposal` — the per-user input shape goldragon
+//! emits.
+//!
+//! `UserProposal::project` is the constructor for `view::User`.
 
 use std::collections::BTreeMap;
 
+use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
 
-use crate::magnitude::{AtLeast, Magnitude};
-use crate::name::{ClusterName, GithubId, NodeName, UserName};
-use crate::proposal::{UserProposal, UserPubKeyEntry};
-use crate::pub_key::SshPubKeyLine;
+use crate::magnitude::Magnitude;
+use crate::name::{ClusterName, GithubId, Keygrip, NodeName, UserName};
+use crate::pub_key::{SshPubKey, SshPubKeyLine};
 use crate::species::{Editor, Keyboard, Style, TextSize, UserSpecies};
+use crate::view;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
-pub struct User {
-    // input pass-through
-    pub name: UserName,
+pub struct UserProposal {
     pub species: UserSpecies,
-    pub size: AtLeast,
-    pub trust: AtLeast,
+    #[serde(default = "Magnitude::default_zero")]
+    pub size: Magnitude,
     pub keyboard: Keyboard,
     pub style: Style,
+    #[serde(default)]
     pub github_id: Option<GithubId>,
+    /// `None` means default-true; preserved to distinguish absent from explicit-true.
+    #[serde(default)]
+    pub fast_repeat: Option<bool>,
+    #[serde(default)]
     pub pub_keys: BTreeMap<NodeName, UserPubKeyEntry>,
+    /// Preferred top-level editor application. `None` means use the
+    /// projection's smart default (`Emacs` for code developers,
+    /// `Codium` otherwise).
+    #[serde(default)]
+    pub editor: Option<Editor>,
+    /// Preferred relative text size — drives terminal font, editor
+    /// font, and editor UI zoom. `None` means use the default
+    /// (`Medium`).
+    #[serde(default)]
+    pub text_size: Option<TextSize>,
+}
 
-    // derived
-    pub has_pub_key: bool,
-    pub email_address: String,
-    pub matrix_id: String,
-    /// `&<keygrip>` form, only when this user has a pubkey for the viewpoint node.
-    pub git_signing_key: Option<String>,
-    pub use_colemak: bool,
-    pub use_fast_repeat: bool,
-    pub is_multimedia_dev: bool,
-    pub is_code_dev: bool,
-    /// Resolved editor preference: the user's explicit `editor`
-    /// when set, otherwise `Emacs` for code developers and `Codium`
-    /// for everyone else.
-    pub preferred_editor: Editor,
-    /// User's preferred relative text size; consumers (ghostty,
-    /// wezterm, emacs, codium) map this onto their own units.
-    pub text_size: TextSize,
-    pub ssh_pub_keys: Vec<SshPubKeyLine>,
-    /// Viewpoint-node line, only when has_pub_key.
-    pub ssh_pub_key: Option<SshPubKeyLine>,
-
-    // derived node-contextual fields (depend on the viewpoint node role
-    // as well as the user's trust level)
-    /// Secondary Unix groups this user should be added to on the
-    /// viewpoint node, derived from trust. Nix consumers still add
-    /// dynamic groups (e.g. "sway" when `config.programs.sway.enable`)
-    /// on top of this list.
-    pub extra_groups: Vec<String>,
-    /// `users.users.<u>.linger` — keep this user's systemd --user
-    /// sessions alive. True iff `trust == Max` and the viewpoint node
-    /// behaves as a `center`.
-    pub enable_linger: bool,
+#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct UserPubKeyEntry {
+    pub ssh: SshPubKey,
+    pub keygrip: Keygrip,
 }
 
 pub struct UserProjection<'a> {
@@ -75,7 +65,7 @@ pub struct UserProjection<'a> {
 }
 
 impl UserProposal {
-    pub fn project(&self, ctx: UserProjection<'_>) -> User {
+    pub fn project(&self, ctx: UserProjection<'_>) -> view::User {
         let github_id = self.github_id.clone().unwrap_or_else(|| {
             // Default to the user's own name when github_id is absent.
             GithubId::try_new(ctx.name.as_str()).expect("UserName is non-empty")
@@ -122,7 +112,7 @@ impl UserProposal {
             Editor::Codium
         });
 
-        User {
+        view::User {
             has_pub_key,
             email_address,
             matrix_id,
