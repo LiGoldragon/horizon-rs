@@ -51,6 +51,7 @@ pub struct UserPubKeyEntry {
 pub struct UserProjection<'a> {
     pub name: UserName,
     pub cluster: &'a ClusterName,
+    pub cluster_public_domain: &'a str,
     pub viewpoint_node: &'a NodeName,
     pub trust: Magnitude,
     /// Whether the projection's viewpoint node behaves as a `center`.
@@ -79,8 +80,8 @@ impl UserProposal {
         let ssh_pub_keys: Vec<SshPubKeyLine> =
             self.pub_keys.values().map(|e| e.ssh.line()).collect();
 
-        let email_address = format!("{}@{}.criome.net", ctx.name, ctx.cluster);
-        let matrix_id = format!("@{}:{}.criome.net", ctx.name, ctx.cluster);
+        let email_address = format!("{}@{}.{}", ctx.name, ctx.cluster, ctx.cluster_public_domain);
+        let matrix_id = format!("@{}:{}.{}", ctx.name, ctx.cluster, ctx.cluster_public_domain);
 
         let trust_ladder = ctx.trust.ladder();
         let mut extra_groups: Vec<String> = vec!["audio".into()];

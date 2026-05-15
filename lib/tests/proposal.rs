@@ -99,6 +99,7 @@ fn cluster_proposal() -> ClusterProposal {
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
         domain: ClusterDomain::try_new("criome").unwrap(),
+        public_domain: "criome.net".to_string(),
     }
 }
 

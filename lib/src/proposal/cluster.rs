@@ -79,6 +79,9 @@ pub struct ClusterProposal {
     #[serde(default)]
     pub vpn_profiles: Vec<VpnProfile>,
     pub domain: ClusterDomain,
+    /// Public DNS suffix used to construct user email and matrix
+    /// identifiers (`<user>@<cluster>.<public_domain>`).
+    pub public_domain: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -150,6 +153,7 @@ impl ClusterProposal {
             let ctx = UserProjection {
                 name: name.clone(),
                 cluster: &viewpoint.cluster,
+                cluster_public_domain: &self.public_domain,
                 viewpoint_node: &viewpoint.node,
                 trust,
                 viewpoint_behaves_as_center,

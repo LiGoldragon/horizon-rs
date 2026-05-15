@@ -139,6 +139,7 @@ fn cluster_with_one_controller(tailnet: Option<TailnetConfig>) -> ClusterProposa
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
         domain: ClusterDomain::try_new("criome").unwrap(),
+        public_domain: "criome.net".to_string(),
     }
 }
 

@@ -48,6 +48,7 @@ where
     UserProjection {
         name: UserName::try_new("li").unwrap(),
         cluster,
+        cluster_public_domain: "criome.net",
         viewpoint_node,
         trust,
         viewpoint_behaves_as_center,
