@@ -18,6 +18,11 @@ pub struct RouterInterfaces {
     pub wlan_channel: u16,
     pub wlan_standard: WlanStandard,
     pub wpa3_sae_password: SecretReference,
+    /// Broadcast SSID for the WPA3-SAE network.
+    pub ssid: String,
+    /// ISO 3166-1 alpha-2 country code (e.g. "PL", "ES") for hostapd
+    /// regulatory domain.
+    pub country: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaEnum)]
