@@ -170,6 +170,7 @@ pub struct TypeIs {
     pub media_broadcast: bool,
     pub router: bool,
     pub router_testing: bool,
+    pub publication: bool,
 }
 
 impl TypeIs {
@@ -184,6 +185,7 @@ impl TypeIs {
             media_broadcast: matches!(s, NodeSpecies::MediaBroadcast),
             router: matches!(s, NodeSpecies::Router),
             router_testing: matches!(s, NodeSpecies::RouterTesting),
+            publication: matches!(s, NodeSpecies::Publication),
         }
     }
 }

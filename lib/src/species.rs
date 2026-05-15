@@ -18,6 +18,10 @@ pub enum NodeSpecies {
     MediaBroadcast,
     Router,
     RouterTesting,
+    /// Publication node — hosts content-publishing services (Ghost
+    /// today; future: matrix-static, hugo-renderers). Always
+    /// `Contained` on a host node per Plan 04 §P6.
+    Publication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
