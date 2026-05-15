@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, ModelName, NodeName, UserName};
+use horizon_lib::name::{ClusterDomain, ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::proposal::{
     Io, Machine, NodeProjection, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
     TailnetMembership, YggPubKeyEntry,
@@ -87,10 +87,13 @@ fn proposal(species: NodeSpecies, size: Magnitude, with_keys: bool) -> NodePropo
 
 fn ctx_for(name: &str, trust: Magnitude) -> NodeProjection<'static> {
     static CLUSTER: std::sync::OnceLock<ClusterName> = std::sync::OnceLock::new();
+    static DOMAIN: std::sync::OnceLock<ClusterDomain> = std::sync::OnceLock::new();
     let cluster = CLUSTER.get_or_init(|| ClusterName::try_new("goldragon").unwrap());
+    let cluster_domain = DOMAIN.get_or_init(|| ClusterDomain::try_new("criome").unwrap());
     NodeProjection {
         name: NodeName::try_new(name).unwrap(),
         cluster,
+        cluster_domain,
         trust,
         resolved_arch: Arch::X86_64,
     }

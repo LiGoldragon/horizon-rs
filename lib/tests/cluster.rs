@@ -1,7 +1,7 @@
 //! Tests for `view::Cluster` — the cluster-level roll-up.
 
 use horizon_lib::view::Cluster;
-use horizon_lib::name::ClusterName;
+use horizon_lib::name::{ClusterDomain, ClusterName};
 use horizon_lib::pub_key::{NixPubKey, NixPubKeyLine};
 
 fn cluster_name() -> ClusterName {
@@ -12,6 +12,7 @@ fn cluster_name() -> ClusterName {
 fn cluster_round_trips_name_and_keys() {
     let cluster = Cluster {
         name: cluster_name(),
+        domain: ClusterDomain::try_new("criome").unwrap(),
         trusted_build_pub_keys: Vec::new(),
         lan: None,
         resolver: None,
@@ -25,14 +26,17 @@ fn cluster_round_trips_name_and_keys() {
 
 #[test]
 fn cluster_collects_trusted_build_pub_keys() {
+    let cluster_domain = ClusterDomain::try_new("criome").unwrap();
     let domain = horizon_lib::name::CriomeDomainName::for_node(
         &horizon_lib::name::NodeName::try_new("prometheus").unwrap(),
         &cluster_name(),
+        &cluster_domain,
     );
     let key = NixPubKey::try_new("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").unwrap();
     let line: NixPubKeyLine = key.line(&domain);
     let cluster = Cluster {
         name: cluster_name(),
+        domain: cluster_domain,
         trusted_build_pub_keys: vec![line.clone()],
         lan: None,
         resolver: None,

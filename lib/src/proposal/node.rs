@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::address::{LinkLocalIp, NodeIp};
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName};
+use crate::name::{ClusterDomain, ClusterName, CriomeDomainName, ModelName, NodeName};
 use crate::proposal::io::Io;
 use crate::proposal::machine::Machine;
 use crate::proposal::pub_keys::NodePubKeys;
@@ -94,6 +94,7 @@ pub struct NodeProposal {
 pub struct NodeProjection<'a> {
     pub name: NodeName,
     pub cluster: &'a ClusterName,
+    pub cluster_domain: &'a ClusterDomain,
     pub trust: Magnitude,
     pub resolved_arch: Arch,
 }
@@ -103,7 +104,7 @@ impl NodeProposal {
     /// are left as `None`; call `view::Node::fill_viewpoint` afterwards
     /// on the viewpoint node to populate them.
     pub fn project(&self, ctx: NodeProjection<'_>) -> view::Node {
-        let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster);
+        let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster, ctx.cluster_domain);
 
         let nix_pub_key = self.pub_keys.nix.clone();
         // Step 14: yggdrasil presence travels as one typed sub-record on

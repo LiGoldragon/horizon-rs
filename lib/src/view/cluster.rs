@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::name::ClusterName;
+use crate::name::{ClusterDomain, ClusterName};
 use crate::proposal::ai::AiProvider;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::services::TailnetConfig;
@@ -13,6 +13,7 @@ use crate::pub_key::NixPubKeyLine;
 #[serde(rename_all = "camelCase")]
 pub struct Cluster {
     pub name: ClusterName,
+    pub domain: ClusterDomain,
     /// One entry per node that has a nix signing key.
     pub trusted_build_pub_keys: Vec<NixPubKeyLine>,
     /// Cluster LAN policy (subnet, gateway, DHCP pool, lease policy)

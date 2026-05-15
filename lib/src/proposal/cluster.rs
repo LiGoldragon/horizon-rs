@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, DomainName, NodeName, UserName};
+use crate::name::{ClusterDomain, ClusterName, DomainName, NodeName, UserName};
 use crate::proposal::domain::DomainProposal;
 use crate::proposal::ai::AiProvider;
 use crate::proposal::vpn::VpnProfile;
@@ -78,6 +78,7 @@ pub struct ClusterProposal {
     /// Tail position.
     #[serde(default)]
     pub vpn_profiles: Vec<VpnProfile>,
+    pub domain: ClusterDomain,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -115,6 +116,7 @@ impl ClusterProposal {
             let ctx = NodeProjection {
                 name: name.clone(),
                 cluster: &viewpoint.cluster,
+                cluster_domain: &self.domain,
                 trust,
                 resolved_arch,
             };
@@ -159,6 +161,7 @@ impl ClusterProposal {
         // Cluster-level roll-up.
         let cluster = Cluster {
             name: viewpoint.cluster.clone(),
+            domain: self.domain.clone(),
             trusted_build_pub_keys: nodes
                 .values()
                 .filter_map(|n| n.nix_pub_key_line.clone())

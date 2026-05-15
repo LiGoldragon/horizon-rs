@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, DomainName, NodeName, UserName};
+use horizon_lib::name::{ClusterDomain, ClusterName, DomainName, NodeName, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, Io, Machine, NodeProposal, NodePubKeys, NodeServices,
     PublicCertificate, TailnetConfig, TailnetControllerRole, TailnetMembership, TlsTrustPolicy,
@@ -140,6 +140,7 @@ fn cluster_with_one_controller(tailnet: Option<TailnetConfig>) -> ClusterProposa
         tailnet,
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
+        domain: ClusterDomain::try_new("criome").unwrap(),
     }
 }
 

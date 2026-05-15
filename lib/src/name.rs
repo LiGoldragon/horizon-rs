@@ -55,6 +55,7 @@ string_newtype!(UserName, "user name");
 string_newtype!(ModelName, "model name");
 string_newtype!(GithubId, "github id");
 string_newtype!(DomainName, "domain name");
+string_newtype!(ClusterDomain, "cluster domain");
 
 impl ModelName {
     /// Parse this model name into its `KnownModel` form, if it
@@ -72,14 +73,14 @@ impl ModelName {
     }
 }
 
-/// Derived: `<node>.<cluster>.criome` — and also `nix.<criomeDomain>` for caches.
+/// Derived: `<node>.<cluster>.<cluster.domain>` — and also `nix.<criomeDomain>` for caches.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
 #[serde(transparent)]
 pub struct CriomeDomainName(pub(crate) String);
 
 impl CriomeDomainName {
-    pub fn for_node(node: &NodeName, cluster: &ClusterName) -> Self {
-        Self(format!("{node}.{cluster}.criome"))
+    pub fn for_node(node: &NodeName, cluster: &ClusterName, domain: &ClusterDomain) -> Self {
+        Self(format!("{node}.{cluster}.{domain}"))
     }
 
     pub fn nix_subdomain(&self) -> Self {

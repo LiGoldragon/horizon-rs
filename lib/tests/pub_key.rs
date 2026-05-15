@@ -2,7 +2,7 @@
 //! forms.
 
 use horizon_lib::error::Error;
-use horizon_lib::name::{ClusterName, CriomeDomainName, NodeName};
+use horizon_lib::name::{ClusterDomain, ClusterName, CriomeDomainName, NodeName};
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 
 const VALID_NIX: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -11,7 +11,8 @@ const VALID_WG: &str = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
 fn cache_domain() -> CriomeDomainName {
     let cluster = ClusterName::try_new("goldragon").unwrap();
     let node = NodeName::try_new("prometheus").unwrap();
-    CriomeDomainName::for_node(&node, &cluster)
+    let cluster_domain = ClusterDomain::try_new("criome").unwrap();
+    CriomeDomainName::for_node(&node, &cluster, &cluster_domain)
 }
 
 #[test]
