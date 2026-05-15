@@ -8,6 +8,7 @@ pub mod horizon;
 pub mod io;
 pub mod machine;
 pub mod node;
+pub mod projected_node;
 pub mod user;
 
 pub use cluster::Cluster;
@@ -17,4 +18,5 @@ pub use machine::Machine;
 pub use node::{
     BehavesAs, BuilderConfig, ComputerIs, LidSwitchAction, NixCache, Node, TypeIs, ViewpointFill,
 };
+pub use projected_node::ProjectedNodeView;
 pub use user::User;

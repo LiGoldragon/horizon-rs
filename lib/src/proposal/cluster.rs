@@ -203,6 +203,29 @@ impl ClusterProposal {
         };
         viewpoint_node.fill_viewpoint(fill);
 
+        // Walk every node proposal: if its placement names this
+        // viewpoint as host, surface it as a contained_node.
+        let mut contained_nodes = BTreeMap::new();
+        for (name, proposal) in &self.nodes {
+            let crate::proposal::placement::NodePlacement::Contained { host, user } =
+                &proposal.placement
+            else {
+                continue;
+            };
+            if host != &viewpoint.node {
+                continue;
+            }
+            contained_nodes.insert(
+                name.clone(),
+                crate::view::ProjectedNodeView {
+                    name: name.clone(),
+                    user: user.clone(),
+                    cores: proposal.machine.cores,
+                    ram_gb: proposal.machine.ram_gb,
+                },
+            );
+        }
+
         // Now remove the viewpoint from the map so `ex_nodes` excludes it.
         nodes.remove(&viewpoint.node);
 
@@ -211,6 +234,7 @@ impl ClusterProposal {
             node: viewpoint_node,
             ex_nodes: nodes,
             users,
+            contained_nodes,
         })
     }
 

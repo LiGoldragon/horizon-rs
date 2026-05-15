@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::name::{ClusterName, NodeName, UserName};
 use crate::view::cluster::Cluster;
 use crate::view::node::Node;
+use crate::view::projected_node::ProjectedNodeView;
 use crate::view::user::User;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +21,9 @@ pub struct Horizon {
     pub node: Node,
     pub ex_nodes: BTreeMap<NodeName, Node>,
     pub users: BTreeMap<UserName, User>,
+    /// Nodes whose `placement = Contained { host: <viewpoint> }`,
+    /// projected one level deep. Empty for non-host viewpoints.
+    pub contained_nodes: BTreeMap<NodeName, ProjectedNodeView>,
 }
 
 #[derive(Debug, Clone)]
