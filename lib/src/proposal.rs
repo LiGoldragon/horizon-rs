@@ -12,6 +12,7 @@ pub mod io;
 pub mod machine;
 pub mod network;
 pub mod node;
+pub mod placement;
 pub mod pub_keys;
 pub mod router;
 pub mod secret;
@@ -30,6 +31,7 @@ pub use io::Io;
 pub use machine::Machine;
 pub use network::{DhcpPool, LanCidr, LanNetwork, LeasePolicy, ResolverPolicy};
 pub use node::{NodeProjection, NodeProposal};
+pub use placement::NodePlacement;
 pub use pub_keys::{NodePubKeys, YggPubKeyEntry};
 pub use router::{RouterInterfaces, WlanBand, WlanStandard};
 pub use secret::{

@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::address::{LinkLocalAddress, NodeIp};
 use crate::magnitude::AtLeast;
 use crate::name::{CriomeDomainName, ModelName, NodeName, UserName};
-use crate::proposal::{NodeServices, RouterInterfaces, WireguardProxy};
+use crate::proposal::{NodePlacement, NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey,
 };
@@ -49,6 +49,7 @@ pub struct Node {
     /// Per-node service roles. Projected from proposal data; never
     /// inferred from the node name.
     pub services: NodeServices,
+    pub placement: NodePlacement,
 
     // identity / connectivity (always derived)
     pub criome_domain_name: CriomeDomainName,

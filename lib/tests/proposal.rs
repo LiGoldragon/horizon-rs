@@ -11,8 +11,8 @@ use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterDomain, ClusterName, NodeName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, Io, Machine, NodeProposal, NodePubKeys, NodeServices,
-    TailnetControllerRole, UserProposal, YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, Io, Machine, NodePlacement, NodeProposal, NodePubKeys,
+    NodeServices, TailnetControllerRole, UserProposal, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};
@@ -75,6 +75,7 @@ fn node_proposal(species: NodeSpecies, size: Magnitude) -> NodeProposal {
         online: None,
         number_of_build_cores: None,
         services: NodeServices::default(),
+        placement: NodePlacement::Metal {},
     }
 }
 

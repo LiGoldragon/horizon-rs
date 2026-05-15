@@ -14,6 +14,7 @@ use crate::address::{LinkLocalIp, NodeIp};
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterDomain, ClusterName, CriomeDomainName, ModelName, NodeName};
+use crate::proposal::placement::NodePlacement;
 use crate::proposal::io::Io;
 use crate::proposal::machine::Machine;
 use crate::proposal::pub_keys::NodePubKeys;
@@ -89,6 +90,7 @@ pub struct NodeProposal {
     /// not infer it from node names.
     #[serde(default)]
     pub services: NodeServices,
+    pub placement: NodePlacement,
 }
 
 pub struct NodeProjection<'a> {
@@ -196,6 +198,7 @@ impl NodeProposal {
             wants_hw_video_accel: self.wants_hw_video_accel,
             router_interfaces: self.router_interfaces.clone(),
             services: self.services.clone(),
+            placement: self.placement.clone(),
 
             criome_domain_name,
             system: ctx.resolved_arch.system(),

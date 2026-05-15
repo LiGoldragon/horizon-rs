@@ -10,9 +10,9 @@ use horizon_lib::error::Error;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterDomain, ClusterName, DomainName, NodeName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, Io, Machine, NodeProposal, NodePubKeys, NodeServices,
-    PublicCertificate, TailnetConfig, TailnetControllerRole, TailnetMembership, TlsTrustPolicy,
-    UserProposal,
+    ClusterProposal, ClusterTrust, Io, Machine, NodePlacement, NodeProposal, NodePubKeys,
+    NodeServices, PublicCertificate, TailnetConfig, TailnetControllerRole, TailnetMembership,
+    TlsTrustPolicy, UserProposal,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
@@ -114,6 +114,7 @@ fn minimal_node(species: NodeSpecies, full_keys: bool) -> NodeProposal {
         online: None,
         number_of_build_cores: None,
         services: NodeServices::default(),
+        placement: NodePlacement::Metal {},
     }
 }
 

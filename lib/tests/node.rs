@@ -7,7 +7,8 @@ use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterDomain, ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::proposal::{
-    Io, Machine, NodeProjection, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
+    Io, Machine, NodePlacement, NodeProjection, NodeProposal, NodePubKeys, NodeServices,
+    TailnetControllerRole,
     TailnetMembership, YggPubKeyEntry,
 };
 use horizon_lib::view::LidSwitchAction;
@@ -82,6 +83,7 @@ fn proposal(species: NodeSpecies, size: Magnitude, with_keys: bool) -> NodePropo
         online: None,
         number_of_build_cores: None,
         services: NodeServices::default(),
+        placement: NodePlacement::Metal {},
     }
 }
 
