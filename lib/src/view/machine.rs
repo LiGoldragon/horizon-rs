@@ -7,21 +7,18 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::name::{ModelName, NodeName, UserName};
+use crate::name::ModelName;
 use crate::proposal;
-use crate::species::{Arch, MachineSpecies, MotherBoard};
+use crate::species::{Arch, MotherBoard};
 
 /// Per-node hardware description in the projected view.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Machine {
-    pub species: MachineSpecies,
     pub arch: Option<Arch>,
     pub cores: u32,
     pub model: Option<ModelName>,
     pub mother_board: Option<MotherBoard>,
-    pub super_node: Option<NodeName>,
-    pub super_user: Option<UserName>,
     #[serde(default)]
     pub chip_gen: Option<u32>,
     #[serde(default)]
@@ -31,13 +28,10 @@ pub struct Machine {
 impl From<proposal::Machine> for Machine {
     fn from(proposal: proposal::Machine) -> Self {
         Self {
-            species: proposal.species,
             arch: proposal.arch,
             cores: proposal.cores,
             model: proposal.model,
             mother_board: proposal.mother_board,
-            super_node: proposal.super_node,
-            super_user: proposal.super_user,
             chip_gen: proposal.chip_gen,
             ram_gb: proposal.ram_gb,
         }

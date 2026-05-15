@@ -189,15 +189,19 @@ impl TypeIs {
 }
 
 impl BehavesAs {
-    pub(crate) fn derive(type_is: &TypeIs, machine: &Machine, io_disks_empty: bool) -> Self {
+    pub(crate) fn derive(
+        type_is: &TypeIs,
+        placement: &NodePlacement,
+        io_disks_empty: bool,
+    ) -> Self {
         let large_ai = type_is.large_ai || type_is.large_ai_router;
         let router = type_is.hybrid || type_is.router || type_is.large_ai_router;
         let edge = type_is.edge || type_is.hybrid || type_is.edge_testing;
         let center = type_is.center || large_ai;
         let next_gen = type_is.edge_testing || type_is.hybrid;
         let low_power = type_is.edge || type_is.edge_testing;
-        let bare_metal = matches!(machine.species, crate::species::MachineSpecies::Metal);
-        let virtual_machine = matches!(machine.species, crate::species::MachineSpecies::Pod);
+        let bare_metal = matches!(placement, NodePlacement::Metal {});
+        let virtual_machine = matches!(placement, NodePlacement::Contained { .. });
         let iso = !virtual_machine && io_disks_empty;
         BehavesAs {
             center,

@@ -28,12 +28,6 @@ pub enum UserSpecies {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
-pub enum MachineSpecies {
-    Metal,
-    Pod,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
 pub enum Keyboard {
     Qwerty,
     Colemak,

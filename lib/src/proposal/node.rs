@@ -133,7 +133,7 @@ impl NodeProposal {
         let mut machine: view::Machine = self.machine.clone().into();
         machine.arch = Some(ctx.resolved_arch);
 
-        let behaves_as = view::BehavesAs::derive(&type_is, &machine, io_disks_empty);
+        let behaves_as = view::BehavesAs::derive(&type_is, &self.placement, io_disks_empty);
 
         let online = self.online.unwrap_or(true);
         let is_remote_nix_builder = online
@@ -253,15 +253,16 @@ impl NodeProposal {
         if let Some(a) = self.machine.arch {
             return Ok(a);
         }
-        let super_name = self
-            .machine
-            .super_node
-            .as_ref()
-            .ok_or_else(|| Error::UnresolvableArch(name.clone()))?;
-        let super_proposal = proposals
-            .get(super_name)
-            .ok_or_else(|| Error::MissingSuperNode(name.clone(), super_name.clone()))?;
-        super_proposal
+        let host = match &self.placement {
+            NodePlacement::Metal {} => {
+                return Err(Error::UnresolvableArch(name.clone()));
+            }
+            NodePlacement::Contained { host, .. } => host,
+        };
+        let host_proposal = proposals
+            .get(host)
+            .ok_or_else(|| Error::MissingSuperNode(name.clone(), host.clone()))?;
+        host_proposal
             .machine
             .arch
             .ok_or_else(|| Error::UnresolvableArch(name.clone()))

@@ -1,41 +1,28 @@
 //! Proposal-side hardware description.
 //!
-//! `arch` is `Option` because pod (virtual) machines defer it to their
-//! super-node; resolution into a concrete arch happens at projection
-//! time. The view-side `Machine` carries the resolved arch.
+//! `arch` is `Option` because contained nodes defer it to their host
+//! (resolved at projection time via `NodePlacement::Contained.host`).
+//! The view-side `Machine` carries the resolved arch.
 
 use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
 
-use crate::name::{ModelName, NodeName, UserName};
-use crate::species::{Arch, MachineSpecies, MotherBoard};
+use crate::name::ModelName;
+use crate::species::{Arch, MotherBoard};
 
 /// Per-node hardware description as authored in the proposal.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct Machine {
-    pub species: MachineSpecies,
     pub arch: Option<Arch>,
     pub cores: u32,
     pub model: Option<ModelName>,
     pub mother_board: Option<MotherBoard>,
-    /// Pod-only: which node hosts this pod.
-    pub super_node: Option<NodeName>,
-    /// Pod-only: which user runs this pod.
-    pub super_user: Option<UserName>,
-    /// Intel iGPU graphics generation (e.g. 8 = Broadwell, 11 = Skylake,
-    /// 12 = Tiger Lake / Alder Lake / Meteor Lake Xe-LPG, 13 = Lunar
-    /// Lake Xe2). Gates the modern Intel media stack: `>= 12` enables
-    /// `vpl-gpu-rt` for AV1/HEVC HW decode. None for non-Intel or
-    /// unknown — modules fall back to the safe default driver.
-    /// MUST stay near the end of the struct so positional nota records
-    /// keep parsing with implicit None defaults.
+    /// Intel iGPU graphics generation. `>= 12` enables `vpl-gpu-rt`
+    /// for AV1/HEVC HW decode. None for non-Intel or unknown.
     #[serde(default)]
     pub chip_gen: Option<u32>,
-    /// Total system RAM in gibibytes (rounded). Gates downstream
-    /// resource policies: `nix.settings.maxJobs` thresholds,
-    /// llama.cpp model size, language-server heap. Optional — None
-    /// means the operator hasn't filled it in yet.
+    /// Total system RAM in gibibytes. None when not yet filled in.
     #[serde(default)]
     pub ram_gb: Option<u32>,
 }

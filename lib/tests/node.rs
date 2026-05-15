@@ -13,19 +13,16 @@ use horizon_lib::proposal::{
 };
 use horizon_lib::view::LidSwitchAction;
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
-use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
+use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
 fn machine_x86() -> Machine {
     Machine {
-        species: MachineSpecies::Metal,
         arch: Some(Arch::X86_64),
         cores: 4,
         model: None,
         mother_board: None,
-        super_node: None,
-        super_user: None,
         chip_gen: None,
         ram_gb: None,
     }
@@ -231,16 +228,17 @@ fn model_is_thinkpad_false_for_unknown_models() {
 }
 
 #[test]
-fn pod_arch_resolved_via_super_node() {
+fn contained_arch_resolved_via_placement_host() {
     let mut proposals = BTreeMap::new();
     let host = NodeName::try_new("ouranos").unwrap();
     proposals.insert(host.clone(), proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true));
 
     let mut pod_proposal = proposal(NodeSpecies::Edge, Magnitude::Min, true);
-    pod_proposal.machine.species = MachineSpecies::Pod;
     pod_proposal.machine.arch = None;
-    pod_proposal.machine.super_node = Some(host.clone());
-    pod_proposal.machine.super_user = Some(UserName::try_new("li").unwrap());
+    pod_proposal.placement = NodePlacement::Contained {
+        host: host.clone(),
+        user: UserName::try_new("li").unwrap(),
+    };
     let pod_name = NodeName::try_new("pod-1").unwrap();
     proposals.insert(pod_name.clone(), pod_proposal);
 
@@ -251,12 +249,14 @@ fn pod_arch_resolved_via_super_node() {
 }
 
 #[test]
-fn pod_arch_unresolvable_when_super_node_missing() {
+fn contained_arch_unresolvable_when_host_missing() {
     let mut proposals = BTreeMap::new();
     let mut pod_proposal = proposal(NodeSpecies::Edge, Magnitude::Min, true);
-    pod_proposal.machine.species = MachineSpecies::Pod;
     pod_proposal.machine.arch = None;
-    pod_proposal.machine.super_node = Some(NodeName::try_new("missing-host").unwrap());
+    pod_proposal.placement = NodePlacement::Contained {
+        host: NodeName::try_new("missing-host").unwrap(),
+        user: UserName::try_new("li").unwrap(),
+    };
     let pod_name = NodeName::try_new("pod-1").unwrap();
     proposals.insert(pod_name.clone(), pod_proposal);
 
@@ -267,17 +267,16 @@ fn pod_arch_unresolvable_when_super_node_missing() {
 }
 
 #[test]
-fn pod_arch_unresolvable_when_super_node_pointer_absent() {
+fn metal_arch_unresolvable_when_no_arch_set() {
     let mut proposals = BTreeMap::new();
     let mut pod_proposal = proposal(NodeSpecies::Edge, Magnitude::Min, true);
-    pod_proposal.machine.species = MachineSpecies::Pod;
     pod_proposal.machine.arch = None;
-    pod_proposal.machine.super_node = None;
+    // placement defaults to Metal — no host to inherit arch from
     let pod_name = NodeName::try_new("pod-1").unwrap();
     proposals.insert(pod_name.clone(), pod_proposal);
 
     let error = proposals[&pod_name]
         .resolve_arch(&pod_name, &proposals)
         .unwrap_err();
-    assert!(error.to_string().contains("no super-node"));
+    assert!(error.to_string().contains("no architecture"));
 }

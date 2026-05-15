@@ -3,17 +3,14 @@
 
 use horizon_lib::name::ModelName;
 use horizon_lib::proposal::Machine;
-use horizon_lib::species::{Arch, MachineSpecies};
+use horizon_lib::species::Arch;
 
 fn metal_x86() -> Machine {
     Machine {
-        species: MachineSpecies::Metal,
         arch: Some(Arch::X86_64),
         cores: 12,
         model: Some(ModelName::try_new("ThinkPadT14Gen5Intel").unwrap()),
         mother_board: None,
-        super_node: None,
-        super_user: None,
         chip_gen: Some(13),
         ram_gb: Some(32),
     }
@@ -22,7 +19,6 @@ fn metal_x86() -> Machine {
 #[test]
 fn metal_machine_carries_required_fields() {
     let machine = metal_x86();
-    assert!(matches!(machine.species, MachineSpecies::Metal));
     assert_eq!(machine.arch, Some(Arch::X86_64));
     assert_eq!(machine.cores, 12);
     assert_eq!(machine.model.as_ref().unwrap().as_str(), "ThinkPadT14Gen5Intel");
@@ -31,21 +27,19 @@ fn metal_machine_carries_required_fields() {
 }
 
 #[test]
-fn pod_machine_can_omit_arch_for_super_node_resolution() {
-    let pod = Machine {
-        species: MachineSpecies::Pod,
+fn contained_node_can_omit_arch_for_host_resolution() {
+    // Pod-style machines (no architecture of their own) inherit arch
+    // from their host through `NodePlacement::Contained`. Machine no
+    // longer carries the placement information.
+    let machine_without_arch = Machine {
         arch: None,
         cores: 2,
         model: None,
         mother_board: None,
-        super_node: Some(horizon_lib::name::NodeName::try_new("ouranos").unwrap()),
-        super_user: Some(horizon_lib::name::UserName::try_new("li").unwrap()),
         chip_gen: None,
         ram_gb: None,
     };
-    assert!(matches!(pod.species, MachineSpecies::Pod));
-    assert!(pod.arch.is_none());
-    assert!(pod.super_node.is_some());
+    assert!(machine_without_arch.arch.is_none());
 }
 
 #[test]

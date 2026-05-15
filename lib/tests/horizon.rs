@@ -14,20 +14,17 @@ use horizon_lib::proposal::{
     YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
-use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};
+use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies, Style, UserSpecies};
 use horizon_lib::Viewpoint;
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
 fn machine_x86() -> Machine {
     Machine {
-        species: MachineSpecies::Metal,
         arch: Some(Arch::X86_64),
         cores: 4,
         model: None,
         mother_board: None,
-        super_node: None,
-        super_user: None,
         chip_gen: None,
         ram_gb: None,
     }

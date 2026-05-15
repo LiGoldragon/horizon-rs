@@ -15,7 +15,7 @@ use horizon_lib::proposal::{
     TlsTrustPolicy, UserProposal,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
-use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
+use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
 use horizon_lib::Viewpoint;
 use nota_codec::{Decoder, NotaDecode};
 
@@ -77,13 +77,10 @@ fn minimal_node(species: NodeSpecies, full_keys: bool) -> NodeProposal {
         size: Magnitude::Large,
         trust: Magnitude::Max,
         machine: Machine {
-            species: MachineSpecies::Metal,
             arch: Some(Arch::X86_64),
             cores: 4,
             model: None,
             mother_board: None,
-            super_node: None,
-            super_user: None,
             chip_gen: None,
             ram_gb: None,
         },
