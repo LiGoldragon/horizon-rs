@@ -7,6 +7,7 @@ use nota_codec::{NotaEnum, NotaRecord};
 use serde::{Deserialize, Serialize};
 
 use crate::address::Interface;
+use crate::proposal::secret::SecretReference;
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
@@ -16,6 +17,7 @@ pub struct RouterInterfaces {
     pub wlan_band: WlanBand,
     pub wlan_channel: u16,
     pub wlan_standard: WlanStandard,
+    pub wpa3_sae_password: SecretReference,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaEnum)]
