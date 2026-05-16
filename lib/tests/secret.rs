@@ -151,6 +151,114 @@ fn cluster_secret_binding_decodes_with_name_and_backend() {
 }
 
 #[test]
+fn duplicate_cluster_secret_binding_rejected_at_projection() {
+    use std::collections::BTreeMap;
+
+    use horizon_lib::magnitude::Magnitude;
+    use horizon_lib::name::{ClusterDomain, ClusterName, NodeName};
+    use horizon_lib::proposal::{
+        ClusterProposal, ClusterSecretBinding, ClusterTrust, Io, Machine, NodePlacement,
+        NodeProposal, NodePubKeys, NodeServices, SecretBackend, SecretName, SopsFilePath,
+        SopsKeyPath,
+    };
+    use horizon_lib::pub_key::SshPubKey;
+    use horizon_lib::species::{Bootloader, Keyboard, NodeSpecies};
+    use horizon_lib::Viewpoint;
+
+    // Two bindings for the same SecretName — projection must reject.
+    let duplicate_name = SecretName::try_new("router-wifi-pwd").unwrap();
+    let bindings = vec![
+        ClusterSecretBinding {
+            name: duplicate_name.clone(),
+            backend: SecretBackend::Sops {
+                file: SopsFilePath::try_new("a.yaml").unwrap(),
+                key: SopsKeyPath::try_new("k").unwrap(),
+            },
+        },
+        ClusterSecretBinding {
+            name: duplicate_name.clone(),
+            backend: SecretBackend::Agenix {
+                secret_id: "x".to_string(),
+            },
+        },
+    ];
+
+    let node_name = NodeName::try_new("prometheus").unwrap();
+    let mut nodes = BTreeMap::new();
+    nodes.insert(
+        node_name.clone(),
+        NodeProposal {
+            species: NodeSpecies::Center,
+            size: Magnitude::Min,
+            trust: Magnitude::Max,
+            machine: Machine {
+                arch: None,
+                cores: 1,
+                model: None,
+                mother_board: None,
+                chip_gen: None,
+                ram_gb: None,
+            },
+            io: Io {
+                keyboard: Keyboard::Colemak,
+                bootloader: Bootloader::Uefi,
+                disks: BTreeMap::new(),
+                swap_devices: Vec::new(),
+            },
+            pub_keys: NodePubKeys {
+                ssh: SshPubKey::try_new("AAA=").unwrap(),
+                nix: None,
+                yggdrasil: None,
+            },
+            link_local_ips: Vec::new(),
+            node_ip: None,
+            wireguard_pub_key: None,
+            nordvpn: false,
+            wifi_cert: false,
+            wireguard_untrusted_proxies: Vec::new(),
+            wants_printing: false,
+            wants_hw_video_accel: false,
+            router_interfaces: None,
+            online: None,
+            number_of_build_cores: None,
+            services: NodeServices::default(),
+            placement: NodePlacement::Metal {},
+        },
+    );
+
+    let proposal = ClusterProposal {
+        nodes,
+        users: BTreeMap::new(),
+        domains: BTreeMap::new(),
+        trust: ClusterTrust {
+            cluster: Magnitude::Max,
+            clusters: BTreeMap::new(),
+            nodes: BTreeMap::new(),
+            users: BTreeMap::new(),
+        },
+        secret_bindings: bindings,
+        lan: None,
+        resolver: None,
+        tailnet: None,
+        ai_providers: Vec::new(),
+        vpn_profiles: Vec::new(),
+        domain: ClusterDomain::try_new("criome").unwrap(),
+        public_domain: "criome.net".to_string(),
+    };
+
+    let viewpoint = Viewpoint {
+        cluster: ClusterName::try_new("goldragon").unwrap(),
+        node: node_name,
+    };
+
+    let error = proposal.project(&viewpoint).unwrap_err();
+    assert!(
+        matches!(error, Error::DuplicateSecretBinding { ref name } if name == &duplicate_name),
+        "expected DuplicateSecretBinding, got {error:?}"
+    );
+}
+
+#[test]
 fn secret_purpose_variants_round_trip_through_nota_enum() {
     use horizon_lib::proposal::SecretPurpose::*;
     let cases = [

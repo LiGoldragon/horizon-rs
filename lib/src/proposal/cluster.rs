@@ -17,7 +17,7 @@ use crate::proposal::ai::AiProvider;
 use crate::proposal::vpn::VpnProfile;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::node::{NodeProjection, NodeProposal};
-use crate::proposal::secret::ClusterSecretBinding;
+use crate::proposal::secret::{ClusterSecretBinding, SecretBackend, SecretName};
 use crate::proposal::services::{TailnetConfig, TailnetControllerRole};
 use crate::proposal::user::{UserProjection, UserProposal};
 use crate::view::cluster::Cluster;
@@ -105,6 +105,7 @@ impl ClusterProposal {
 
         let cluster_trust_floor = self.trust.cluster;
         self.validate_tailnet_topology(cluster_trust_floor)?;
+        let secret_bindings = self.resolve_secret_bindings()?;
 
         // Build every Node (no viewpoint fill yet).
         let mut nodes: BTreeMap<NodeName, Node> = BTreeMap::new();
@@ -175,6 +176,7 @@ impl ClusterProposal {
             tailnet: self.tailnet.clone(),
             ai_providers: self.ai_providers.clone(),
             vpn_profiles: self.vpn_profiles.clone(),
+            secret_bindings,
         };
 
         // Clone the viewpoint node so we can fill it while the full
@@ -240,6 +242,21 @@ impl ClusterProposal {
             users,
             contained_nodes,
         })
+    }
+
+    /// Fold the proposal's authored `Vec<ClusterSecretBinding>` into
+    /// the view's lookup-shaped `BTreeMap<SecretName, SecretBackend>`.
+    /// Duplicate names loud-fail at projection time — the binding
+    /// table is a resolution function, not a multi-set.
+    fn resolve_secret_bindings(&self) -> Result<BTreeMap<SecretName, SecretBackend>> {
+        let mut resolved: BTreeMap<SecretName, SecretBackend> = BTreeMap::new();
+        for ClusterSecretBinding { name, backend } in &self.secret_bindings {
+            if resolved.contains_key(name) {
+                return Err(Error::DuplicateSecretBinding { name: name.clone() });
+            }
+            resolved.insert(name.clone(), backend.clone());
+        }
+        Ok(resolved)
     }
 
     fn validate_tailnet_topology(&self, cluster_trust_floor: Magnitude) -> Result<()> {

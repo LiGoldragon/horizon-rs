@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 use crate::name::NodeName;
+use crate::proposal::secret::SecretName;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -60,6 +61,9 @@ pub enum Error {
 
     #[error("tailnet controller declared on node {node:?} but cluster.tailnet is unset (base_domain required)")]
     TailnetControllerWithoutClusterConfig { node: NodeName },
+
+    #[error("duplicate cluster secret binding for {name:?} — every SecretName must be bound exactly once")]
+    DuplicateSecretBinding { name: SecretName },
 
     #[error("invalid public certificate {got:?} — must start with -----BEGIN CERTIFICATE-----")]
     InvalidPublicCertificate { got: String },
