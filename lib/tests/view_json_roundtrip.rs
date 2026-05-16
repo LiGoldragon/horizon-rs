@@ -31,18 +31,16 @@ use horizon_lib::name::{
     MatrixId, ModelName, NodeName, PublicDomain, UserName,
 };
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, ContainedNetwork, ContainedState, Io as ProposalIo,
-    Machine as ProposalMachine, NodePlacement, NodeProposal, NodePubKeys, NodeServices, Resources,
-    Substrate, TailnetConfig, UserNamespacePolicy, UserProposal, UserPubKeyEntry, VirtualIp,
-    YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, ContainedNetwork, ContainedState, Io, Machine, NodePlacement,
+    NodeProposal, NodePubKeys, NodeServices, Resources, Substrate, TailnetConfig,
+    UserNamespacePolicy, UserProposal, UserPubKeyEntry, VirtualIp, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, SshPubKeyLine, YggPubKey};
 use horizon_lib::species::{
     Arch, Bootloader, Editor, Keyboard, NodeSpecies, Style, System, TextSize, UserSpecies,
 };
 use horizon_lib::view::{
-    BehavesAs, BuilderConfig, Cluster, Horizon, Io, Machine, NixCache, Node, ProjectedNodeView,
-    User,
+    BehavesAs, BuilderConfig, Cluster, Horizon, NixCache, Node, ProjectedNodeView, User,
 };
 use serde_json::Value;
 
@@ -542,8 +540,8 @@ fn node_view_round_trips_through_json_with_viewpoint_fields_populated() {
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
-fn proposal_machine() -> ProposalMachine {
-    ProposalMachine {
+fn proposal_machine() -> Machine {
+    Machine {
         arch: Some(Arch::X86_64),
         cores: 4,
         model: Some(ModelName::try_new("ThinkPadT14Gen5Intel").unwrap()),
@@ -553,7 +551,7 @@ fn proposal_machine() -> ProposalMachine {
     }
 }
 
-fn proposal_io() -> ProposalIo {
+fn proposal_io() -> Io {
     let mut disks = BTreeMap::new();
     disks.insert(
         MountPath::new("/"),
@@ -563,7 +561,7 @@ fn proposal_io() -> ProposalIo {
             options: Vec::new(),
         },
     );
-    ProposalIo {
+    Io {
         keyboard: Keyboard::Colemak,
         bootloader: Bootloader::Uefi,
         disks,

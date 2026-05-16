@@ -14,11 +14,9 @@ use serde::{Deserialize, Serialize};
 use crate::address::{LinkLocalAddress, NodeIp};
 use crate::magnitude::AtLeast;
 use crate::name::{CriomeDomainName, NodeName, UserName};
-use crate::proposal::{NodePlacement, NodeServices, RouterInterfaces, WireguardProxy};
+use crate::proposal::{Io, Machine, NodePlacement, NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey};
 use crate::species::{NodeSpecies, System};
-use crate::view::io::Io;
-use crate::view::machine::Machine;
 use crate::view::user::User;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -291,7 +289,7 @@ impl Node {
             }
         }
 
-        self.io = Some(Io::from(fill.proposal_io));
+        self.io = Some(fill.proposal_io);
         self.use_colemak = Some(use_colemak);
         self.builder_configs = Some(builder_configs);
         self.cache_urls = Some(cache_urls);

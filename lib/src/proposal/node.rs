@@ -130,7 +130,10 @@ impl NodeProposal {
 
         let io_disks_empty = self.io.disks.is_empty();
 
-        let mut machine: view::Machine = self.machine.clone().into();
+        // Machine carries `arch: Option<Arch>`; on the input side a pod
+        // node may leave it None (the projection resolves it from the
+        // host); on the projected node it's always Some.
+        let mut machine = self.machine.clone();
         machine.arch = Some(ctx.resolved_arch);
 
         let behaves_as = view::BehavesAs::derive(self.species, &self.placement, io_disks_empty);
