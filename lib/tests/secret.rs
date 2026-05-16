@@ -156,7 +156,7 @@ fn duplicate_cluster_secret_binding_rejected_at_projection() {
 
     use horizon_lib::Viewpoint;
     use horizon_lib::magnitude::Magnitude;
-    use horizon_lib::name::{ClusterDomain, ClusterName, NodeName};
+    use horizon_lib::name::{ClusterDomain, ClusterName, NodeName, PublicDomain};
     use horizon_lib::proposal::{
         ClusterProposal, ClusterSecretBinding, ClusterTrust, Io, Machine, NodePlacement,
         NodeProposal, NodePubKeys, NodeServices, SecretBackend, SecretName, SopsFilePath,
@@ -243,7 +243,7 @@ fn duplicate_cluster_secret_binding_rejected_at_projection() {
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
         domain: ClusterDomain::try_new("criome").unwrap(),
-        public_domain: "criome.net".to_string(),
+        public_domain: PublicDomain::try_new("criome.net").unwrap(),
     };
 
     let viewpoint = Viewpoint {

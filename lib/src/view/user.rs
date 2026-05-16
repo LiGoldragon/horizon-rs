@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::magnitude::AtLeast;
-use crate::name::{GithubId, NodeName, UserName};
+use crate::name::{EmailAddress, GithubId, MatrixId, NodeName, UserName};
 use crate::proposal::UserPubKeyEntry;
 use crate::pub_key::SshPubKeyLine;
 use crate::species::{Editor, Keyboard, Style, TextSize, UserSpecies};
@@ -28,8 +28,8 @@ pub struct User {
 
     // derived
     pub has_pub_key: bool,
-    pub email_address: String,
-    pub matrix_id: String,
+    pub email_address: EmailAddress,
+    pub matrix_id: MatrixId,
     /// `&<keygrip>` form, only when this user has a pubkey for the viewpoint node.
     pub git_signing_key: Option<String>,
     pub use_colemak: bool,

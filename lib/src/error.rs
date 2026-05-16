@@ -31,6 +31,20 @@ pub enum Error {
     )]
     InvalidVpnCountryCode { got: String },
 
+    #[error(
+        "invalid ISO 3166-1 alpha-2 country code {got:?} — must be exactly two ASCII uppercase letters"
+    )]
+    InvalidIsoCountryCode { got: String },
+
+    #[error("invalid Wi-Fi SSID {got:?} — must be 1 to 32 bytes (IEEE 802.11 limit)")]
+    InvalidSsid { got: String },
+
+    #[error("invalid email address {got:?} — must contain `@`")]
+    InvalidEmailAddress { got: String },
+
+    #[error("invalid Matrix ID {got:?} — must start with `@` and contain `:`")]
+    InvalidMatrixId { got: String },
+
     #[error("invalid keygrip: expected 40 hex chars, got {got:?}")]
     InvalidKeygrip { got: String },
 

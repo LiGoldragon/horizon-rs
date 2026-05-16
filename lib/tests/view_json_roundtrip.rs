@@ -27,8 +27,8 @@ use horizon_lib::address::{LinkLocalIp, YggAddress, YggSubnet};
 use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
 use horizon_lib::magnitude::{AtLeast, Magnitude};
 use horizon_lib::name::{
-    ClusterDomain, ClusterName, CriomeDomainName, DomainName, GithubId, Keygrip, ModelName,
-    NodeName, UserName,
+    ClusterDomain, ClusterName, CriomeDomainName, DomainName, EmailAddress, GithubId, Keygrip,
+    MatrixId, ModelName, NodeName, PublicDomain, UserName,
 };
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, ContainedNetwork, ContainedState, Io as ProposalIo,
@@ -145,8 +145,8 @@ fn user_view_minimal() -> User {
         pub_keys: BTreeMap::new(),
 
         has_pub_key: false,
-        email_address: "li@goldragon.criome.net".to_string(),
-        matrix_id: "@li:goldragon.criome.net".to_string(),
+        email_address: EmailAddress::try_new("li@goldragon.criome.net").unwrap(),
+        matrix_id: MatrixId::try_new("@li:goldragon.criome.net").unwrap(),
         git_signing_key: None,
         use_colemak: true,
         use_fast_repeat: false,
@@ -673,7 +673,7 @@ fn cluster_proposal() -> ClusterProposal {
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
         domain: ClusterDomain::try_new("criome").unwrap(),
-        public_domain: "criome.net".to_string(),
+        public_domain: PublicDomain::try_new("criome.net").unwrap(),
     }
 }
 

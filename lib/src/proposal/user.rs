@@ -9,7 +9,9 @@ use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
 
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, GithubId, Keygrip, NodeName, UserName};
+use crate::name::{
+    ClusterName, EmailAddress, GithubId, Keygrip, MatrixId, NodeName, PublicDomain, UserName,
+};
 use crate::pub_key::{SshPubKey, SshPubKeyLine};
 use crate::species::{Editor, Keyboard, Style, TextSize, UserSpecies};
 use crate::view;
@@ -51,7 +53,7 @@ pub struct UserPubKeyEntry {
 pub struct UserProjection<'a> {
     pub name: UserName,
     pub cluster: &'a ClusterName,
-    pub cluster_public_domain: &'a str,
+    pub cluster_public_domain: &'a PublicDomain,
     pub viewpoint_node: &'a NodeName,
     pub trust: Magnitude,
     /// Whether the projection's viewpoint node behaves as a `center`.
@@ -80,11 +82,16 @@ impl UserProposal {
         let ssh_pub_keys: Vec<SshPubKeyLine> =
             self.pub_keys.values().map(|e| e.ssh.line()).collect();
 
-        let email_address = format!("{}@{}.{}", ctx.name, ctx.cluster, ctx.cluster_public_domain);
-        let matrix_id = format!(
+        let email_address = EmailAddress::try_new(format!(
+            "{}@{}.{}",
+            ctx.name, ctx.cluster, ctx.cluster_public_domain
+        ))
+        .expect("email_address constructed from non-empty UserName/ClusterName/PublicDomain");
+        let matrix_id = MatrixId::try_new(format!(
             "@{}:{}.{}",
             ctx.name, ctx.cluster, ctx.cluster_public_domain
-        );
+        ))
+        .expect("matrix_id constructed from non-empty UserName/ClusterName/PublicDomain");
 
         let trust_ladder = ctx.trust.ladder();
         let mut extra_groups: Vec<String> = vec!["audio".into()];

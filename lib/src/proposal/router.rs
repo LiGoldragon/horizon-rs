@@ -3,10 +3,11 @@
 //! Deployment facts, not machine-model facts: two machines with the
 //! same model may have different interface names.
 
-use nota_codec::{NotaEnum, NotaRecord};
+use nota_codec::{NotaEnum, NotaRecord, NotaTryTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::address::Interface;
+use crate::error::{Error, Result};
 use crate::proposal::secret::SecretReference;
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -19,10 +20,92 @@ pub struct RouterInterfaces {
     pub wlan_standard: WlanStandard,
     pub wpa3_sae_password: SecretReference,
     /// Broadcast SSID for the WPA3-SAE network.
-    pub ssid: String,
-    /// ISO 3166-1 alpha-2 country code (e.g. "PL", "ES") for hostapd
-    /// regulatory domain.
-    pub country: String,
+    pub ssid: Ssid,
+    /// ISO 3166-1 alpha-2 country code (e.g. `PL`, `ES`) for hostapd's
+    /// regulatory domain. Type enforces the format at the boundary.
+    pub country: IsoCountryCode,
+}
+
+/// Wi-Fi SSID. Validation: 1 to 32 bytes (IEEE 802.11 limit).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
+#[serde(try_from = "String", into = "String")]
+pub struct Ssid(pub(crate) String);
+
+impl Ssid {
+    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+        let s = s.into();
+        let length = s.len();
+        if length == 0 || length > 32 {
+            Err(Error::InvalidSsid { got: s })
+        } else {
+            Ok(Self(s))
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for Ssid {
+    type Error = Error;
+    fn try_from(s: String) -> Result<Self> {
+        Self::try_new(s)
+    }
+}
+
+impl AsRef<str> for Ssid {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for Ssid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+/// ISO 3166-1 alpha-2 country code. Validation: exactly two ASCII
+/// uppercase letters. The doc comment used to carry this rule on a
+/// `String` field; the type now carries it.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
+#[serde(try_from = "String", into = "String")]
+pub struct IsoCountryCode(pub(crate) String);
+
+impl IsoCountryCode {
+    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+        let s = s.into();
+        let bytes = s.as_bytes();
+        if bytes.len() == 2 && bytes[0].is_ascii_uppercase() && bytes[1].is_ascii_uppercase() {
+            Ok(Self(s))
+        } else {
+            Err(Error::InvalidIsoCountryCode { got: s })
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for IsoCountryCode {
+    type Error = Error;
+    fn try_from(s: String) -> Result<Self> {
+        Self::try_new(s)
+    }
+}
+
+impl AsRef<str> for IsoCountryCode {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl std::fmt::Display for IsoCountryCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaEnum)]

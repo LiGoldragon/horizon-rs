@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterDomain, ClusterName, DomainName, NodeName, UserName};
+use crate::name::{ClusterDomain, ClusterName, DomainName, NodeName, PublicDomain, UserName};
 use crate::proposal::ai::AiProvider;
 use crate::proposal::domain::DomainProposal;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
@@ -80,8 +80,11 @@ pub struct ClusterProposal {
     pub vpn_profiles: Vec<VpnProfile>,
     pub domain: ClusterDomain,
     /// Public DNS suffix used to construct user email and matrix
-    /// identifiers (`<user>@<cluster>.<public_domain>`).
-    pub public_domain: String,
+    /// identifiers (`<user>@<cluster>.<public_domain>`). Typed
+    /// alongside `domain` so both DNS-shaped fields carry their
+    /// own newtype identity rather than fragmenting "domain" across
+    /// one newtype and one bare `String`.
+    pub public_domain: PublicDomain,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]

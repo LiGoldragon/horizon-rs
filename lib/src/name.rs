@@ -67,6 +67,98 @@ string_newtype!(ModelName, "model name");
 string_newtype!(GithubId, "github id");
 string_newtype!(DomainName, "domain name");
 string_newtype!(ClusterDomain, "cluster domain");
+string_newtype!(PublicDomain, "public domain");
+
+/// `user@host`-shaped identifier. Validation: non-empty + contains
+/// exactly one `@` separating a non-empty local part from a non-empty
+/// host. Used in `view::User.email_address`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
+#[serde(try_from = "String", into = "String")]
+pub struct EmailAddress(pub(crate) String);
+
+impl EmailAddress {
+    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+        let s = s.into();
+        let mut parts = s.splitn(2, '@');
+        let local = parts.next().unwrap_or("");
+        let host = parts.next().unwrap_or("");
+        if local.is_empty() || host.is_empty() || host.contains('@') {
+            Err(Error::InvalidEmailAddress { got: s })
+        } else {
+            Ok(Self(s))
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for EmailAddress {
+    type Error = Error;
+    fn try_from(s: String) -> Result<Self> {
+        Self::try_new(s)
+    }
+}
+
+impl AsRef<str> for EmailAddress {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for EmailAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+/// Matrix protocol identifier (`@user:domain`). Validation: starts
+/// with `@`, contains `:`, and both sides of the `:` are non-empty.
+/// Used in `view::User.matrix_id`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
+#[serde(try_from = "String", into = "String")]
+pub struct MatrixId(pub(crate) String);
+
+impl MatrixId {
+    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+        let s = s.into();
+        if !s.starts_with('@') {
+            return Err(Error::InvalidMatrixId { got: s });
+        }
+        let body = &s[1..];
+        let Some((local, host)) = body.split_once(':') else {
+            return Err(Error::InvalidMatrixId { got: s });
+        };
+        if local.is_empty() || host.is_empty() {
+            return Err(Error::InvalidMatrixId { got: s });
+        }
+        Ok(Self(s))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for MatrixId {
+    type Error = Error;
+    fn try_from(s: String) -> Result<Self> {
+        Self::try_new(s)
+    }
+}
+
+impl AsRef<str> for MatrixId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for MatrixId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 
 impl ModelName {
     /// Parse this model name into its `KnownModel` form, if it

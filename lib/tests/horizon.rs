@@ -8,7 +8,7 @@ use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
 use horizon_lib::error::Error;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterDomain, ClusterName, DomainName, NodeName, UserName};
+use horizon_lib::name::{ClusterDomain, ClusterName, DomainName, NodeName, PublicDomain, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, Io, Machine, NodePlacement, NodeProposal, NodePubKeys,
     NodeServices, TailnetConfig, TailnetControllerRole, UserProposal, UserPubKeyEntry,
@@ -169,7 +169,7 @@ fn cluster_proposal(viewpoint_trust: Magnitude) -> ClusterProposal {
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
         domain: ClusterDomain::try_new("criome").unwrap(),
-        public_domain: "criome.net".to_string(),
+        public_domain: PublicDomain::try_new("criome.net").unwrap(),
     }
 }
 

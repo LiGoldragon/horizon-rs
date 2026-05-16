@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, GithubId, Keygrip, NodeName, UserName};
+use horizon_lib::name::{ClusterName, GithubId, Keygrip, NodeName, PublicDomain, UserName};
 use horizon_lib::proposal::{UserProjection, UserProposal, UserPubKeyEntry};
 use horizon_lib::pub_key::SshPubKey;
 use horizon_lib::species::{Editor, Keyboard, Style, TextSize, UserSpecies};
@@ -48,7 +48,7 @@ where
     UserProjection {
         name: UserName::try_new("li").unwrap(),
         cluster,
-        cluster_public_domain: "criome.net",
+        cluster_public_domain: public_domain(),
         viewpoint_node,
         trust,
         viewpoint_behaves_as_center,
@@ -59,6 +59,11 @@ where
 fn cluster() -> &'static ClusterName {
     static CLUSTER: std::sync::OnceLock<ClusterName> = std::sync::OnceLock::new();
     CLUSTER.get_or_init(|| ClusterName::try_new("goldragon").unwrap())
+}
+
+fn public_domain() -> &'static PublicDomain {
+    static PUBLIC_DOMAIN: std::sync::OnceLock<PublicDomain> = std::sync::OnceLock::new();
+    PUBLIC_DOMAIN.get_or_init(|| PublicDomain::try_new("criome.net").unwrap())
 }
 
 fn viewpoint() -> &'static NodeName {
@@ -255,8 +260,8 @@ fn email_and_matrix_id_compose_from_name_and_cluster() {
         true,
         Magnitude::Max,
     ));
-    assert_eq!(user.email_address, "li@goldragon.criome.net");
-    assert_eq!(user.matrix_id, "@li:goldragon.criome.net");
+    assert_eq!(user.email_address.as_str(), "li@goldragon.criome.net");
+    assert_eq!(user.matrix_id.as_str(), "@li:goldragon.criome.net");
 }
 
 #[test]
