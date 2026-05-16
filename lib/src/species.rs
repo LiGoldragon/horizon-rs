@@ -82,9 +82,19 @@ pub enum Arch {
 }
 
 /// The Nix system tuple. Derived from `Arch`.
+///
+/// JSON form per Nix's system tuple convention: lowercase, with an
+/// underscore inside the platform numerals and a dash between platform
+/// and OS (`"x86_64-linux"`, `"aarch64-linux"`). The variant identifier
+/// keeps PascalCase for Rust and for the `NotaEnum` text form;
+/// per-variant `#[serde(rename = ...)]` rewrites only the JSON path,
+/// matching what every Nix consumer of `inputs.horizon` already
+/// expects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
 pub enum System {
+    #[serde(rename = "x86_64-linux")]
     X86_64Linux,
+    #[serde(rename = "aarch64-linux")]
     Aarch64Linux,
 }
 

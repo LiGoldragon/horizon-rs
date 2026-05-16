@@ -8,3 +8,6 @@ serde      = { workspace = true }
 nota-codec = { workspace = true }
 thiserror  = { workspace = true }
 ipnet      = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
