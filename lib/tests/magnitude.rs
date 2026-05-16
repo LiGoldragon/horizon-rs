@@ -6,23 +6,48 @@ use horizon_lib::magnitude::{AtLeast, Magnitude};
 fn ladder_monotonic() {
     assert_eq!(
         Magnitude::Zero.ladder(),
-        AtLeast { min: false, medium: false, large: false, max: false }
+        AtLeast {
+            min: false,
+            medium: false,
+            large: false,
+            max: false
+        }
     );
     assert_eq!(
         Magnitude::Min.ladder(),
-        AtLeast { min: true, medium: false, large: false, max: false }
+        AtLeast {
+            min: true,
+            medium: false,
+            large: false,
+            max: false
+        }
     );
     assert_eq!(
         Magnitude::Medium.ladder(),
-        AtLeast { min: true, medium: true, large: false, max: false }
+        AtLeast {
+            min: true,
+            medium: true,
+            large: false,
+            max: false
+        }
     );
     assert_eq!(
         Magnitude::Large.ladder(),
-        AtLeast { min: true, medium: true, large: true, max: false }
+        AtLeast {
+            min: true,
+            medium: true,
+            large: true,
+            max: false
+        }
     );
     assert_eq!(
         Magnitude::Max.ladder(),
-        AtLeast { min: true, medium: true, large: true, max: true }
+        AtLeast {
+            min: true,
+            medium: true,
+            large: true,
+            max: true
+        }
     );
 }
 

@@ -170,8 +170,16 @@ fn extra_groups_add_admin_set_at_max_trust() {
         Magnitude::Max,
     ));
     for required in &[
-        "audio", "video", "adbusers", "nixdev", "systemd-journal", "dialout", "plugdev",
-        "power", "storage", "libvirtd",
+        "audio",
+        "video",
+        "adbusers",
+        "nixdev",
+        "systemd-journal",
+        "dialout",
+        "plugdev",
+        "power",
+        "storage",
+        "libvirtd",
     ] {
         assert!(
             user.extra_groups.contains(&required.to_string()),

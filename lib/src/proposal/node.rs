@@ -14,9 +14,9 @@ use crate::address::{LinkLocalIp, NodeIp};
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterDomain, ClusterName, CriomeDomainName, ModelName, NodeName};
-use crate::proposal::placement::NodePlacement;
 use crate::proposal::io::Io;
 use crate::proposal::machine::Machine;
+use crate::proposal::placement::NodePlacement;
 use crate::proposal::pub_keys::NodePubKeys;
 use crate::proposal::router::RouterInterfaces;
 use crate::proposal::services::NodeServices;
@@ -106,7 +106,8 @@ impl NodeProposal {
     /// are left as `None`; call `view::Node::fill_viewpoint` afterwards
     /// on the viewpoint node to populate them.
     pub fn project(&self, ctx: NodeProjection<'_>) -> view::Node {
-        let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster, ctx.cluster_domain);
+        let criome_domain_name =
+            CriomeDomainName::for_node(&ctx.name, ctx.cluster, ctx.cluster_domain);
 
         let nix_pub_key = self.pub_keys.nix.clone();
         // Step 14: yggdrasil presence travels as one typed sub-record on
@@ -144,10 +145,8 @@ impl NodeProposal {
         let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.min;
         let is_nix_cache = behaves_as.center && sized_at_least.min && has_base_pub_keys;
         let is_large_edge = sized_at_least.large && behaves_as.edge;
-        let enable_network_manager = sized_at_least.min
-            && !behaves_as.iso
-            && !behaves_as.center
-            && !behaves_as.router;
+        let enable_network_manager =
+            sized_at_least.min && !behaves_as.iso && !behaves_as.center && !behaves_as.router;
         let has_video_output = behaves_as.edge;
 
         let lid_policy = behaves_as.lid_switch_policy();

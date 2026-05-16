@@ -80,7 +80,9 @@ pub struct NordvpnServer {
 /// Operator-chosen identifier for one server entry. Letters,
 /// digits, dashes — used to compose NetworkManager connection
 /// names like `nordvpn-<name>`.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent,
+)]
 #[serde(transparent)]
 pub struct NordvpnServerName(pub(crate) String);
 
@@ -114,7 +116,9 @@ impl std::fmt::Display for NordvpnServerName {
 }
 
 /// ISO 3166-1 alpha-2 country code (two ASCII uppercase letters).
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent,
+)]
 #[serde(transparent)]
 pub struct VpnCountryCode(pub(crate) String);
 
@@ -155,7 +159,9 @@ impl VpnIpAddress {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
         let s = s.into();
         if s.is_empty() {
-            return Err(Error::EmptyName { kind: "VPN IP address" });
+            return Err(Error::EmptyName {
+                kind: "VPN IP address",
+            });
         }
         Ok(Self(s))
     }
@@ -186,7 +192,9 @@ impl VpnClientAddress {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
         let s = s.into();
         if s.is_empty() {
-            return Err(Error::EmptyName { kind: "VPN client address" });
+            return Err(Error::EmptyName {
+                kind: "VPN client address",
+            });
         }
         Ok(Self(s))
     }

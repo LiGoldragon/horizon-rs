@@ -154,6 +154,7 @@ fn cluster_secret_binding_decodes_with_name_and_backend() {
 fn duplicate_cluster_secret_binding_rejected_at_projection() {
     use std::collections::BTreeMap;
 
+    use horizon_lib::Viewpoint;
     use horizon_lib::magnitude::Magnitude;
     use horizon_lib::name::{ClusterDomain, ClusterName, NodeName};
     use horizon_lib::proposal::{
@@ -163,7 +164,6 @@ fn duplicate_cluster_secret_binding_rejected_at_projection() {
     };
     use horizon_lib::pub_key::SshPubKey;
     use horizon_lib::species::{Bootloader, Keyboard, NodeSpecies};
-    use horizon_lib::Viewpoint;
 
     // Two bindings for the same SecretName — projection must reject.
     let duplicate_name = SecretName::try_new("router-wifi-pwd").unwrap();

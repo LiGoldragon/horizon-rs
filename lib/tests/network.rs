@@ -3,9 +3,7 @@
 
 use horizon_lib::address::IpAddress;
 use horizon_lib::error::Error;
-use horizon_lib::proposal::{
-    DhcpPool, LanCidr, LanNetwork, LeasePolicy, ResolverPolicy,
-};
+use horizon_lib::proposal::{DhcpPool, LanCidr, LanNetwork, LeasePolicy, ResolverPolicy};
 use nota_codec::{Decoder, NotaDecode};
 
 #[test]

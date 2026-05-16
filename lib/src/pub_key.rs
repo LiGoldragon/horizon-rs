@@ -45,7 +45,10 @@ impl SshPubKey {
         if !s.is_empty() && is_base64(&s) {
             Ok(Self(s))
         } else {
-            Err(Error::InvalidBase64Key { expected_len: 0, got: s })
+            Err(Error::InvalidBase64Key {
+                expected_len: 0,
+                got: s,
+            })
         }
     }
 
@@ -57,7 +60,6 @@ impl SshPubKey {
         &self.0
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
 #[serde(try_from = "String", into = "String")]
@@ -76,7 +78,10 @@ impl YggPubKey {
         if s.len() == YGG_PUBKEY_LEN && is_hex(&s) {
             Ok(Self(s.to_ascii_lowercase()))
         } else {
-            Err(Error::InvalidHexKey { expected_len: YGG_PUBKEY_LEN, got: s })
+            Err(Error::InvalidHexKey {
+                expected_len: YGG_PUBKEY_LEN,
+                got: s,
+            })
         }
     }
 
@@ -84,7 +89,6 @@ impl YggPubKey {
         &self.0
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
 #[serde(try_from = "String", into = "String")]
@@ -103,7 +107,10 @@ impl NixPubKey {
         if s.len() == NIX_PUBKEY_LEN && is_base64(&s) {
             Ok(Self(s))
         } else {
-            Err(Error::InvalidBase64Key { expected_len: NIX_PUBKEY_LEN, got: s })
+            Err(Error::InvalidBase64Key {
+                expected_len: NIX_PUBKEY_LEN,
+                got: s,
+            })
         }
     }
 
@@ -115,7 +122,6 @@ impl NixPubKey {
         &self.0
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTryTransparent)]
 #[serde(try_from = "String", into = "String")]
@@ -134,7 +140,10 @@ impl WireguardPubKey {
         if s.len() == WG_PUBKEY_LEN && is_base64(&s) {
             Ok(Self(s))
         } else {
-            Err(Error::InvalidBase64Key { expected_len: WG_PUBKEY_LEN, got: s })
+            Err(Error::InvalidBase64Key {
+                expected_len: WG_PUBKEY_LEN,
+                got: s,
+            })
         }
     }
 
@@ -142,7 +151,6 @@ impl WireguardPubKey {
         &self.0
     }
 }
-
 
 /// Pre-rendered SSH known-hosts / authorized_keys line:
 /// `ssh-ed25519 <pubKey>`.

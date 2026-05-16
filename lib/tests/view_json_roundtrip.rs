@@ -22,6 +22,7 @@
 
 use std::collections::BTreeMap;
 
+use horizon_lib::Viewpoint;
 use horizon_lib::address::{LinkLocalIp, YggAddress, YggSubnet};
 use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
 use horizon_lib::magnitude::{AtLeast, Magnitude};
@@ -43,7 +44,6 @@ use horizon_lib::view::{
     BehavesAs, BuilderConfig, Cluster, ComputerIs, Horizon, Io, LidSwitchAction, Machine, NixCache,
     Node, ProjectedNodeView, TypeIs, User,
 };
-use horizon_lib::Viewpoint;
 use serde_json::Value;
 
 // ── small helpers ──────────────────────────────────────────────────────

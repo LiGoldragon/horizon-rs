@@ -50,7 +50,11 @@ fn cluster_collects_trusted_build_pub_keys() {
         secret_bindings: BTreeMap::new(),
     };
     assert_eq!(cluster.trusted_build_pub_keys.len(), 1);
-    assert!(cluster.trusted_build_pub_keys[0].as_str().contains("prometheus.goldragon.criome:"));
+    assert!(
+        cluster.trusted_build_pub_keys[0]
+            .as_str()
+            .contains("prometheus.goldragon.criome:")
+    );
 }
 
 #[test]
@@ -98,7 +102,10 @@ fn cluster_json_round_trip_carries_every_secret_backend_variant() {
     let json = serde_json::to_string(&cluster).expect("serialize cluster");
     // Field is camelCased on the wire (`secretBindings`) — that's
     // what the Nix consumer reads as `horizon.cluster.secretBindings`.
-    assert!(json.contains("\"secretBindings\""), "missing secretBindings key in {json}");
+    assert!(
+        json.contains("\"secretBindings\""),
+        "missing secretBindings key in {json}"
+    );
 
     let decoded: Cluster = serde_json::from_str(&json).expect("deserialize cluster");
     assert_eq!(decoded.secret_bindings.len(), 3);

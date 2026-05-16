@@ -9,7 +9,9 @@ use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
 /// A filesystem mount point.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent,
+)]
 #[serde(transparent)]
 pub struct MountPath(pub(crate) String);
 

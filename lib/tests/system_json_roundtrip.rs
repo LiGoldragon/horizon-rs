@@ -8,7 +8,7 @@
 //! the rename ever drifts.
 
 use horizon_lib::species::System;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[test]
 fn x86_64_linux_serialises_to_nix_system_tuple_shape() {

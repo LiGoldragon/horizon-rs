@@ -15,7 +15,9 @@ fn empty_name_displays_kind() {
 
 #[test]
 fn invalid_keygrip_includes_got_value() {
-    let error = Error::InvalidKeygrip { got: "TOOSHORT".to_string() };
+    let error = Error::InvalidKeygrip {
+        got: "TOOSHORT".to_string(),
+    };
     assert!(error.to_string().contains("TOOSHORT"));
     assert!(error.to_string().contains("40 hex chars"));
 }

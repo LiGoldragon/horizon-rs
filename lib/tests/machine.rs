@@ -21,7 +21,10 @@ fn metal_machine_carries_required_fields() {
     let machine = metal_x86();
     assert_eq!(machine.arch, Some(Arch::X86_64));
     assert_eq!(machine.cores, 12);
-    assert_eq!(machine.model.as_ref().unwrap().as_str(), "ThinkPadT14Gen5Intel");
+    assert_eq!(
+        machine.model.as_ref().unwrap().as_str(),
+        "ThinkPadT14Gen5Intel"
+    );
     assert_eq!(machine.chip_gen, Some(13));
     assert_eq!(machine.ram_gb, Some(32));
 }

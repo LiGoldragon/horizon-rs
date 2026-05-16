@@ -5,6 +5,7 @@
 
 use std::collections::BTreeMap;
 
+use horizon_lib::Viewpoint;
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::magnitude::Magnitude;
@@ -16,7 +17,6 @@ use horizon_lib::proposal::{
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
-use horizon_lib::Viewpoint;
 use nota_codec::{Decoder, NotaDecode};
 
 const VALID_PEM: &str = "-----BEGIN CERTIFICATE-----\nMIIBxxxxxx...\n-----END CERTIFICATE-----";
@@ -68,10 +68,12 @@ fn tls_trust_policy_decodes_with_ca_certificate() {
     let policy = TlsTrustPolicy::decode(&mut decoder).unwrap();
     // PEM round-trips via the nota string codec (escape sequences in
     // text → embedded newlines in the struct).
-    assert!(policy
-        .ca_certificate
-        .as_str()
-        .starts_with("-----BEGIN CERTIFICATE-----"));
+    assert!(
+        policy
+            .ca_certificate
+            .as_str()
+            .starts_with("-----BEGIN CERTIFICATE-----")
+    );
     assert!(policy.server_certificate.is_none());
     assert!(policy.server_private_key.is_none());
 }

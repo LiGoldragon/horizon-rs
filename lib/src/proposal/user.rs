@@ -81,7 +81,10 @@ impl UserProposal {
             self.pub_keys.values().map(|e| e.ssh.line()).collect();
 
         let email_address = format!("{}@{}.{}", ctx.name, ctx.cluster, ctx.cluster_public_domain);
-        let matrix_id = format!("@{}:{}.{}", ctx.name, ctx.cluster, ctx.cluster_public_domain);
+        let matrix_id = format!(
+            "@{}:{}.{}",
+            ctx.name, ctx.cluster, ctx.cluster_public_domain
+        );
 
         let trust_ladder = ctx.trust.ladder();
         let mut extra_groups: Vec<String> = vec!["audio".into()];
@@ -120,7 +123,10 @@ impl UserProposal {
             git_signing_key,
             use_colemak: matches!(self.keyboard, Keyboard::Colemak),
             use_fast_repeat: self.fast_repeat.unwrap_or(true),
-            is_multimedia_dev: matches!(self.species, UserSpecies::Multimedia | UserSpecies::Unlimited),
+            is_multimedia_dev: matches!(
+                self.species,
+                UserSpecies::Multimedia | UserSpecies::Unlimited
+            ),
             is_code_dev,
             preferred_editor,
             text_size: self.text_size.unwrap_or_default(),

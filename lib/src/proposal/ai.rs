@@ -19,7 +19,9 @@ use crate::proposal::secret::SecretReference;
 /// Identifier the operator gives to one AI provider entry. Distinct
 /// from the model id; one provider may host many models. Validated
 /// like other names: non-empty ASCII letters, digits, dashes.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent,
+)]
 #[serde(transparent)]
 pub struct AiProviderName(pub(crate) String);
 
@@ -55,7 +57,9 @@ impl std::fmt::Display for AiProviderName {
 /// On-the-wire shape of a model identifier (e.g. `"qwen3.5-122b-a10b"`).
 /// Closed character set so config files / paths can be derived
 /// without quoting concerns.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent,
+)]
 #[serde(transparent)]
 pub struct AiModelId(pub(crate) String);
 

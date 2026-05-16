@@ -9,7 +9,18 @@ use crate::species::KnownModel;
 
 macro_rules! string_newtype {
     ($name:ident, $kind:literal) => {
-        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+        #[derive(
+            Debug,
+            Clone,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
+            Serialize,
+            Deserialize,
+            NotaTransparent,
+        )]
         #[serde(transparent)]
         pub struct $name(pub(crate) String);
 
@@ -133,7 +144,6 @@ impl Keygrip {
         &self.0
     }
 }
-
 
 impl AsRef<str> for Keygrip {
     fn as_ref(&self) -> &str {
