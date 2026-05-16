@@ -67,6 +67,9 @@ impl ModelName {
             "ThinkPadX240" => Some(KnownModel::ThinkPadX240),
             "ThinkPadT14Gen2Intel" => Some(KnownModel::ThinkPadT14Gen2Intel),
             "ThinkPadT14Gen5Intel" => Some(KnownModel::ThinkPadT14Gen5Intel),
+            "ThinkPadE15Gen2Intel" => Some(KnownModel::ThinkPadE15Gen2Intel),
+            "GmktecEvoX2" => Some(KnownModel::GmktecEvoX2),
+            "Rock64" => Some(KnownModel::Rock64),
             "rpi3B" => Some(KnownModel::Rpi3B),
             _ => None,
         }

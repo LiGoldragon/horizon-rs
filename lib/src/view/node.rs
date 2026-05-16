@@ -262,8 +262,11 @@ pub(crate) struct LidSwitchPolicy {
 pub struct ComputerIs {
     pub thinkpad_t14_gen2_intel: bool,
     pub thinkpad_t14_gen5_intel: bool,
+    pub thinkpad_e15_gen2_intel: bool,
     pub thinkpad_x230: bool,
     pub thinkpad_x240: bool,
+    pub gmktec_evo_x2: bool,
+    pub rock64: bool,
     pub rpi3b: bool,
 }
 
@@ -273,8 +276,11 @@ impl ComputerIs {
         ComputerIs {
             thinkpad_t14_gen2_intel: known == Some(KnownModel::ThinkPadT14Gen2Intel),
             thinkpad_t14_gen5_intel: known == Some(KnownModel::ThinkPadT14Gen5Intel),
+            thinkpad_e15_gen2_intel: known == Some(KnownModel::ThinkPadE15Gen2Intel),
             thinkpad_x230: known == Some(KnownModel::ThinkPadX230),
             thinkpad_x240: known == Some(KnownModel::ThinkPadX240),
+            gmktec_evo_x2: known == Some(KnownModel::GmktecEvoX2),
+            rock64: known == Some(KnownModel::Rock64),
             rpi3b: known == Some(KnownModel::Rpi3B),
         }
     }

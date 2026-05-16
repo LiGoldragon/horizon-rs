@@ -54,9 +54,32 @@ fn model_name_known_returns_typed_known_model() {
         Some(KnownModel::ThinkPadT14Gen5Intel),
     );
     assert_eq!(
+        ModelName::try_new("ThinkPadE15Gen2Intel").unwrap().known(),
+        Some(KnownModel::ThinkPadE15Gen2Intel),
+    );
+    assert_eq!(
+        ModelName::try_new("GmktecEvoX2").unwrap().known(),
+        Some(KnownModel::GmktecEvoX2),
+    );
+    assert_eq!(
+        ModelName::try_new("Rock64").unwrap().known(),
+        Some(KnownModel::Rock64),
+    );
+    assert_eq!(
         ModelName::try_new("rpi3B").unwrap().known(),
         Some(KnownModel::Rpi3B),
     );
+}
+
+#[test]
+fn thinkpad_e15_gen2_intel_passes_is_thinkpad() {
+    assert!(KnownModel::ThinkPadE15Gen2Intel.is_thinkpad());
+}
+
+#[test]
+fn gmktec_and_rock64_do_not_pass_is_thinkpad() {
+    assert!(!KnownModel::GmktecEvoX2.is_thinkpad());
+    assert!(!KnownModel::Rock64.is_thinkpad());
 }
 
 #[test]

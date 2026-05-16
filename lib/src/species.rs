@@ -130,6 +130,9 @@ pub enum KnownModel {
     ThinkPadX240,
     ThinkPadT14Gen2Intel,
     ThinkPadT14Gen5Intel,
+    ThinkPadE15Gen2Intel,
+    GmktecEvoX2,
+    Rock64,
     Rpi3B,
 }
 
@@ -141,6 +144,7 @@ impl KnownModel {
                 | Self::ThinkPadX240
                 | Self::ThinkPadT14Gen2Intel
                 | Self::ThinkPadT14Gen5Intel
+                | Self::ThinkPadE15Gen2Intel
         )
     }
 }
