@@ -55,11 +55,12 @@ pub struct Node {
 
     /// `nix.buildMachines.<this>.maxJobs` from this viewpoint:
     /// how many derivations Nix dispatches in parallel to this builder.
-    /// Derived from cores + role + size.
+    /// Derived from cores + role + size. Same value also drives
+    /// `nix.settings.build-cores` locally on the node itself; consumers
+    /// read this single field for both purposes (prior shape exposed
+    /// `build_cores: u32` separately even though it was assigned
+    /// `let build_cores = max_jobs;`).
     pub max_jobs: u32,
-    /// `nix.settings.cores` for this builder. `0` = use all cores per
-    /// individual derivation. Universal default.
-    pub build_cores: u32,
 
     // pubkey shadow from input pub_keys
     pub ssh_pub_key: SshPubKey,
@@ -70,20 +71,18 @@ pub struct Node {
     /// `ygg_subnet` sibling fields per step 14 (address grouping).
     pub yggdrasil: Option<crate::proposal::YggPubKeyEntry>,
 
-    // computed booleans (always derived)
+    // computed booleans (always derived). `has_video_output` retired —
+    // it was `= behaves_as.edge`; consumers read the canonical form.
+    // Lid-switch policy retired — consumers derive the three systemd
+    // actions from `behaves_as.{center, edge, low_power}` per the
+    // policy in `BehavesAs::lid_switch_policy` (now removed).
     pub is_fully_trusted: bool,
     pub is_remote_nix_builder: bool,
     pub is_dispatcher: bool,
     pub is_large_edge: bool,
     pub enable_network_manager: bool,
-    pub has_video_output: bool,
     pub chip_is_intel: bool,
     pub model_is_thinkpad: bool,
-
-    // computed power-policy (systemd logind lid-switch actions)
-    pub handle_lid_switch: LidSwitchAction,
-    pub handle_lid_switch_external_power: LidSwitchAction,
-    pub handle_lid_switch_docked: LidSwitchAction,
 
     // computed strings
     pub ssh_pub_key_line: SshPubKeyLine,
@@ -129,16 +128,6 @@ pub struct NixCache {
     pub url: String,
 }
 
-/// systemd-logind lid-switch policy. Serialises to the lowercase
-/// strings systemd accepts directly (`"ignore" | "suspend" | "lock"`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum LidSwitchAction {
-    Ignore,
-    Suspend,
-    Lock,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BehavesAs {
@@ -181,41 +170,6 @@ impl BehavesAs {
             large_ai,
         }
     }
-
-    /// systemd-logind lid-switch policy derived from the node's
-    /// behaves-as flags. Centers ignore lid events entirely; edges
-    /// lock when docked; otherwise the policy depends on the
-    /// power state.
-    pub(crate) fn lid_switch_policy(&self) -> LidSwitchPolicy {
-        let on_battery = if self.center {
-            LidSwitchAction::Ignore
-        } else {
-            LidSwitchAction::Suspend
-        };
-        let on_external_power = if self.center {
-            LidSwitchAction::Ignore
-        } else if self.low_power {
-            LidSwitchAction::Suspend
-        } else {
-            LidSwitchAction::Lock
-        };
-        let docked = if self.edge {
-            LidSwitchAction::Lock
-        } else {
-            LidSwitchAction::Ignore
-        };
-        LidSwitchPolicy {
-            on_battery,
-            on_external_power,
-            docked,
-        }
-    }
-}
-
-pub(crate) struct LidSwitchPolicy {
-    pub(crate) on_battery: LidSwitchAction,
-    pub(crate) on_external_power: LidSwitchAction,
-    pub(crate) docked: LidSwitchAction,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

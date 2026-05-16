@@ -149,9 +149,6 @@ impl NodeProposal {
         let is_large_edge = sized_at_least.large && behaves_as.edge;
         let enable_network_manager =
             sized_at_least.min && !behaves_as.iso && !behaves_as.center && !behaves_as.router;
-        let has_video_output = behaves_as.edge;
-
-        let lid_policy = behaves_as.lid_switch_policy();
 
         let nix_pub_key_line = nix_pub_key.as_ref().map(|k| k.line(&criome_domain_name));
         let nix_cache = if is_nix_cache {
@@ -166,15 +163,14 @@ impl NodeProposal {
         let ssh_pub_key_line = ssh_pub_key.line();
 
         let chip_is_intel = ctx.resolved_arch.is_intel();
-        // Per-node `number_of_build_cores` from the datom drives
-        // both `nix.buildMachines.<n>.maxJobs` (when this node
-        // acts as a remote builder) and `nix.settings.build-cores`
-        // locally on the node itself. `None` defaults to 1 —
-        // matches nix's out-of-the-box single-job-at-a-time and
-        // keeps the wire backward-compat with datoms that don't
-        // set the field.
+        // Per-node `number_of_build_cores` from the datom drives both
+        // `nix.buildMachines.<n>.maxJobs` (when this node acts as a
+        // remote builder) and `nix.settings.build-cores` locally on the
+        // node itself — one number, one wire field. `None` defaults to
+        // 1 — matches nix's out-of-the-box single-job-at-a-time and
+        // keeps the wire backward-compat with datoms that don't set
+        // the field.
         let max_jobs = self.number_of_build_cores.unwrap_or(1);
-        let build_cores = max_jobs;
         let model_is_thinkpad = self
             .machine
             .model
@@ -204,7 +200,6 @@ impl NodeProposal {
             criome_domain_name,
             system: ctx.resolved_arch.system(),
             max_jobs,
-            build_cores,
 
             ssh_pub_key,
             nix_pub_key,
@@ -215,7 +210,6 @@ impl NodeProposal {
             is_dispatcher,
             is_large_edge,
             enable_network_manager,
-            has_video_output,
             chip_is_intel,
             model_is_thinkpad,
 
@@ -224,10 +218,6 @@ impl NodeProposal {
             nix_cache,
 
             behaves_as,
-
-            handle_lid_switch: lid_policy.on_battery,
-            handle_lid_switch_external_power: lid_policy.on_external_power,
-            handle_lid_switch_docked: lid_policy.docked,
 
             io: None,
             use_colemak: None,

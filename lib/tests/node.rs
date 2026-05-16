@@ -13,7 +13,6 @@ use horizon_lib::proposal::{
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
-use horizon_lib::view::LidSwitchAction;
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -143,7 +142,6 @@ fn edge_node_at_least_medium_with_keys_is_remote_nix_builder() {
         .project(ctx_for("ouranos", Magnitude::Max));
     assert!(node.is_remote_nix_builder);
     assert!(node.is_dispatcher);
-    assert!(node.has_video_output);
     assert!(node.behaves_as.edge);
     assert!(node.behaves_as.next_gen);
 }
@@ -173,33 +171,12 @@ fn ladder_booleans_match_input_size() {
     assert!(!node.size.max);
 }
 
-#[test]
-fn lid_switch_policy_for_center_ignores_all_states() {
-    let node = proposal(NodeSpecies::Center, Magnitude::Min, true)
-        .project(ctx_for("prometheus", Magnitude::Max));
-    assert!(matches!(node.handle_lid_switch, LidSwitchAction::Ignore));
-    assert!(matches!(
-        node.handle_lid_switch_external_power,
-        LidSwitchAction::Ignore
-    ));
-}
-
-#[test]
-fn lid_switch_policy_for_edge_locks_when_docked_and_on_external_power() {
-    let node =
-        proposal(NodeSpecies::Edge, Magnitude::Min, true).project(ctx_for("zeus", Magnitude::Max));
-    assert!(matches!(
-        node.handle_lid_switch_docked,
-        LidSwitchAction::Lock
-    ));
-    // Edge is low_power → on external power, suspend rather than lock.
-    assert!(matches!(
-        node.handle_lid_switch_external_power,
-        LidSwitchAction::Suspend
-    ));
-    // Default lid action (battery) for non-center is Suspend.
-    assert!(matches!(node.handle_lid_switch, LidSwitchAction::Suspend));
-}
+// Lid-switch policy assertions retired with the three flat
+// `handle_lid_switch*` fields on `view::Node`. The policy now lives
+// in the Nix consumer that maps `behaves_as.{center, edge, low_power}`
+// → systemd lid actions. The inputs that policy reads are still
+// witnessed by `center_node_with_full_keys_is_nix_cache_and_dispatcher`
+// (asserts `behaves_as.center`) and similar tests above.
 
 #[test]
 fn nix_cache_present_for_center_node() {

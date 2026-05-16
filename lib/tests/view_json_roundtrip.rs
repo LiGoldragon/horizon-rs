@@ -41,8 +41,8 @@ use horizon_lib::species::{
     Arch, Bootloader, Editor, Keyboard, NodeSpecies, Style, System, TextSize, UserSpecies,
 };
 use horizon_lib::view::{
-    BehavesAs, BuilderConfig, Cluster, Horizon, Io, LidSwitchAction, Machine, NixCache, Node,
-    ProjectedNodeView, User,
+    BehavesAs, BuilderConfig, Cluster, Horizon, Io, Machine, NixCache, Node, ProjectedNodeView,
+    User,
 };
 use serde_json::Value;
 
@@ -243,7 +243,6 @@ fn node_view_fixture() -> Node {
         criome_domain_name: CriomeDomainName::for_node(&name, &cluster, &cluster_domain),
         system: System::X86_64Linux,
         max_jobs: 4,
-        build_cores: 4,
 
         ssh_pub_key: ssh_pub_key(),
         nix_pub_key: Some(nix_pub_key()),
@@ -258,13 +257,8 @@ fn node_view_fixture() -> Node {
         is_dispatcher: true,
         is_large_edge: true,
         enable_network_manager: true,
-        has_video_output: true,
         chip_is_intel: true,
         model_is_thinkpad: true,
-
-        handle_lid_switch: LidSwitchAction::Suspend,
-        handle_lid_switch_external_power: LidSwitchAction::Lock,
-        handle_lid_switch_docked: LidSwitchAction::Ignore,
 
         ssh_pub_key_line: ssh_pub_key_line(),
         nix_pub_key_line: Some(nix_pub_key().line(&CriomeDomainName::for_node(
@@ -310,25 +304,6 @@ fn nix_cache_round_trips_through_json_and_carries_camel_case_keys() {
     assert_camel_key(&json, "url");
     let recovered: NixCache = serde_json::from_value(json).unwrap();
     assert_eq!(recovered, original);
-}
-
-#[test]
-fn lid_switch_action_serialises_lowercase_and_round_trips() {
-    for variant in [
-        LidSwitchAction::Ignore,
-        LidSwitchAction::Suspend,
-        LidSwitchAction::Lock,
-    ] {
-        let json = serde_json::to_value(variant).unwrap();
-        let recovered: LidSwitchAction = serde_json::from_value(json.clone()).unwrap();
-        assert_eq!(recovered, variant);
-        let lowercase = json.as_str().expect("LidSwitchAction renders as string");
-        assert_eq!(
-            lowercase,
-            lowercase.to_ascii_lowercase().as_str(),
-            "LidSwitchAction must serialise as lowercase systemd token, got {lowercase}",
-        );
-    }
 }
 
 #[test]
@@ -497,7 +472,6 @@ fn node_view_round_trips_through_json_with_only_always_derived_fields() {
         "criomeDomainName",
         "system",
         "maxJobs",
-        "buildCores",
         "sshPubKey",
         "nixPubKey",
         "yggdrasil",
@@ -506,12 +480,8 @@ fn node_view_round_trips_through_json_with_only_always_derived_fields() {
         "isDispatcher",
         "isLargeEdge",
         "enableNetworkManager",
-        "hasVideoOutput",
         "chipIsIntel",
         "modelIsThinkpad",
-        "handleLidSwitch",
-        "handleLidSwitchExternalPower",
-        "handleLidSwitchDocked",
         "sshPubKeyLine",
         "nixPubKeyLine",
         "nixCache",
