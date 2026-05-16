@@ -11,12 +11,21 @@
   };
 
   outputs =
-    { self, nixpkgs, fenix, crane }:
+    {
+      self,
+      nixpkgs,
+      fenix,
+      crane,
+    }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" ];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
       forSystems = f: nixpkgs.lib.genAttrs systems (s: f s);
 
-      mkContext = system:
+      mkContext =
+        system:
         let
           pkgs = import nixpkgs { inherit system; };
           toolchain = fenix.packages.${system}.fromToolchainFile {
@@ -30,39 +39,65 @@
           # crane flakes". Crane fetches git deps from `Cargo.lock`
           # alone; bump revs via
           # `nix run nixpkgs#cargo -- update -p <crate>`.
+          cargoPackage = craneLib.crateNameFromCargoToml {
+            cargoToml = ./cli/Cargo.toml;
+          };
           commonArgs = {
             inherit src;
+            inherit (cargoPackage) pname version;
             strictDeps = true;
           };
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in
-        { inherit pkgs toolchain craneLib commonArgs cargoArtifacts; };
+        {
+          inherit
+            pkgs
+            toolchain
+            craneLib
+            commonArgs
+            cargoArtifacts
+            ;
+        };
     in
     {
-      packages = forSystems (system:
-        let ctx = mkContext system; in
+      packages = forSystems (
+        system:
+        let
+          ctx = mkContext system;
+        in
         {
-          default = ctx.craneLib.buildPackage (ctx.commonArgs // {
-            inherit (ctx) cargoArtifacts;
-            # pname must match Cargo.toml's [[bin]] name so `nix run`
-            # finds bin/<pname>.
-            pname = "horizon-cli";
-            cargoExtraArgs = "--bin horizon-cli";
-            meta.mainProgram = "horizon-cli";
-            doCheck = false;
-          });
-        });
+          default = ctx.craneLib.buildPackage (
+            ctx.commonArgs
+            // {
+              inherit (ctx) cargoArtifacts;
+              cargoExtraArgs = "--bin horizon-cli";
+              meta.mainProgram = "horizon-cli";
+              doCheck = false;
+            }
+          );
+        }
+      );
 
-      checks = forSystems (system:
-        let ctx = mkContext system; in
+      checks = forSystems (
+        system:
+        let
+          ctx = mkContext system;
+        in
         {
-          default = ctx.craneLib.cargoTest (ctx.commonArgs // {
-            inherit (ctx) cargoArtifacts;
-          });
-        });
+          default = ctx.craneLib.cargoTest (
+            ctx.commonArgs
+            // {
+              inherit (ctx) cargoArtifacts;
+            }
+          );
+        }
+      );
 
-      devShells = forSystems (system:
-        let ctx = mkContext system; in
+      devShells = forSystems (
+        system:
+        let
+          ctx = mkContext system;
+        in
         {
           default = ctx.pkgs.mkShell {
             packages = [
@@ -71,7 +106,8 @@
               ctx.pkgs.jq
             ];
           };
-        });
+        }
+      );
 
       formatter = forSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
     };
