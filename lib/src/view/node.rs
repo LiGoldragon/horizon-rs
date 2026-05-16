@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::address::{LinkLocalAddress, NodeIp};
 use crate::magnitude::AtLeast;
-use crate::name::{CriomeDomainName, ModelName, NodeName, UserName};
+use crate::name::{CriomeDomainName, NodeName, UserName};
 use crate::proposal::{NodePlacement, NodeServices, RouterInterfaces, WireguardProxy};
 use crate::pub_key::{NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey};
-use crate::species::{KnownModel, NodeSpecies, System};
+use crate::species::{NodeSpecies, System};
 use crate::view::io::Io;
 use crate::view::machine::Machine;
 use crate::view::user::User;
@@ -97,15 +97,12 @@ pub struct Node {
 
     // grouped flags
     pub behaves_as: BehavesAs,
-    pub type_is: TypeIs,
 
     // viewpoint-only fields
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub io: Option<Io>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub use_colemak: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub computer_is: Option<ComputerIs>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub builder_configs: Option<Vec<BuilderConfig>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -156,52 +153,19 @@ pub struct BehavesAs {
     pub large_ai: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TypeIs {
-    pub center: bool,
-    pub edge: bool,
-    pub edge_testing: bool,
-    pub cloud_host: bool,
-    pub hybrid: bool,
-    pub large_ai: bool,
-    pub large_ai_router: bool,
-    pub media_broadcast: bool,
-    pub router: bool,
-    pub router_testing: bool,
-    pub publication: bool,
-}
-
-impl TypeIs {
-    pub(crate) fn from_species(s: NodeSpecies) -> Self {
-        TypeIs {
-            center: matches!(s, NodeSpecies::Center),
-            edge: matches!(s, NodeSpecies::Edge),
-            edge_testing: matches!(s, NodeSpecies::EdgeTesting),
-            cloud_host: matches!(s, NodeSpecies::CloudHost),
-            hybrid: matches!(s, NodeSpecies::Hybrid),
-            large_ai: matches!(s, NodeSpecies::LargeAi),
-            large_ai_router: matches!(s, NodeSpecies::LargeAiRouter),
-            media_broadcast: matches!(s, NodeSpecies::MediaBroadcast),
-            router: matches!(s, NodeSpecies::Router),
-            router_testing: matches!(s, NodeSpecies::RouterTesting),
-            publication: matches!(s, NodeSpecies::Publication),
-        }
-    }
-}
-
 impl BehavesAs {
     pub(crate) fn derive(
-        type_is: &TypeIs,
+        species: NodeSpecies,
         placement: &NodePlacement,
         io_disks_empty: bool,
     ) -> Self {
-        let large_ai = type_is.large_ai || type_is.large_ai_router;
-        let router = type_is.hybrid || type_is.router || type_is.large_ai_router;
-        let edge = type_is.edge || type_is.hybrid || type_is.edge_testing;
-        let center = type_is.center || type_is.cloud_host || large_ai;
-        let next_gen = type_is.edge_testing || type_is.hybrid;
-        let low_power = type_is.edge || type_is.edge_testing;
+        use NodeSpecies::*;
+        let large_ai = matches!(species, LargeAi | LargeAiRouter);
+        let router = matches!(species, Hybrid | Router | LargeAiRouter);
+        let edge = matches!(species, Edge | Hybrid | EdgeTesting);
+        let center = matches!(species, Center | CloudHost) || large_ai;
+        let next_gen = matches!(species, EdgeTesting | Hybrid);
+        let low_power = matches!(species, Edge | EdgeTesting);
         let bare_metal = matches!(placement, NodePlacement::Metal {});
         let virtual_machine = matches!(placement, NodePlacement::Contained { .. });
         let iso = !virtual_machine && io_disks_empty;
@@ -254,38 +218,6 @@ pub(crate) struct LidSwitchPolicy {
     pub(crate) docked: LidSwitchAction,
 }
 
-/// Closed set of computer-model flags downstream consumers gate on.
-/// Add a variant here when a new model warrants a config branch.
-/// Field names emit as camelCase per nota convention.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ComputerIs {
-    pub thinkpad_t14_gen2_intel: bool,
-    pub thinkpad_t14_gen5_intel: bool,
-    pub thinkpad_e15_gen2_intel: bool,
-    pub thinkpad_x230: bool,
-    pub thinkpad_x240: bool,
-    pub gmktec_evo_x2: bool,
-    pub rock64: bool,
-    pub rpi3b: bool,
-}
-
-impl ComputerIs {
-    pub(crate) fn from_model(model: Option<&ModelName>) -> Self {
-        let known = model.and_then(ModelName::known);
-        ComputerIs {
-            thinkpad_t14_gen2_intel: known == Some(KnownModel::ThinkPadT14Gen2Intel),
-            thinkpad_t14_gen5_intel: known == Some(KnownModel::ThinkPadT14Gen5Intel),
-            thinkpad_e15_gen2_intel: known == Some(KnownModel::ThinkPadE15Gen2Intel),
-            thinkpad_x230: known == Some(KnownModel::ThinkPadX230),
-            thinkpad_x240: known == Some(KnownModel::ThinkPadX240),
-            gmktec_evo_x2: known == Some(KnownModel::GmktecEvoX2),
-            rock64: known == Some(KnownModel::Rock64),
-            rpi3b: known == Some(KnownModel::Rpi3B),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BuilderConfig {
@@ -328,7 +260,7 @@ impl BuilderConfig {
             // 600 root-owned. The builder authorizes the dispatcher's host
             // *pub*key as if it were a user key in `nix.sshServe.keys`.
             ssh_key: "/etc/ssh/ssh_host_ed25519_key".to_string(),
-            supported_features: if node.type_is.edge {
+            supported_features: if node.behaves_as.edge {
                 Vec::new()
             } else {
                 // `big-parallel`: required by LLVM, kernels, chromium, etc.
@@ -356,8 +288,6 @@ impl Node {
     /// Fill viewpoint-only fields on the viewpoint node. Idempotent.
     pub fn fill_viewpoint(&mut self, fill: ViewpointFill<'_>) {
         let use_colemak = matches!(fill.proposal_io.keyboard, crate::species::Keyboard::Colemak);
-
-        let computer_is = ComputerIs::from_model(self.machine.model.as_ref());
 
         // Sibling nodes only, in deterministic order.
         let ex_nodes: Vec<&Node> = fill
@@ -409,7 +339,6 @@ impl Node {
 
         self.io = Some(Io::from(fill.proposal_io));
         self.use_colemak = Some(use_colemak);
-        self.computer_is = Some(computer_is);
         self.builder_configs = Some(builder_configs);
         self.cache_urls = Some(cache_urls);
         self.ex_nodes_ssh_pub_keys = Some(ex_nodes_ssh_pub_keys);

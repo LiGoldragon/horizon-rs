@@ -134,7 +134,7 @@ fn center_node_with_full_keys_is_nix_cache_and_dispatcher() {
     assert!(node.is_fully_trusted);
     assert!(node.nix_pub_key.is_some() && node.yggdrasil.is_some());
     assert!(node.behaves_as.center);
-    assert!(node.type_is.center);
+    assert!(matches!(node.species, NodeSpecies::Center));
 }
 
 #[test]

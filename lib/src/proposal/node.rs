@@ -128,17 +128,19 @@ impl NodeProposal {
         let is_fully_trusted = matches!(ctx.trust, Magnitude::Max);
         let sized_at_least = self.size.ladder();
 
-        let type_is = view::TypeIs::from_species(self.species);
         let io_disks_empty = self.io.disks.is_empty();
 
         let mut machine: view::Machine = self.machine.clone().into();
         machine.arch = Some(ctx.resolved_arch);
 
-        let behaves_as = view::BehavesAs::derive(&type_is, &self.placement, io_disks_empty);
+        let behaves_as = view::BehavesAs::derive(self.species, &self.placement, io_disks_empty);
 
         let online = self.online.unwrap_or(true);
+        // Strict-Edge gate: only the literal `Edge` species is excluded
+        // from acting as a remote nix builder. `EdgeTesting` and `Hybrid`
+        // also `behaves_as.edge` but remain eligible builders.
         let is_remote_nix_builder = online
-            && !type_is.edge
+            && !matches!(self.species, NodeSpecies::Edge)
             && is_fully_trusted
             && (sized_at_least.medium || behaves_as.center)
             && has_base_pub_keys;
@@ -222,7 +224,6 @@ impl NodeProposal {
             nix_cache,
 
             behaves_as,
-            type_is,
 
             handle_lid_switch: lid_policy.on_battery,
             handle_lid_switch_external_power: lid_policy.on_external_power,
@@ -230,7 +231,6 @@ impl NodeProposal {
 
             io: None,
             use_colemak: None,
-            computer_is: None,
             builder_configs: None,
             cache_urls: None,
             ex_nodes_ssh_pub_keys: None,

@@ -118,9 +118,8 @@ pub enum MotherBoard {
 }
 
 /// Closed set of computer models the projection recognises by
-/// `ModelName` string. Drives `ComputerIs` flags and
-/// `model_is_thinkpad` on `Node`. Add a variant when a new
-/// model needs a config branch.
+/// `ModelName` string. Drives `model_is_thinkpad` on `Node`.
+/// Add a variant when a new model needs a config branch.
 ///
 /// Not on the wire — `ModelName` stays an open string in the
 /// proposal. This is the parsed form used internally by

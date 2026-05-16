@@ -41,20 +41,12 @@ use horizon_lib::species::{
     Arch, Bootloader, Editor, Keyboard, NodeSpecies, Style, System, TextSize, UserSpecies,
 };
 use horizon_lib::view::{
-    BehavesAs, BuilderConfig, Cluster, ComputerIs, Horizon, Io, LidSwitchAction, Machine, NixCache,
-    Node, ProjectedNodeView, TypeIs, User,
+    BehavesAs, BuilderConfig, Cluster, Horizon, Io, LidSwitchAction, Machine, NixCache, Node,
+    ProjectedNodeView, User,
 };
 use serde_json::Value;
 
 // ── small helpers ──────────────────────────────────────────────────────
-
-fn round_trip<T>(value: &T) -> T
-where
-    T: serde::Serialize + serde::de::DeserializeOwned,
-{
-    let json = serde_json::to_value(value).expect("serialise");
-    serde_json::from_value(json).expect("parse")
-}
 
 fn assert_camel_key(value: &Value, key: &str) {
     let object = value
@@ -107,48 +99,6 @@ fn io_view() -> Io {
         bootloader: Bootloader::Uefi,
         disks,
         swap_devices: Vec::new(),
-    }
-}
-
-fn computer_is_known_thinkpad() -> ComputerIs {
-    ComputerIs {
-        thinkpad_t14_gen2_intel: false,
-        thinkpad_t14_gen5_intel: true,
-        thinkpad_e15_gen2_intel: false,
-        thinkpad_x230: false,
-        thinkpad_x240: false,
-        gmktec_evo_x2: false,
-        rock64: false,
-        rpi3b: false,
-    }
-}
-
-fn computer_is_unknown_model() -> ComputerIs {
-    ComputerIs {
-        thinkpad_t14_gen2_intel: false,
-        thinkpad_t14_gen5_intel: false,
-        thinkpad_e15_gen2_intel: false,
-        thinkpad_x230: false,
-        thinkpad_x240: false,
-        gmktec_evo_x2: false,
-        rock64: false,
-        rpi3b: false,
-    }
-}
-
-fn type_is_edge() -> TypeIs {
-    TypeIs {
-        center: false,
-        edge: true,
-        edge_testing: false,
-        cloud_host: false,
-        hybrid: false,
-        large_ai: false,
-        large_ai_router: false,
-        media_broadcast: false,
-        router: false,
-        router_testing: false,
-        publication: false,
     }
 }
 
@@ -271,7 +221,6 @@ fn node_view_fixture() -> Node {
     let cluster_domain = ClusterDomain::try_new("criome").unwrap();
     let name = NodeName::try_new("ouranos").unwrap();
 
-    let type_is = type_is_edge();
     let behaves_as = behaves_as_edge();
 
     Node {
@@ -326,11 +275,9 @@ fn node_view_fixture() -> Node {
         nix_cache: Some(nix_cache()),
 
         behaves_as,
-        type_is,
 
         io: None,
         use_colemak: None,
-        computer_is: None,
         builder_configs: None,
         cache_urls: None,
         ex_nodes_ssh_pub_keys: None,
@@ -344,7 +291,6 @@ fn node_view_fixture_with_viewpoint_fields() -> Node {
     let mut node = node_view_fixture();
     node.io = Some(io_view());
     node.use_colemak = Some(true);
-    node.computer_is = Some(computer_is_known_thinkpad());
     node.builder_configs = Some(Vec::new());
     node.cache_urls = Some(Vec::new());
     node.ex_nodes_ssh_pub_keys = Some(Vec::new());
@@ -424,53 +370,32 @@ fn behaves_as_round_trips_through_json_with_camel_case_keys() {
 }
 
 #[test]
-fn type_is_round_trips_through_json_with_camel_case_keys() {
-    let original = type_is_edge();
-    let json = serde_json::to_value(&original).unwrap();
-    assert_camel_key(&json, "edgeTesting");
-    assert_camel_key(&json, "cloudHost");
-    assert_camel_key(&json, "largeAi");
-    assert_camel_key(&json, "largeAiRouter");
-    assert_camel_key(&json, "mediaBroadcast");
-    assert_camel_key(&json, "routerTesting");
-    let recovered: TypeIs = serde_json::from_value(json).unwrap();
-    assert_eq!(recovered, original);
-}
-
-#[test]
-fn computer_is_round_trips_with_all_known_model_flags() {
-    let original = computer_is_known_thinkpad();
-    let json = serde_json::to_value(&original).unwrap();
-    for key in [
-        "thinkpadT14Gen2Intel",
-        "thinkpadT14Gen5Intel",
-        "thinkpadE15Gen2Intel",
-        "thinkpadX230",
-        "thinkpadX240",
-        "gmktecEvoX2",
-        "rock64",
-        "rpi3b",
+fn node_species_renders_as_pascal_case_string_on_the_wire() {
+    // After dropping TypeIs, NodeSpecies is the load-bearing way Nix
+    // consumers know what kind of node this is. Gate sites should read
+    // `node.species == "Center"` etc., so the wire form must be the
+    // PascalCase variant tag, not anything else.
+    for (variant, expected) in [
+        (NodeSpecies::Center, "Center"),
+        (NodeSpecies::Edge, "Edge"),
+        (NodeSpecies::EdgeTesting, "EdgeTesting"),
+        (NodeSpecies::CloudHost, "CloudHost"),
+        (NodeSpecies::Hybrid, "Hybrid"),
+        (NodeSpecies::LargeAi, "LargeAi"),
+        (NodeSpecies::LargeAiRouter, "LargeAiRouter"),
+        (NodeSpecies::MediaBroadcast, "MediaBroadcast"),
+        (NodeSpecies::Router, "Router"),
+        (NodeSpecies::RouterTesting, "RouterTesting"),
+        (NodeSpecies::Publication, "Publication"),
     ] {
-        assert_camel_key(&json, key);
+        let json = serde_json::to_value(variant).unwrap();
+        let recovered: NodeSpecies = serde_json::from_value(json.clone()).unwrap();
+        assert_eq!(recovered, variant);
+        assert_eq!(
+            json.as_str().expect("NodeSpecies renders as string"),
+            expected,
+        );
     }
-    let recovered: ComputerIs = serde_json::from_value(json).unwrap();
-    assert_eq!(recovered, original);
-}
-
-#[test]
-fn computer_is_round_trips_with_unknown_model_all_false() {
-    let original = computer_is_unknown_model();
-    let recovered: ComputerIs = round_trip(&original);
-    assert_eq!(recovered, original);
-    // Sanity: every flag is false when no model is known.
-    assert!(!recovered.thinkpad_t14_gen2_intel);
-    assert!(!recovered.thinkpad_t14_gen5_intel);
-    assert!(!recovered.thinkpad_e15_gen2_intel);
-    assert!(!recovered.thinkpad_x230);
-    assert!(!recovered.thinkpad_x240);
-    assert!(!recovered.gmktec_evo_x2);
-    assert!(!recovered.rock64);
-    assert!(!recovered.rpi3b);
 }
 
 #[test]
@@ -591,7 +516,7 @@ fn node_view_round_trips_through_json_with_only_always_derived_fields() {
         "nixPubKeyLine",
         "nixCache",
         "behavesAs",
-        "typeIs",
+        "species",
     ] {
         assert_camel_key(&json, key);
     }
@@ -601,7 +526,6 @@ fn node_view_round_trips_through_json_with_only_always_derived_fields() {
     for key in [
         "io",
         "useColemak",
-        "computerIs",
         "builderConfigs",
         "cacheUrls",
         "exNodesSshPubKeys",
@@ -629,7 +553,6 @@ fn node_view_round_trips_through_json_with_viewpoint_fields_populated() {
     for key in [
         "io",
         "useColemak",
-        "computerIs",
         "builderConfigs",
         "cacheUrls",
         "exNodesSshPubKeys",
