@@ -11,9 +11,8 @@
 //! - `TailnetConfig` carries the cluster's base DNS domain for
 //!   tailnet hosts plus optional CA-trust material so consumers
 //!   stop self-signing on first boot.
-//! - `TlsTrustPolicy { ca_certificate }` carries the PEM-form CA
-//!   public certificate (the operator generates it once and pastes
-//!   it into goldragon datom).
+//! - `TlsTrustPolicy` carries the CA certificate plus optional
+//!   controller server certificate and private-key reference.
 //! - `PublicCertificate` is a typed PEM newtype.
 
 use nota_codec::{NotaEnum, NotaRecord, NotaSum, NotaTransparent};
@@ -21,6 +20,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::name::DomainName;
+use crate::proposal::secret::SecretReference;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
@@ -70,14 +70,18 @@ pub struct TailnetConfig {
     pub tls: Option<TlsTrustPolicy>,
 }
 
-/// TLS trust material for the cluster's tailnet controller. Today
-/// just a CA certificate; consumers verify by either trust-bundling
-/// the cert or comparing fingerprints (sha256 derivable from the
-/// PEM at consumer time).
+/// TLS trust material for the cluster's tailnet controller. The CA
+/// certificate is public trust material; optional server material lets
+/// the cluster author pin the serving certificate and bind the private
+/// key through the cluster secret table.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct TlsTrustPolicy {
     pub ca_certificate: PublicCertificate,
+    #[serde(default)]
+    pub server_certificate: Option<PublicCertificate>,
+    #[serde(default)]
+    pub server_private_key: Option<SecretReference>,
 }
 
 /// PEM-encoded X.509 public certificate. Validated by checking

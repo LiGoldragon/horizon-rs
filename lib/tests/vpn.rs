@@ -44,7 +44,7 @@ fn vpn_country_code_rejects_wrong_length() {
 
 #[test]
 fn nordvpn_profile_decodes_from_nota_record() {
-    let text = r#"(NordvpnProfile (NordvpnProfile
+    let text = r#"(NordvpnProfile
         (VpnDns "103.86.96.100" "103.86.99.100")
         (VpnClient "10.5.0.2/32" 51820)
         [(NordvpnServer "es-madrid"
@@ -53,7 +53,7 @@ fn nordvpn_profile_decodes_from_nota_record() {
                         "IF1FGVSzrUznFVZ+dymIz+6bdlCgsuiT/d6cyapN8lw="
                         "ES"
                         "Madrid")]
-        (SecretReference "nordvpn-credentials" NordvpnCredentials)))"#;
+        (SecretReference "nordvpn-credentials" NordvpnCredentials))"#;
     let mut decoder = Decoder::new(text);
     let profile = VpnProfile::decode(&mut decoder).unwrap();
     let nordvpn = match &profile {
@@ -66,7 +66,10 @@ fn nordvpn_profile_decodes_from_nota_record() {
     assert_eq!(s.name.as_str(), "es-madrid");
     assert_eq!(s.country.as_str(), "ES");
     assert_eq!(s.city, "Madrid");
-    assert_eq!(nordvpn.credentials.purpose, SecretPurpose::NordvpnCredentials);
+    assert_eq!(
+        nordvpn.credentials.purpose,
+        SecretPurpose::NordvpnCredentials
+    );
     let _: &SecretReference = &nordvpn.credentials;
 }
 
@@ -85,7 +88,8 @@ fn nordvpn_profile_constructs_via_rust_literal() {
             name: NordvpnServerName::try_new("test-server").unwrap(),
             hostname: "test.example.com".into(),
             endpoint: "1.2.3.4:51820".into(),
-            public_key: WireguardPubKey::try_new("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=").unwrap(),
+            public_key: WireguardPubKey::try_new("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=")
+                .unwrap(),
             country: VpnCountryCode::try_new("US").unwrap(),
             city: "Test".into(),
         }],

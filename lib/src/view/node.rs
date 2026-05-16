@@ -15,9 +15,7 @@ use crate::address::{LinkLocalAddress, NodeIp};
 use crate::magnitude::AtLeast;
 use crate::name::{CriomeDomainName, ModelName, NodeName, UserName};
 use crate::proposal::{NodePlacement, NodeServices, RouterInterfaces, WireguardProxy};
-use crate::pub_key::{
-    NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey,
-};
+use crate::pub_key::{NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey};
 use crate::species::{KnownModel, NodeSpecies, System};
 use crate::view::io::Io;
 use crate::view::machine::Machine;
@@ -164,6 +162,7 @@ pub struct TypeIs {
     pub center: bool,
     pub edge: bool,
     pub edge_testing: bool,
+    pub cloud_host: bool,
     pub hybrid: bool,
     pub large_ai: bool,
     pub large_ai_router: bool,
@@ -179,6 +178,7 @@ impl TypeIs {
             center: matches!(s, NodeSpecies::Center),
             edge: matches!(s, NodeSpecies::Edge),
             edge_testing: matches!(s, NodeSpecies::EdgeTesting),
+            cloud_host: matches!(s, NodeSpecies::CloudHost),
             hybrid: matches!(s, NodeSpecies::Hybrid),
             large_ai: matches!(s, NodeSpecies::LargeAi),
             large_ai_router: matches!(s, NodeSpecies::LargeAiRouter),
@@ -199,7 +199,7 @@ impl BehavesAs {
         let large_ai = type_is.large_ai || type_is.large_ai_router;
         let router = type_is.hybrid || type_is.router || type_is.large_ai_router;
         let edge = type_is.edge || type_is.hybrid || type_is.edge_testing;
-        let center = type_is.center || large_ai;
+        let center = type_is.center || type_is.cloud_host || large_ai;
         let next_gen = type_is.edge_testing || type_is.hybrid;
         let low_power = type_is.edge || type_is.edge_testing;
         let bare_metal = matches!(placement, NodePlacement::Metal {});

@@ -156,10 +156,10 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
     let text = concat!(
         "(NodeProposal ",
         "Center Zero Min ",
-        "(Machine Metal Arm64 4 None None None None None None) ",
+        "(Machine Arm64 4 None None None None) ",
         "(Io Qwerty Uboot [] []) ",
         "(NodePubKeys \"AAA=\" None None) ",
-        "[] None None false false [] false false None None None (NodeServices None None))",
+        "[] None None false false [] false false None None None (NodeServices None None) (Metal))",
     );
     let mut decoder = Decoder::new(text);
     let node = NodeProposal::decode(&mut decoder).unwrap();

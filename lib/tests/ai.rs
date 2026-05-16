@@ -3,9 +3,7 @@
 
 use horizon_lib::error::Error;
 use horizon_lib::name::NodeName;
-use horizon_lib::proposal::{
-    AiModel, AiModelId, AiProtocol, AiProvider, AiProviderName,
-};
+use horizon_lib::proposal::{AiModel, AiModelId, AiProtocol, AiProvider, AiProviderName};
 use nota_codec::{Decoder, NotaDecode};
 
 #[test]
@@ -130,9 +128,7 @@ fn ai_provider_constructs_via_rust_literal() {
 
 #[test]
 fn ai_provider_with_local_serving_decodes_from_nota() {
-    use horizon_lib::proposal::{
-        AiFit, AiModelFetchurl, AiModelServing, AiModelSource, AiServingConfig,
-    };
+    use horizon_lib::proposal::{AiFit, AiModelServing, AiModelSource, AiServingConfig};
     let text = r#"(AiProvider "criomos-local" prometheus OpenAiCompat 11434
                     "/v1"
                     [(AiModel "test-7b" "Test 7B" false 8192 2048

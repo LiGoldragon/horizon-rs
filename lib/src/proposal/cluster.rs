@@ -12,14 +12,14 @@ use serde::{Deserialize, Serialize};
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
 use crate::name::{ClusterDomain, ClusterName, DomainName, NodeName, UserName};
-use crate::proposal::domain::DomainProposal;
 use crate::proposal::ai::AiProvider;
-use crate::proposal::vpn::VpnProfile;
+use crate::proposal::domain::DomainProposal;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::node::{NodeProjection, NodeProposal};
 use crate::proposal::secret::{ClusterSecretBinding, SecretBackend, SecretName};
 use crate::proposal::services::{TailnetConfig, TailnetControllerRole};
 use crate::proposal::user::{UserProjection, UserProposal};
+use crate::proposal::vpn::VpnProfile;
 use crate::view::cluster::Cluster;
 use crate::view::horizon::{Horizon, Viewpoint};
 use crate::view::node::{Node, ViewpointFill};
@@ -213,8 +213,16 @@ impl ClusterProposal {
         // viewpoint as host, surface it as a contained_node.
         let mut contained_nodes = BTreeMap::new();
         for (name, proposal) in &self.nodes {
-            let crate::proposal::placement::NodePlacement::Contained { host, user } =
-                &proposal.placement
+            let crate::proposal::placement::NodePlacement::Contained {
+                host,
+                user,
+                substrate,
+                resources,
+                network,
+                state,
+                trust,
+                user_namespace_policy,
+            } = &proposal.placement
             else {
                 continue;
             };
@@ -226,8 +234,14 @@ impl ClusterProposal {
                 crate::view::ProjectedNodeView {
                     name: name.clone(),
                     user: user.clone(),
-                    cores: proposal.machine.cores,
-                    ram_gb: proposal.machine.ram_gb,
+                    cores: resources.cores,
+                    ram_gb: Some(resources.ram_gb),
+                    substrate: substrate.clone(),
+                    resources: resources.clone(),
+                    network: network.clone(),
+                    state: state.clone(),
+                    trust: *trust,
+                    user_namespace_policy: *user_namespace_policy,
                 },
             );
         }
@@ -279,9 +293,7 @@ impl ClusterProposal {
             // `cluster.tailnet.base_domain`; without it the projection
             // can't render the controller's hostname.
             if !cluster_tailnet_present {
-                return Err(Error::TailnetControllerWithoutClusterConfig {
-                    node: name.clone(),
-                });
+                return Err(Error::TailnetControllerWithoutClusterConfig { node: name.clone() });
             }
 
             if let Some(first) = server {

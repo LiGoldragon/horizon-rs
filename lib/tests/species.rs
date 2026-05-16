@@ -1,6 +1,6 @@
 //! Tests for `species` — closed enums and `KnownModel` typed dispatch.
 
-use horizon_lib::species::{Arch, KnownModel, System};
+use horizon_lib::species::{Arch, KnownModel, NodeSpecies, System};
 
 #[test]
 fn arch_x86_maps_to_x86_64_linux() {
@@ -33,4 +33,9 @@ fn known_model_thinkpads_pass_is_thinkpad() {
 #[test]
 fn known_model_rpi_is_not_thinkpad() {
     assert!(!KnownModel::Rpi3B.is_thinkpad());
+}
+
+#[test]
+fn cloud_host_species_is_closed_variant() {
+    assert!(matches!(NodeSpecies::CloudHost, NodeSpecies::CloudHost));
 }

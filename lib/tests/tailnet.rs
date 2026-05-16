@@ -8,11 +8,11 @@ use std::collections::BTreeMap;
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterDomain, ClusterName, DomainName, NodeName, UserName};
+use horizon_lib::name::{ClusterDomain, ClusterName, DomainName, NodeName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, Io, Machine, NodePlacement, NodeProposal, NodePubKeys,
-    NodeServices, PublicCertificate, TailnetConfig, TailnetControllerRole, TailnetMembership,
-    TlsTrustPolicy, UserProposal,
+    NodeServices, PublicCertificate, SecretName, SecretPurpose, SecretReference, TailnetConfig,
+    TailnetControllerRole, TailnetMembership, TlsTrustPolicy,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
@@ -61,14 +61,38 @@ fn tailnet_config_decodes_with_base_domain_and_no_tls() {
 #[test]
 fn tls_trust_policy_decodes_with_ca_certificate() {
     let text = format!(
-        r#"(TlsTrustPolicy "{}")"#,
+        r#"(TlsTrustPolicy "{}" None None)"#,
         VALID_PEM.replace('\n', "\\n")
     );
     let mut decoder = Decoder::new(&text);
     let policy = TlsTrustPolicy::decode(&mut decoder).unwrap();
     // PEM round-trips via the nota string codec (escape sequences in
     // text → embedded newlines in the struct).
-    assert!(policy.ca_certificate.as_str().starts_with("-----BEGIN CERTIFICATE-----"));
+    assert!(policy
+        .ca_certificate
+        .as_str()
+        .starts_with("-----BEGIN CERTIFICATE-----"));
+    assert!(policy.server_certificate.is_none());
+    assert!(policy.server_private_key.is_none());
+}
+
+#[test]
+fn tls_trust_policy_decodes_with_server_material() {
+    let text = format!(
+        r#"(TlsTrustPolicy "{}" "{}" (SecretReference tailnet-server-key TlsPrivateKey))"#,
+        VALID_PEM.replace('\n', "\\n"),
+        VALID_PEM.replace('\n', "\\n")
+    );
+    let mut decoder = Decoder::new(&text);
+    let policy = TlsTrustPolicy::decode(&mut decoder).unwrap();
+    assert!(policy.server_certificate.is_some());
+    assert_eq!(
+        policy.server_private_key,
+        Some(SecretReference {
+            name: SecretName::try_new("tailnet-server-key").unwrap(),
+            purpose: SecretPurpose::TlsPrivateKey,
+        })
+    );
 }
 
 fn minimal_node(species: NodeSpecies, full_keys: bool) -> NodeProposal {
@@ -172,7 +196,14 @@ fn project_accepts_controller_when_cluster_tailnet_is_some() {
         horizon.node.services.tailnet_controller,
         Some(TailnetControllerRole::Server { port: 8443 })
     );
-    let cluster_tailnet = horizon.cluster.tailnet.as_ref().expect("cluster.tailnet projected");
-    assert_eq!(cluster_tailnet.base_domain.as_str(), "tailnet.goldragon.criome");
+    let cluster_tailnet = horizon
+        .cluster
+        .tailnet
+        .as_ref()
+        .expect("cluster.tailnet projected");
+    assert_eq!(
+        cluster_tailnet.base_domain.as_str(),
+        "tailnet.goldragon.criome"
+    );
     assert!(cluster_tailnet.tls.is_none());
 }

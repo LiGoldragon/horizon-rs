@@ -26,7 +26,9 @@ pub struct SecretReference {
 /// Identifier for a secret — non-empty ASCII letters, digits, and
 /// dashes. Used as the join key between a node-level
 /// `SecretReference` and the cluster-level `ClusterSecretBinding`.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent,
+)]
 #[serde(transparent)]
 pub struct SecretName(pub(crate) String);
 
@@ -88,6 +90,8 @@ pub enum SecretPurpose {
     GhostStripeKey,
     /// Cloud AI provider API key.
     AiProviderApiKey,
+    /// TLS private key for a service certificate.
+    TlsPrivateKey,
 }
 
 /// One entry in the cluster's secret-binding list. Maps a logical
@@ -108,7 +112,10 @@ pub enum SecretBackend {
     /// sops-nix encrypted file. `file` is the path to the sops YAML
     /// (relative to the cluster repo); `key` is the YAML key path
     /// within the file.
-    Sops { file: SopsFilePath, key: SopsKeyPath },
+    Sops {
+        file: SopsFilePath,
+        key: SopsKeyPath,
+    },
     /// systemd LoadCredential: the service unit imports a credential
     /// named `credential_name` and reads it from `$CREDENTIALS_DIRECTORY`.
     SystemdCredential { credential_name: String },
@@ -128,7 +135,9 @@ impl SopsFilePath {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
         let s = s.into();
         if s.is_empty() {
-            return Err(Error::EmptyName { kind: "sops file path" });
+            return Err(Error::EmptyName {
+                kind: "sops file path",
+            });
         }
         Ok(Self(s))
     }
@@ -160,7 +169,9 @@ impl SopsKeyPath {
     pub fn try_new(s: impl Into<String>) -> Result<Self> {
         let s = s.into();
         if s.is_empty() {
-            return Err(Error::EmptyName { kind: "sops key path" });
+            return Err(Error::EmptyName {
+                kind: "sops key path",
+            });
         }
         Ok(Self(s))
     }

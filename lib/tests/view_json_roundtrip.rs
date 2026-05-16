@@ -30,8 +30,9 @@ use horizon_lib::name::{
     NodeName, UserName,
 };
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, Io as ProposalIo, Machine as ProposalMachine, NodePlacement,
-    NodeProposal, NodePubKeys, NodeServices, TailnetConfig, UserProposal, UserPubKeyEntry,
+    ClusterProposal, ClusterTrust, ContainedNetwork, ContainedState, Io as ProposalIo,
+    Machine as ProposalMachine, NodePlacement, NodeProposal, NodePubKeys, NodeServices, Resources,
+    Substrate, TailnetConfig, UserNamespacePolicy, UserProposal, UserPubKeyEntry, VirtualIp,
     YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, SshPubKeyLine, YggPubKey};
@@ -39,8 +40,8 @@ use horizon_lib::species::{
     Arch, Bootloader, Editor, Keyboard, NodeSpecies, Style, System, TextSize, UserSpecies,
 };
 use horizon_lib::view::{
-    BehavesAs, BuilderConfig, Cluster, ComputerIs, Horizon, Io, LidSwitchAction, Machine,
-    NixCache, Node, ProjectedNodeView, TypeIs, User,
+    BehavesAs, BuilderConfig, Cluster, ComputerIs, Horizon, Io, LidSwitchAction, Machine, NixCache,
+    Node, ProjectedNodeView, TypeIs, User,
 };
 use horizon_lib::Viewpoint;
 use serde_json::Value;
@@ -140,6 +141,7 @@ fn type_is_edge() -> TypeIs {
         center: false,
         edge: true,
         edge_testing: false,
+        cloud_host: false,
         hybrid: false,
         large_ai: false,
         large_ai_router: false,
@@ -216,6 +218,20 @@ fn projected_node_view_fixture() -> ProjectedNodeView {
         user: UserName::try_new("li").unwrap(),
         cores: 2,
         ram_gb: Some(4),
+        substrate: Substrate::NixosContainer {},
+        resources: Resources {
+            cores: 2,
+            ram_gb: 4,
+        },
+        network: ContainedNetwork {
+            local_address: VirtualIp::try_new("10.42.0.10").unwrap(),
+            host_address: VirtualIp::try_new("10.42.0.1").unwrap(),
+        },
+        state: ContainedState {
+            persistent_paths: Vec::new(),
+        },
+        trust: Magnitude::Medium,
+        user_namespace_policy: UserNamespacePolicy::PrivateUsersPick,
     }
 }
 
@@ -302,9 +318,11 @@ fn node_view_fixture() -> Node {
         handle_lid_switch_docked: LidSwitchAction::Ignore,
 
         ssh_pub_key_line: ssh_pub_key_line(),
-        nix_pub_key_line: Some(
-            nix_pub_key().line(&CriomeDomainName::for_node(&name, &cluster, &cluster_domain)),
-        ),
+        nix_pub_key_line: Some(nix_pub_key().line(&CriomeDomainName::for_node(
+            &name,
+            &cluster,
+            &cluster_domain,
+        ))),
         nix_cache: Some(nix_cache()),
 
         behaves_as,
@@ -410,6 +428,7 @@ fn type_is_round_trips_through_json_with_camel_case_keys() {
     let original = type_is_edge();
     let json = serde_json::to_value(&original).unwrap();
     assert_camel_key(&json, "edgeTesting");
+    assert_camel_key(&json, "cloudHost");
     assert_camel_key(&json, "largeAi");
     assert_camel_key(&json, "largeAiRouter");
     assert_camel_key(&json, "mediaBroadcast");
@@ -469,7 +488,10 @@ fn builder_config_round_trips_through_json_with_camel_case_keys() {
     let bytes = serde_json::to_vec(&original).unwrap();
     let recovered: BuilderConfig = serde_json::from_slice(&bytes).unwrap();
     let bytes_again = serde_json::to_vec(&recovered).unwrap();
-    assert_eq!(bytes, bytes_again, "BuilderConfig serialisation is not stable across round-trip");
+    assert_eq!(
+        bytes, bytes_again,
+        "BuilderConfig serialisation is not stable across round-trip"
+    );
 }
 
 #[test]
@@ -480,11 +502,13 @@ fn projected_node_view_round_trips_through_json() {
     assert_camel_key(&json, "user");
     assert_camel_key(&json, "cores");
     assert_camel_key(&json, "ramGb");
+    assert_camel_key(&json, "substrate");
+    assert_camel_key(&json, "resources");
+    assert_camel_key(&json, "network");
+    assert_camel_key(&json, "state");
+    assert_camel_key(&json, "userNamespacePolicy");
     let recovered: ProjectedNodeView = serde_json::from_value(json).unwrap();
-    assert_eq!(recovered.name, original.name);
-    assert_eq!(recovered.user, original.user);
-    assert_eq!(recovered.cores, original.cores);
-    assert_eq!(recovered.ram_gb, original.ram_gb);
+    assert_eq!(recovered, original);
 }
 
 #[test]
@@ -497,7 +521,10 @@ fn cluster_view_round_trips_through_json_with_camel_case_keys() {
     let bytes = serde_json::to_vec(&original).unwrap();
     let recovered: Cluster = serde_json::from_slice(&bytes).unwrap();
     let bytes_again = serde_json::to_vec(&recovered).unwrap();
-    assert_eq!(bytes, bytes_again, "Cluster serialisation is not stable across round-trip");
+    assert_eq!(
+        bytes, bytes_again,
+        "Cluster serialisation is not stable across round-trip"
+    );
 }
 
 #[test]
@@ -524,7 +551,10 @@ fn user_view_round_trips_through_json_with_camel_case_keys() {
     let bytes = serde_json::to_vec(&original).unwrap();
     let recovered: User = serde_json::from_slice(&bytes).unwrap();
     let bytes_again = serde_json::to_vec(&recovered).unwrap();
-    assert_eq!(bytes, bytes_again, "User serialisation is not stable across round-trip");
+    assert_eq!(
+        bytes, bytes_again,
+        "User serialisation is not stable across round-trip"
+    );
 }
 
 #[test]
@@ -711,8 +741,14 @@ fn user_proposal() -> UserProposal {
 
 fn cluster_proposal() -> ClusterProposal {
     let mut nodes = BTreeMap::new();
-    nodes.insert(NodeName::try_new("ouranos").unwrap(), node_proposal(NodeSpecies::EdgeTesting));
-    nodes.insert(NodeName::try_new("prometheus").unwrap(), node_proposal(NodeSpecies::Center));
+    nodes.insert(
+        NodeName::try_new("ouranos").unwrap(),
+        node_proposal(NodeSpecies::EdgeTesting),
+    );
+    nodes.insert(
+        NodeName::try_new("prometheus").unwrap(),
+        node_proposal(NodeSpecies::Center),
+    );
 
     let mut users = BTreeMap::new();
     users.insert(UserName::try_new("li").unwrap(), user_proposal());
@@ -811,4 +847,3 @@ fn at_least_round_trips_through_json_with_camel_case_keys() {
     let recovered: AtLeast = serde_json::from_value(json).unwrap();
     assert_eq!(recovered, original);
 }
-

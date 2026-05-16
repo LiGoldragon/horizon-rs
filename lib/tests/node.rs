@@ -7,13 +7,13 @@ use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterDomain, ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::proposal::{
-    Io, Machine, NodePlacement, NodeProjection, NodeProposal, NodePubKeys, NodeServices,
-    TailnetControllerRole,
-    TailnetMembership, YggPubKeyEntry,
+    ContainedNetwork, ContainedState, Io, Machine, NodePlacement, NodeProjection, NodeProposal,
+    NodePubKeys, NodeServices, Resources, Substrate, TailnetControllerRole, TailnetMembership,
+    UserNamespacePolicy, VirtualIp, YggPubKeyEntry,
 };
-use horizon_lib::view::LidSwitchAction;
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
+use horizon_lib::view::LidSwitchAction;
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -29,8 +29,8 @@ fn machine_x86() -> Machine {
 }
 
 fn io_with_root_disk() -> Io {
-    use std::collections::BTreeMap;
     use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
+    use std::collections::BTreeMap;
     let mut disks = BTreeMap::new();
     disks.insert(
         MountPath::new("/"),
@@ -84,6 +84,27 @@ fn proposal(species: NodeSpecies, size: Magnitude, with_keys: bool) -> NodePropo
     }
 }
 
+fn contained_placement(host: &str, user: &str) -> NodePlacement {
+    NodePlacement::Contained {
+        host: NodeName::try_new(host).unwrap(),
+        user: UserName::try_new(user).unwrap(),
+        substrate: Substrate::NixosContainer {},
+        resources: Resources {
+            cores: 2,
+            ram_gb: 2,
+        },
+        network: ContainedNetwork {
+            local_address: VirtualIp::try_new("10.42.0.10").unwrap(),
+            host_address: VirtualIp::try_new("10.42.0.1").unwrap(),
+        },
+        state: ContainedState {
+            persistent_paths: Vec::new(),
+        },
+        trust: Magnitude::Medium,
+        user_namespace_policy: UserNamespacePolicy::PrivateUsersPick,
+    }
+}
+
 fn ctx_for(name: &str, trust: Magnitude) -> NodeProjection<'static> {
     static CLUSTER: std::sync::OnceLock<ClusterName> = std::sync::OnceLock::new();
     static DOMAIN: std::sync::OnceLock<ClusterDomain> = std::sync::OnceLock::new();
@@ -129,8 +150,8 @@ fn edge_node_at_least_medium_with_keys_is_remote_nix_builder() {
 
 #[test]
 fn edge_node_below_medium_is_not_remote_nix_builder() {
-    let node = proposal(NodeSpecies::Edge, Magnitude::Min, true)
-        .project(ctx_for("zeus", Magnitude::Max));
+    let node =
+        proposal(NodeSpecies::Edge, Magnitude::Min, true).project(ctx_for("zeus", Magnitude::Max));
     assert!(!node.is_remote_nix_builder);
 }
 
@@ -165,8 +186,8 @@ fn lid_switch_policy_for_center_ignores_all_states() {
 
 #[test]
 fn lid_switch_policy_for_edge_locks_when_docked_and_on_external_power() {
-    let node = proposal(NodeSpecies::Edge, Magnitude::Min, true)
-        .project(ctx_for("zeus", Magnitude::Max));
+    let node =
+        proposal(NodeSpecies::Edge, Magnitude::Min, true).project(ctx_for("zeus", Magnitude::Max));
     assert!(matches!(
         node.handle_lid_switch_docked,
         LidSwitchAction::Lock
@@ -231,14 +252,14 @@ fn model_is_thinkpad_false_for_unknown_models() {
 fn contained_arch_resolved_via_placement_host() {
     let mut proposals = BTreeMap::new();
     let host = NodeName::try_new("ouranos").unwrap();
-    proposals.insert(host.clone(), proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true));
+    proposals.insert(
+        host.clone(),
+        proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true),
+    );
 
     let mut pod_proposal = proposal(NodeSpecies::Edge, Magnitude::Min, true);
     pod_proposal.machine.arch = None;
-    pod_proposal.placement = NodePlacement::Contained {
-        host: host.clone(),
-        user: UserName::try_new("li").unwrap(),
-    };
+    pod_proposal.placement = contained_placement(host.as_str(), "li");
     let pod_name = NodeName::try_new("pod-1").unwrap();
     proposals.insert(pod_name.clone(), pod_proposal);
 
@@ -253,10 +274,7 @@ fn contained_arch_unresolvable_when_host_missing() {
     let mut proposals = BTreeMap::new();
     let mut pod_proposal = proposal(NodeSpecies::Edge, Magnitude::Min, true);
     pod_proposal.machine.arch = None;
-    pod_proposal.placement = NodePlacement::Contained {
-        host: NodeName::try_new("missing-host").unwrap(),
-        user: UserName::try_new("li").unwrap(),
-    };
+    pod_proposal.placement = contained_placement("missing-host", "li");
     let pod_name = NodeName::try_new("pod-1").unwrap();
     proposals.insert(pod_name.clone(), pod_proposal);
 
@@ -278,5 +296,5 @@ fn metal_arch_unresolvable_when_no_arch_set() {
     let error = proposals[&pod_name]
         .resolve_arch(&pod_name, &proposals)
         .unwrap_err();
-    assert!(error.to_string().contains("no architecture"));
+    assert!(error.to_string().contains("no super-node"));
 }
