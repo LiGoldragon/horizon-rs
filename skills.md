@@ -215,10 +215,6 @@ viewpoint, and prints JSON. The real consumer is `lojix-daemon`,
 which links `horizon-lib` in-process and feeds the projected
 horizon into the Nix flake-input pipeline.
 
-The Nota output mode is currently a stub
-(`Format::Nota` → "not implemented"); JSON is the
-production output format.
-
 ---
 
 ## Hard rules in this repo
