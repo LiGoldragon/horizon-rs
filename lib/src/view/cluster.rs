@@ -4,11 +4,11 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::name::{ClusterDomain, ClusterName};
+use crate::name::{ClusterDomain, ClusterName, DomainName};
 use crate::proposal::ai::AiProvider;
 use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::secret::{SecretBackend, SecretName};
-use crate::proposal::services::TailnetConfig;
+use crate::proposal::services::TlsTrustPolicy;
 use crate::proposal::vpn::VpnProfile;
 use crate::pub_key::NixPubKeyLine;
 
@@ -23,10 +23,9 @@ pub struct Cluster {
     /// passed through from the proposal. `None` means CriomOS
     /// modules use their current implementation defaults.
     pub lan: Option<LanNetwork>,
-    /// Cluster DNS-resolver policy (upstreams, fallbacks, listen
-    /// addresses) passed through from the proposal. `None` means
-    /// CriomOS modules use their current implementation defaults.
-    pub resolver: Option<ResolverPolicy>,
+    /// Derived local DNS-resolver listen addresses. Upstream and
+    /// fallback resolvers are CriomOS defaults.
+    pub resolver: ResolverPolicy,
     /// Cluster tailnet configuration (base DNS domain plus optional
     /// CA-trust material). Required when any node hosts a tailnet
     /// controller; validated at projection time. `None` means the
@@ -56,4 +55,12 @@ pub struct Cluster {
     /// loud-fail at activation if any node-level `SecretReference`
     /// names a key absent from this map.
     pub secret_bindings: BTreeMap<SecretName, SecretBackend>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TailnetConfig {
+    pub base_domain: DomainName,
+    #[serde(default)]
+    pub tls: Option<TlsTrustPolicy>,
 }

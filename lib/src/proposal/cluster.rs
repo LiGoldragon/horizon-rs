@@ -10,11 +10,11 @@ use nota_codec::NotaRecord;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
+use crate::horizon_proposal::HorizonProposal;
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterDomain, ClusterName, DomainName, NodeName, PublicDomain, UserName};
+use crate::name::{ClusterName, DomainName, NodeName, UserName};
 use crate::proposal::ai::AiProvider;
 use crate::proposal::domain::DomainProposal;
-use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::node::{NodeProjection, NodeProposal};
 use crate::proposal::secret::{ClusterSecretBinding, SecretBackend, SecretName};
 use crate::proposal::services::{TailnetConfig, TailnetControllerRole};
@@ -45,46 +45,18 @@ pub struct ClusterProposal {
     /// records keep decoding.
     #[serde(default)]
     pub secret_bindings: Vec<ClusterSecretBinding>,
-    /// Per-cluster LAN configuration (subnet, gateway, DHCP pool,
-    /// lease policy). `None` means the cluster has no horizon-authored
-    /// LAN policy; CriomOS modules fall back to whatever current
-    /// implementation defaults exist until the second pass of step 4
-    /// rewrites them to read this field. Tail position for positional
-    /// nota compatibility.
-    #[serde(default)]
-    pub lan: Option<LanNetwork>,
-    /// Per-cluster DNS-resolver policy (upstreams, fallbacks, local
-    /// listen addresses). Same `None` semantics as `lan` above. Tail
-    /// position for positional nota compatibility.
-    #[serde(default)]
-    pub resolver: Option<ResolverPolicy>,
-    /// Per-cluster tailnet configuration: base DNS domain for tailnet
-    /// hosts plus optional CA-trust material. Required (non-`None`)
-    /// when any node hosts a tailnet controller — validated at
-    /// projection time so the controller's DNS basename has a
-    /// canonical home. Tail position.
+    /// Optional per-cluster tailnet trust material. The base domain is
+    /// derived by Horizon from the pan-horizon internal suffix.
     #[serde(default)]
     pub tailnet: Option<TailnetConfig>,
-    /// AI providers the cluster advertises to consumers (the pi
-    /// agent's model picker, future task routers, etc.). Each entry
-    /// names the providing endpoint, the node hosting it, and the
-    /// models it serves. Empty default; consumer modules that need
-    /// at least one provider gate on `cluster.aiProviders != []`.
+    /// AI providers the cluster advertises to consumers. Each entry
+    /// selects a CriomOS-owned provider profile and the node hosting it.
     #[serde(default)]
     pub ai_providers: Vec<AiProvider>,
-    /// VPN provider profiles (NordVPN today; WireguardMesh later).
-    /// Cluster-level catalog. Replaces the per-CriomOS
-    /// `data/config/nordvpn/servers-lock.json` shadow. Empty default.
-    /// Tail position.
+    /// VPN provider selections (NordVPN today; WireguardMesh later).
+    /// Server catalogs and client defaults live in CriomOS.
     #[serde(default)]
     pub vpn_profiles: Vec<VpnProfile>,
-    pub domain: ClusterDomain,
-    /// Public DNS suffix used to construct user email and matrix
-    /// identifiers (`<user>@<cluster>.<public_domain>`). Typed
-    /// alongside `domain` so both DNS-shaped fields carry their
-    /// own newtype identity rather than fragmenting "domain" across
-    /// one newtype and one bare `String`.
-    pub public_domain: PublicDomain,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
@@ -101,14 +73,15 @@ pub struct ClusterTrust {
 
 impl ClusterProposal {
     /// Project this proposal from a viewpoint into a typed `view::Horizon`.
-    pub fn project(&self, viewpoint: &Viewpoint) -> Result<Horizon> {
+    pub fn project(&self, horizon: &HorizonProposal, viewpoint: &Viewpoint) -> Result<Horizon> {
         if !self.nodes.contains_key(&viewpoint.node) {
             return Err(Error::NodeNotInCluster(viewpoint.node.clone()));
         }
 
         let cluster_trust_floor = self.trust.cluster;
-        self.validate_tailnet_topology(cluster_trust_floor)?;
+        let tailnet_controller = self.validate_tailnet_topology(cluster_trust_floor)?;
         let secret_bindings = self.resolve_secret_bindings()?;
+        let router_ssid = horizon.router_ssid(&viewpoint.cluster)?;
 
         // Build every Node (no viewpoint fill yet).
         let mut nodes: BTreeMap<NodeName, Node> = BTreeMap::new();
@@ -123,7 +96,8 @@ impl ClusterProposal {
             let ctx = NodeProjection {
                 name: name.clone(),
                 cluster: &viewpoint.cluster,
-                cluster_domain: &self.domain,
+                cluster_domain: horizon.internal_domain(),
+                router_ssid: router_ssid.clone(),
                 trust,
                 resolved_arch,
             };
@@ -157,7 +131,7 @@ impl ClusterProposal {
             let ctx = UserProjection {
                 name: name.clone(),
                 cluster: &viewpoint.cluster,
-                cluster_public_domain: &self.public_domain,
+                cluster_public_domain: horizon.public_domain(),
                 viewpoint_node: &viewpoint.node,
                 trust,
                 viewpoint_behaves_as_center,
@@ -166,17 +140,32 @@ impl ClusterProposal {
             users.insert(name.clone(), proposal.project(ctx));
         }
 
+        let router_node = self.router_node_name(cluster_trust_floor);
+        let lan = router_node
+            .as_ref()
+            .map(|router| horizon.lan_network(&viewpoint.cluster, router))
+            .transpose()?;
+        let resolver = horizon.resolver_policy(lan.as_ref())?;
+        let tailnet = if self.tailnet.is_some() || tailnet_controller.is_some() {
+            Some(crate::view::cluster::TailnetConfig {
+                base_domain: horizon.tailnet_base_domain(&viewpoint.cluster)?,
+                tls: self.tailnet.as_ref().and_then(|tailnet| tailnet.tls.clone()),
+            })
+        } else {
+            None
+        };
+
         // Cluster-level roll-up.
         let cluster = Cluster {
             name: viewpoint.cluster.clone(),
-            domain: self.domain.clone(),
+            domain: horizon.internal_domain().clone(),
             trusted_build_pub_keys: nodes
                 .values()
                 .filter_map(|n| n.nix_pub_key_line.clone())
                 .collect(),
-            lan: self.lan.clone(),
-            resolver: self.resolver.clone(),
-            tailnet: self.tailnet.clone(),
+            lan,
+            resolver,
+            tailnet,
             ai_providers: self.ai_providers.clone(),
             vpn_profiles: self.vpn_profiles.clone(),
             secret_bindings,
@@ -276,8 +265,7 @@ impl ClusterProposal {
         Ok(resolved)
     }
 
-    fn validate_tailnet_topology(&self, cluster_trust_floor: Magnitude) -> Result<()> {
-        let cluster_tailnet_present = self.tailnet.is_some();
+    fn validate_tailnet_topology(&self, cluster_trust_floor: Magnitude) -> Result<Option<NodeName>> {
         let mut server: Option<NodeName> = None;
 
         for (name, proposal) in &self.nodes {
@@ -292,13 +280,6 @@ impl ClusterProposal {
                 continue;
             }
 
-            // The controller's DNS basename lives on
-            // `cluster.tailnet.base_domain`; without it the projection
-            // can't render the controller's hostname.
-            if !cluster_tailnet_present {
-                return Err(Error::TailnetControllerWithoutClusterConfig { node: name.clone() });
-            }
-
             if let Some(first) = server {
                 return Err(Error::MultipleTailnetControllers {
                     first,
@@ -309,7 +290,18 @@ impl ClusterProposal {
             server = Some(name.clone());
         }
 
-        Ok(())
+        Ok(server)
+    }
+
+    fn router_node_name(&self, cluster_trust_floor: Magnitude) -> Option<NodeName> {
+        self.nodes.iter().find_map(|(name, proposal)| {
+            let trust = self.node_trust(name, proposal.trust, cluster_trust_floor);
+            if matches!(trust, Magnitude::Zero) || proposal.router_interfaces.is_none() {
+                None
+            } else {
+                Some(name.clone())
+            }
+        })
     }
 
     /// `min(input_trust, self.trust.nodes[name], cluster_trust)`.

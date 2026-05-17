@@ -21,22 +21,19 @@ pub mod user;
 pub mod vpn;
 pub mod wireguard;
 
-pub use ai::{
-    AiFit, AiModel, AiModelFetchurl, AiModelId, AiModelMultiShard, AiModelServing, AiModelShard,
-    AiModelSource, AiProtocol, AiProvider, AiProviderName, AiServingConfig,
-};
+pub use ai::{AiProvider, AiProviderName, AiProviderProfile};
 pub use cluster::{ClusterProposal, ClusterTrust};
 pub use domain::DomainProposal;
 pub use io::Io;
 pub use machine::Machine;
-pub use network::{DhcpPool, LanCidr, LanNetwork, LeasePolicy, ResolverPolicy};
+pub use network::{DhcpPool, LanCidr, LanNetwork, ResolverPolicy};
 pub use node::{NodeProjection, NodeProposal};
 pub use placement::{
     ContainedNetwork, ContainedState, NodePlacement, PersistentPath, Resources, Substrate,
     UserNamespacePolicy, VirtualIp,
 };
 pub use pub_keys::{NodePubKeys, YggPubKeyEntry};
-pub use router::{RouterInterfaces, WlanBand, WlanStandard};
+pub use router::{RouterInterfaces, Ssid, WlanBand, WlanStandard};
 pub use secret::{
     ClusterSecretBinding, SecretBackend, SecretName, SecretPurpose, SecretReference, SopsFilePath,
     SopsKeyPath,
@@ -46,8 +43,5 @@ pub use services::{
     TlsTrustPolicy,
 };
 pub use user::{UserProjection, UserProposal, UserPubKeyEntry};
-pub use vpn::{
-    NordvpnProfile, NordvpnServer, NordvpnServerName, VpnClient, VpnClientAddress, VpnCountryCode,
-    VpnDns, VpnIpAddress, VpnProfile,
-};
+pub use vpn::{NordvpnLocationPreference, NordvpnProfile, VpnCountryCode, VpnProfile};
 pub use wireguard::WireguardProxy;

@@ -22,6 +22,7 @@
 pub mod address;
 pub mod disk;
 pub mod error;
+pub mod horizon_proposal;
 pub mod magnitude;
 pub mod name;
 pub mod proposal;
@@ -30,5 +31,6 @@ pub mod species;
 pub mod view;
 
 pub use error::{Error, Result};
+pub use horizon_proposal::HorizonProposal;
 pub use proposal::cluster::ClusterProposal;
 pub use view::horizon::{Horizon, Viewpoint};

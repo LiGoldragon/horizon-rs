@@ -8,8 +8,8 @@ use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterDomain, ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::proposal::{
     ContainedNetwork, ContainedState, Io, Machine, NodePlacement, NodeProjection, NodeProposal,
-    NodePubKeys, NodeServices, Resources, Substrate, TailnetControllerRole, TailnetMembership,
-    UserNamespacePolicy, VirtualIp, YggPubKeyEntry,
+    NodePubKeys, NodeServices, Resources, Ssid, Substrate, TailnetControllerRole,
+    TailnetMembership, UserNamespacePolicy, VirtualIp, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
@@ -113,6 +113,7 @@ fn ctx_for(name: &str, trust: Magnitude) -> NodeProjection<'static> {
         name: NodeName::try_new(name).unwrap(),
         cluster,
         cluster_domain,
+        router_ssid: Ssid::try_new("goldragon.criome").unwrap(),
         trust,
         resolved_arch: Arch::X86_64,
     }

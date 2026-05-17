@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterDomain, ClusterName, NodeName, PublicDomain, UserName};
+use horizon_lib::name::{ClusterName, NodeName, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, Io, Machine, NodePlacement, NodeProposal, NodePubKeys,
     NodeServices, TailnetControllerRole, UserProposal, YggPubKeyEntry,
@@ -93,13 +93,9 @@ fn cluster_proposal() -> ClusterProposal {
             users: BTreeMap::new(),
         },
         secret_bindings: Vec::new(),
-        lan: None,
-        resolver: None,
         tailnet: None,
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
-        domain: ClusterDomain::try_new("criome").unwrap(),
-        public_domain: PublicDomain::try_new("criome.net").unwrap(),
     }
 }
 

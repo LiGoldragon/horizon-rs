@@ -1,103 +1,56 @@
-//! Tests for the VPN-profile schema (`proposal::vpn`).
-//!
-//! Round-trips a NordvpnProfile through nota-codec end-to-end.
+//! Tests for cluster-level VPN provider selections.
 
+use horizon_lib::error::Error;
 use horizon_lib::proposal::{
-    NordvpnProfile, NordvpnServer, NordvpnServerName, SecretName, SecretPurpose, SecretReference,
-    VpnClient, VpnClientAddress, VpnCountryCode, VpnDns, VpnIpAddress, VpnProfile,
+    NordvpnLocationPreference, NordvpnProfile, SecretPurpose, SecretReference, VpnCountryCode,
+    VpnProfile,
 };
-use horizon_lib::pub_key::WireguardPubKey;
 use nota_codec::{Decoder, NotaDecode};
 
 #[test]
-fn nordvpn_server_name_accepts_letters_digits_dashes() {
-    assert!(NordvpnServerName::try_new("es-madrid").is_ok());
-    assert!(NordvpnServerName::try_new("us9799").is_ok());
-}
-
-#[test]
-fn nordvpn_server_name_rejects_dots() {
-    assert!(NordvpnServerName::try_new("us.east").is_err());
-}
-
-#[test]
-fn nordvpn_server_name_rejects_empty() {
-    assert!(NordvpnServerName::try_new("").is_err());
-}
-
-#[test]
-fn vpn_country_code_accepts_two_uppercase_letters() {
-    assert!(VpnCountryCode::try_new("ES").is_ok());
-    assert!(VpnCountryCode::try_new("US").is_ok());
+fn vpn_country_code_accepts_iso_alpha2() {
+    let code = VpnCountryCode::try_new("ES").unwrap();
+    assert_eq!(code.as_str(), "ES");
 }
 
 #[test]
 fn vpn_country_code_rejects_lowercase() {
-    assert!(VpnCountryCode::try_new("es").is_err());
+    let error = VpnCountryCode::try_new("es").unwrap_err();
+    assert!(matches!(error, Error::InvalidVpnCountryCode { .. }));
 }
 
 #[test]
-fn vpn_country_code_rejects_wrong_length() {
-    assert!(VpnCountryCode::try_new("ESP").is_err());
-    assert!(VpnCountryCode::try_new("E").is_err());
-}
-
-#[test]
-fn nordvpn_profile_decodes_from_nota_record() {
-    let text = r#"(NordvpnProfile
-        (VpnDns "103.86.96.100" "103.86.99.100")
-        (VpnClient "10.5.0.2/32" 51820)
-        [(NordvpnServer "es-madrid"
-                        "es150.nordvpn.com"
-                        "185.183.106.19:51820"
-                        "IF1FGVSzrUznFVZ+dymIz+6bdlCgsuiT/d6cyapN8lw="
-                        "ES"
-                        "Madrid")]
-        (SecretReference "nordvpn-credentials" NordvpnCredentials))"#;
+fn nordvpn_profile_decodes_credentials_and_empty_preferences() {
+    let text = r#"(NordvpnProfile (SecretReference "nordvpn-credentials" NordvpnCredentials) [])"#;
     let mut decoder = Decoder::new(text);
     let profile = VpnProfile::decode(&mut decoder).unwrap();
-    let nordvpn = match &profile {
-        VpnProfile::NordvpnProfile(n) => n,
-    };
-    assert_eq!(nordvpn.dns.primary.as_str(), "103.86.96.100");
-    assert_eq!(nordvpn.client.port, 51820);
-    assert_eq!(nordvpn.servers.len(), 1);
-    let s = &nordvpn.servers[0];
-    assert_eq!(s.name.as_str(), "es-madrid");
-    assert_eq!(s.country.as_str(), "ES");
-    assert_eq!(s.city, "Madrid");
+    let VpnProfile::NordvpnProfile(nordvpn) = profile;
+
+    assert_eq!(nordvpn.credentials.name.as_str(), "nordvpn-credentials");
     assert_eq!(
         nordvpn.credentials.purpose,
         SecretPurpose::NordvpnCredentials
     );
-    let _: &SecretReference = &nordvpn.credentials;
+    assert!(nordvpn.preferred_locations.is_empty());
 }
 
 #[test]
-fn nordvpn_profile_constructs_via_rust_literal() {
+fn nordvpn_profile_can_carry_location_preferences() {
     let profile = NordvpnProfile {
-        dns: VpnDns {
-            primary: VpnIpAddress::try_new("1.1.1.1").unwrap(),
-            secondary: VpnIpAddress::try_new("1.0.0.1").unwrap(),
-        },
-        client: VpnClient {
-            address: VpnClientAddress::try_new("10.5.0.2/32").unwrap(),
-            port: 51820,
-        },
-        servers: vec![NordvpnServer {
-            name: NordvpnServerName::try_new("test-server").unwrap(),
-            hostname: "test.example.com".into(),
-            endpoint: "1.2.3.4:51820".into(),
-            public_key: WireguardPubKey::try_new("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=")
-                .unwrap(),
-            country: VpnCountryCode::try_new("US").unwrap(),
-            city: "Test".into(),
-        }],
         credentials: SecretReference {
-            name: SecretName::try_new("nordvpn-credentials").unwrap(),
+            name: "nordvpn-credentials".parse().unwrap(),
             purpose: SecretPurpose::NordvpnCredentials,
         },
+        preferred_locations: vec![NordvpnLocationPreference {
+            country: VpnCountryCode::try_new("ES").unwrap(),
+            city: Some("Madrid".to_string()),
+        }],
     };
-    assert_eq!(profile.servers.len(), 1);
-    assert_eq!(profile.client.port, 51820);
+
+    assert_eq!(profile.preferred_locations.len(), 1);
+    assert_eq!(profile.preferred_locations[0].country.as_str(), "ES");
+    assert_eq!(
+        profile.preferred_locations[0].city.as_deref(),
+        Some("Madrid")
+    );
 }

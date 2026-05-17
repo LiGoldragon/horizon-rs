@@ -3,12 +3,12 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::Viewpoint;
+use horizon_lib::{HorizonProposal, Viewpoint};
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
 use horizon_lib::error::Error;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterDomain, ClusterName, DomainName, NodeName, PublicDomain, UserName};
+use horizon_lib::name::{ClusterName, NodeName, UserName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, Io, Machine, NodePlacement, NodeProposal, NodePubKeys,
     NodeServices, TailnetConfig, TailnetControllerRole, UserProposal, UserPubKeyEntry,
@@ -18,6 +18,19 @@ use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies, Style, UserSpecies};
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+fn horizon_proposal() -> HorizonProposal {
+    HorizonProposal::from_parts(
+        "TestOperator",
+        "criome",
+        "criome.net",
+        "10.18.0.0/16",
+        24,
+        "test-lan-v1",
+        vec!["tailnet".to_string()],
+    )
+    .unwrap()
+}
 
 fn machine_x86() -> Machine {
     Machine {
@@ -49,16 +62,11 @@ fn io() -> Io {
 }
 
 fn tailnet_controller_server() -> TailnetControllerRole {
-    // Step 11 collapse — base_domain lives on Cluster.tailnet, not
-    // per-controller.
     TailnetControllerRole::Server { port: 9443 }
 }
 
 fn cluster_tailnet() -> TailnetConfig {
-    TailnetConfig {
-        base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
-        tls: None,
-    }
+    TailnetConfig { tls: None }
 }
 
 fn pub_keys(nix: bool, ygg: bool) -> NodePubKeys {
@@ -161,15 +169,11 @@ fn cluster_proposal(viewpoint_trust: Magnitude) -> ClusterProposal {
             users: user_trust,
         },
         secret_bindings: Vec::new(),
-        lan: None,
-        resolver: None,
         // Set so that the tailnet-controller tests below get past the
         // cluster.tailnet-required check and reach the singleton check.
         tailnet: Some(cluster_tailnet()),
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
-        domain: ClusterDomain::try_new("criome").unwrap(),
-        public_domain: PublicDomain::try_new("criome.net").unwrap(),
     }
 }
 
@@ -183,7 +187,7 @@ fn viewpoint(node: &str) -> Viewpoint {
 #[test]
 fn project_returns_horizon_with_viewpoint_node_filled_and_others_in_ex_nodes() {
     let proposal = cluster_proposal(Magnitude::Max);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
 
     assert_eq!(horizon.node.name.as_str(), "ouranos");
     assert!(
@@ -206,7 +210,7 @@ fn project_returns_horizon_with_viewpoint_node_filled_and_others_in_ex_nodes() {
 #[test]
 fn project_viewpoint_node_carries_filled_io_and_use_colemak() {
     let proposal = cluster_proposal(Magnitude::Max);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     assert!(horizon.node.io.is_some());
     assert_eq!(horizon.node.use_colemak, Some(true));
 }
@@ -214,7 +218,7 @@ fn project_viewpoint_node_carries_filled_io_and_use_colemak() {
 #[test]
 fn project_ex_nodes_have_io_left_unfilled() {
     let proposal = cluster_proposal(Magnitude::Max);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     let prometheus = &horizon.ex_nodes[&NodeName::try_new("prometheus").unwrap()];
     assert!(prometheus.io.is_none());
     assert!(prometheus.use_colemak.is_none());
@@ -223,7 +227,7 @@ fn project_ex_nodes_have_io_left_unfilled() {
 #[test]
 fn project_cluster_collects_nix_pub_key_lines_from_keyed_nodes() {
     let proposal = cluster_proposal(Magnitude::Max);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     // ouranos and prometheus have keys; zeus does not.
     assert_eq!(horizon.cluster.trusted_build_pub_keys.len(), 2);
     let lines: Vec<String> = horizon
@@ -251,7 +255,7 @@ fn project_node_with_zero_trust_is_excluded_from_horizon() {
         .trust
         .nodes
         .insert(NodeName::try_new("zeus").unwrap(), Magnitude::Zero);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     assert!(
         !horizon
             .ex_nodes
@@ -272,14 +276,14 @@ fn project_user_with_zero_trust_is_excluded_from_horizon() {
         .trust
         .users
         .insert(UserName::try_new("li").unwrap(), Magnitude::Zero);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     assert!(horizon.users.is_empty());
 }
 
 #[test]
 fn project_rejects_viewpoint_not_in_cluster() {
     let proposal = cluster_proposal(Magnitude::Max);
-    let error = proposal.project(&viewpoint("nonexistent")).unwrap_err();
+    let error = proposal.project(&horizon_proposal(), &viewpoint("nonexistent")).unwrap_err();
     assert!(matches!(error, Error::NodeNotInCluster(_)));
 }
 
@@ -295,7 +299,7 @@ fn project_rejects_multiple_active_tailnet_controller_servers() {
             .tailnet_controller = Some(tailnet_controller_server());
     }
 
-    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
+    let error = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap_err();
 
     assert!(matches!(
         error,
@@ -320,7 +324,7 @@ fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
         .nodes
         .insert(NodeName::try_new("zeus").unwrap(), Magnitude::Zero);
 
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
 
     assert_eq!(
         horizon.node.services.tailnet_controller,
@@ -336,7 +340,7 @@ fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
 #[test]
 fn project_collects_dispatchers_ssh_pub_keys_from_non_center_trusted_nodes() {
     let proposal = cluster_proposal(Magnitude::Max);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     // Dispatchers are non-center, fully-trusted, sized at least Min.
     // ouranos (viewpoint, EdgeTesting Large Max) is itself a dispatcher
     // but doesn't appear in its own ex_nodes_ssh_pub_keys list.
@@ -352,7 +356,7 @@ fn project_collects_dispatchers_ssh_pub_keys_from_non_center_trusted_nodes() {
 #[test]
 fn project_collects_admin_ssh_pub_keys_from_max_trust_users_on_trusted_nodes() {
     let proposal = cluster_proposal(Magnitude::Max);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     let admin_keys = horizon
         .node
         .admin_ssh_pub_keys
@@ -370,7 +374,7 @@ fn project_user_size_floors_at_viewpoint_node_size() {
         .get_mut(&NodeName::try_new("ouranos").unwrap())
         .unwrap()
         .size = Magnitude::Medium;
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     let user = &horizon.users[&UserName::try_new("li").unwrap()];
     assert!(user.size.medium);
     assert!(!user.size.large);
@@ -380,7 +384,7 @@ fn project_user_size_floors_at_viewpoint_node_size() {
 fn project_node_trust_clamps_at_cluster_floor() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     proposal.trust.cluster = Magnitude::Min;
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     // Cluster trust floor of Min clamps every node's trust ladder.
     assert!(horizon.node.trust.min);
     assert!(!horizon.node.trust.max);

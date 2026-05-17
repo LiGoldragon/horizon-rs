@@ -12,10 +12,12 @@ pub mod cluster;
 pub mod horizon;
 pub mod node;
 pub mod projected_node;
+pub mod router;
 pub mod user;
 
 pub use cluster::Cluster;
 pub use horizon::{Horizon, Viewpoint};
 pub use node::{BehavesAs, BuilderConfig, NixCache, Node, ViewpointFill};
 pub use projected_node::ProjectedNodeView;
+pub use router::RouterInterfaces;
 pub use user::User;

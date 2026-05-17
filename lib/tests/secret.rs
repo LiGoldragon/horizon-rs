@@ -154,9 +154,9 @@ fn cluster_secret_binding_decodes_with_name_and_backend() {
 fn duplicate_cluster_secret_binding_rejected_at_projection() {
     use std::collections::BTreeMap;
 
-    use horizon_lib::Viewpoint;
+    use horizon_lib::{HorizonProposal, Viewpoint};
     use horizon_lib::magnitude::Magnitude;
-    use horizon_lib::name::{ClusterDomain, ClusterName, NodeName, PublicDomain};
+    use horizon_lib::name::{ClusterName, NodeName};
     use horizon_lib::proposal::{
         ClusterProposal, ClusterSecretBinding, ClusterTrust, Io, Machine, NodePlacement,
         NodeProposal, NodePubKeys, NodeServices, SecretBackend, SecretName, SopsFilePath,
@@ -164,6 +164,19 @@ fn duplicate_cluster_secret_binding_rejected_at_projection() {
     };
     use horizon_lib::pub_key::SshPubKey;
     use horizon_lib::species::{Bootloader, Keyboard, NodeSpecies};
+
+    fn horizon_proposal() -> HorizonProposal {
+        HorizonProposal::from_parts(
+            "TestOperator",
+            "criome",
+            "criome.net",
+            "10.18.0.0/16",
+            24,
+            "test-lan-v1",
+            vec!["tailnet".to_string()],
+        )
+        .unwrap()
+    }
 
     // Two bindings for the same SecretName — projection must reject.
     let duplicate_name = SecretName::try_new("router-wifi-pwd").unwrap();
@@ -237,13 +250,9 @@ fn duplicate_cluster_secret_binding_rejected_at_projection() {
             users: BTreeMap::new(),
         },
         secret_bindings: bindings,
-        lan: None,
-        resolver: None,
         tailnet: None,
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
-        domain: ClusterDomain::try_new("criome").unwrap(),
-        public_domain: PublicDomain::try_new("criome.net").unwrap(),
     };
 
     let viewpoint = Viewpoint {
@@ -251,7 +260,7 @@ fn duplicate_cluster_secret_binding_rejected_at_projection() {
         node: node_name,
     };
 
-    let error = proposal.project(&viewpoint).unwrap_err();
+    let error = proposal.project(&horizon_proposal(), &viewpoint).unwrap_err();
     assert!(
         matches!(error, Error::DuplicateSecretBinding { ref name } if name == &duplicate_name),
         "expected DuplicateSecretBinding, got {error:?}"

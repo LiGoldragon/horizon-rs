@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 
 use horizon_lib::name::{ClusterDomain, ClusterName};
-use horizon_lib::proposal::{SecretBackend, SecretName, SopsFilePath, SopsKeyPath};
+use horizon_lib::proposal::{ResolverPolicy, SecretBackend, SecretName, SopsFilePath, SopsKeyPath};
 use horizon_lib::pub_key::{NixPubKey, NixPubKeyLine};
 use horizon_lib::view::Cluster;
 
@@ -11,14 +11,24 @@ fn cluster_name() -> ClusterName {
     ClusterName::try_new("goldragon").unwrap()
 }
 
+fn cluster_domain() -> ClusterDomain {
+    ClusterDomain::try_new("criome").unwrap()
+}
+
+fn resolver_policy() -> ResolverPolicy {
+    ResolverPolicy {
+        listens: Vec::new(),
+    }
+}
+
 #[test]
 fn cluster_round_trips_name_and_keys() {
     let cluster = Cluster {
         name: cluster_name(),
-        domain: ClusterDomain::try_new("criome").unwrap(),
+        domain: cluster_domain(),
         trusted_build_pub_keys: Vec::new(),
         lan: None,
-        resolver: None,
+        resolver: resolver_policy(),
         tailnet: None,
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
@@ -43,7 +53,7 @@ fn cluster_collects_trusted_build_pub_keys() {
         domain: cluster_domain,
         trusted_build_pub_keys: vec![line.clone()],
         lan: None,
-        resolver: None,
+        resolver: resolver_policy(),
         tailnet: None,
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
@@ -89,10 +99,10 @@ fn cluster_json_round_trip_carries_every_secret_backend_variant() {
 
     let cluster = Cluster {
         name: cluster_name(),
-        domain: ClusterDomain::try_new("criome").unwrap(),
+        domain: cluster_domain(),
         trusted_build_pub_keys: Vec::new(),
         lan: None,
-        resolver: None,
+        resolver: resolver_policy(),
         tailnet: None,
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),

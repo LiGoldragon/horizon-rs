@@ -14,9 +14,10 @@ use serde::{Deserialize, Serialize};
 use crate::address::{LinkLocalAddress, NodeIp};
 use crate::magnitude::AtLeast;
 use crate::name::{CriomeDomainName, NodeName, UserName};
-use crate::proposal::{Io, Machine, NodePlacement, NodeServices, RouterInterfaces, WireguardProxy};
+use crate::proposal::{Io, Machine, NodePlacement, NodeServices, WireguardProxy};
 use crate::pub_key::{NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey};
 use crate::species::{NodeSpecies, System};
+use crate::view::router::RouterInterfaces;
 use crate::view::user::User;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

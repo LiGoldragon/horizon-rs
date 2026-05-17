@@ -1,15 +1,15 @@
 //! Tests for `proposal::services` tailnet types — `TailnetConfig`,
 //! `TlsTrustPolicy`, `PublicCertificate`, the collapsed
-//! `TailnetControllerRole::Server { port }`, and the
-//! `TailnetControllerWithoutClusterConfig` validation.
+//! `TailnetControllerRole::Server { port }`, and horizon-derived base
+//! domain projection.
 
 use std::collections::BTreeMap;
 
-use horizon_lib::Viewpoint;
+use horizon_lib::{HorizonProposal, Viewpoint};
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterDomain, ClusterName, DomainName, NodeName, PublicDomain};
+use horizon_lib::name::{ClusterName, NodeName};
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, Io, Machine, NodePlacement, NodeProposal, NodePubKeys,
     NodeServices, PublicCertificate, SecretName, SecretPurpose, SecretReference, TailnetConfig,
@@ -21,6 +21,19 @@ use nota_codec::{Decoder, NotaDecode};
 
 const VALID_PEM: &str = "-----BEGIN CERTIFICATE-----\nMIIBxxxxxx...\n-----END CERTIFICATE-----";
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+fn horizon_proposal() -> HorizonProposal {
+    HorizonProposal::from_parts(
+        "TestOperator",
+        "criome",
+        "criome.net",
+        "10.18.0.0/16",
+        24,
+        "test-lan-v1",
+        vec!["tailnet".to_string()],
+    )
+    .unwrap()
+}
 
 #[test]
 fn public_certificate_accepts_pem() {
@@ -50,11 +63,10 @@ fn tailnet_controller_server_decodes_with_port_only() {
 }
 
 #[test]
-fn tailnet_config_decodes_with_base_domain_and_no_tls() {
-    let text = r#"(TailnetConfig "tailnet.goldragon.criome" None)"#;
+fn tailnet_config_decodes_optional_tls_only() {
+    let text = r#"(TailnetConfig None)"#;
     let mut decoder = Decoder::new(text);
     let config = TailnetConfig::decode(&mut decoder).unwrap();
-    assert_eq!(config.base_domain.as_str(), "tailnet.goldragon.criome");
     assert!(config.tls.is_none());
 }
 
@@ -159,13 +171,9 @@ fn cluster_with_one_controller(tailnet: Option<TailnetConfig>) -> ClusterProposa
             users: BTreeMap::new(),
         },
         secret_bindings: Vec::new(),
-        lan: None,
-        resolver: None,
         tailnet,
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
-        domain: ClusterDomain::try_new("criome").unwrap(),
-        public_domain: PublicDomain::try_new("criome.net").unwrap(),
     }
 }
 
@@ -177,23 +185,24 @@ fn viewpoint(node: &str) -> Viewpoint {
 }
 
 #[test]
-fn project_rejects_controller_without_cluster_tailnet_config() {
+fn project_derives_tailnet_config_from_controller_service() {
     let proposal = cluster_with_one_controller(None);
-    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
-    assert!(matches!(
-        error,
-        Error::TailnetControllerWithoutClusterConfig { node }
-            if node.as_str() == "ouranos"
-    ));
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
+    let cluster_tailnet = horizon
+        .cluster
+        .tailnet
+        .as_ref()
+        .expect("cluster.tailnet projected");
+    assert_eq!(
+        cluster_tailnet.base_domain.as_str(),
+        "tailnet.goldragon.criome"
+    );
 }
 
 #[test]
 fn project_accepts_controller_when_cluster_tailnet_is_some() {
-    let proposal = cluster_with_one_controller(Some(TailnetConfig {
-        base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
-        tls: None,
-    }));
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let proposal = cluster_with_one_controller(Some(TailnetConfig { tls: None }));
+    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
     assert_eq!(
         horizon.node.services.tailnet_controller,
         Some(TailnetControllerRole::Server { port: 8443 })

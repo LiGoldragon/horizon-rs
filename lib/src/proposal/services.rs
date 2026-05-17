@@ -8,9 +8,9 @@
 //!   (Tailscale, Headscale) at deploy time.
 //!
 //! Cluster-level:
-//! - `TailnetConfig` carries the cluster's base DNS domain for
-//!   tailnet hosts plus optional CA-trust material so consumers
-//!   stop self-signing on first boot.
+//! - `TailnetConfig` carries optional CA-trust material so consumers
+//!   stop self-signing on first boot. The base DNS domain is derived
+//!   from the pan-horizon domain suffix.
 //! - `TlsTrustPolicy` carries the CA certificate plus optional
 //!   controller server certificate and private-key reference.
 //! - `PublicCertificate` is a typed PEM newtype.
@@ -19,7 +19,6 @@ use nota_codec::{NotaEnum, NotaRecord, NotaSum, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::name::DomainName;
 use crate::proposal::secret::SecretReference;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, NotaRecord)]
@@ -56,16 +55,12 @@ pub enum TailnetControllerRole {
     Server { port: u16 },
 }
 
-/// Cluster-level tailnet configuration. `base_domain` is required
-/// when any node hosts a tailnet controller (validated at
-/// projection). `tls` is optional during the migration period —
-/// once the operator generates a CA and authors it in datom,
-/// CriomOS modules read the cert from horizon instead of
-/// self-signing on first boot.
+/// Cluster-level tailnet trust configuration. Presence is optional:
+/// a node service role can still cause the projected view to derive a
+/// tailnet base domain without custom TLS trust material.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]
 pub struct TailnetConfig {
-    pub base_domain: DomainName,
     #[serde(default)]
     pub tls: Option<TlsTrustPolicy>,
 }

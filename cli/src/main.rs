@@ -1,12 +1,13 @@
-//! horizon-cli — read cluster proposal nota on stdin, write
+//! horizon-cli — read pan-horizon and cluster proposal nota, write
 //! enriched horizon JSON on stdout.
 
-use std::io::{Read, Write};
+use std::io::Write;
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Parser;
 use horizon_lib::name::{ClusterName, NodeName};
-use horizon_lib::{ClusterProposal, Viewpoint};
+use horizon_lib::{ClusterProposal, HorizonProposal, Viewpoint};
 use nota_codec::{Decoder, NotaDecode};
 
 #[derive(Parser)]
@@ -15,6 +16,14 @@ use nota_codec::{Decoder, NotaDecode};
     about = "Project a cluster proposal into the enriched horizon for one viewpoint node"
 )]
 struct Cli {
+    /// Pan-horizon configuration nota file.
+    #[arg(long)]
+    horizon: PathBuf,
+
+    /// Cluster proposal nota file.
+    #[arg(long)]
+    proposal: PathBuf,
+
     /// Cluster name (matches the proposal's cluster identity).
     #[arg(long)]
     cluster: String,
@@ -43,14 +52,34 @@ fn main() -> ExitCode {
         }
     };
 
-    let mut buf = String::new();
-    if let Err(e) = std::io::stdin().read_to_string(&mut buf) {
-        eprintln!("error: read stdin: {e}");
-        return ExitCode::from(2);
-    }
+    let horizon_text = match std::fs::read_to_string(&cli.horizon) {
+        Ok(text) => text,
+        Err(e) => {
+            eprintln!("error: read horizon config {}: {e}", cli.horizon.display());
+            return ExitCode::from(2);
+        }
+    };
+    let proposal_text = match std::fs::read_to_string(&cli.proposal) {
+        Ok(text) => text,
+        Err(e) => {
+            eprintln!("error: read cluster proposal {}: {e}", cli.proposal.display());
+            return ExitCode::from(2);
+        }
+    };
+
+    let horizon_proposal: HorizonProposal = {
+        let mut decoder = Decoder::new(&horizon_text);
+        match HorizonProposal::decode(&mut decoder) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("error: parse horizon config: {e}");
+                return ExitCode::from(1);
+            }
+        }
+    };
 
     let proposal: ClusterProposal = {
-        let mut decoder = Decoder::new(&buf);
+        let mut decoder = Decoder::new(&proposal_text);
         match ClusterProposal::decode(&mut decoder) {
             Ok(p) => p,
             Err(e) => {
@@ -60,7 +89,7 @@ fn main() -> ExitCode {
         }
     };
 
-    let horizon = match proposal.project(&viewpoint) {
+    let horizon = match proposal.project(&horizon_proposal, &viewpoint) {
         Ok(h) => h,
         Err(e) => {
             eprintln!("error: project: {e}");

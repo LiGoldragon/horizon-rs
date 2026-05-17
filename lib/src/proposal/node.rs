@@ -19,6 +19,7 @@ use crate::proposal::machine::Machine;
 use crate::proposal::placement::NodePlacement;
 use crate::proposal::pub_keys::NodePubKeys;
 use crate::proposal::router::RouterInterfaces;
+use crate::proposal::router::Ssid;
 use crate::proposal::services::NodeServices;
 use crate::proposal::wireguard::WireguardProxy;
 use crate::pub_key::WireguardPubKey;
@@ -97,6 +98,7 @@ pub struct NodeProjection<'a> {
     pub name: NodeName,
     pub cluster: &'a ClusterName,
     pub cluster_domain: &'a ClusterDomain,
+    pub router_ssid: Ssid,
     pub trust: Magnitude,
     pub resolved_arch: Arch,
 }
@@ -196,7 +198,10 @@ impl NodeProposal {
             wifi_cert: self.wifi_cert,
             wants_printing: self.wants_printing,
             wants_hw_video_accel: self.wants_hw_video_accel,
-            router_interfaces: self.router_interfaces.clone(),
+            router_interfaces: self
+                .router_interfaces
+                .as_ref()
+                .map(|interfaces| view::RouterInterfaces::project(interfaces, ctx.router_ssid)),
             services: self.services.clone(),
             placement: self.placement.clone(),
 

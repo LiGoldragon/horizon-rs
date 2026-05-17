@@ -22,18 +22,19 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::Viewpoint;
+use horizon_lib::{HorizonProposal, Viewpoint};
 use horizon_lib::address::{LinkLocalIp, YggAddress, YggSubnet};
 use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
 use horizon_lib::magnitude::{AtLeast, Magnitude};
 use horizon_lib::name::{
     ClusterDomain, ClusterName, CriomeDomainName, DomainName, EmailAddress, GithubId, Keygrip,
-    MatrixId, ModelName, NodeName, PublicDomain, UserName,
+    MatrixId, ModelName, NodeName, UserName,
 };
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, ContainedNetwork, ContainedState, Io, Machine, NodePlacement,
-    NodeProposal, NodePubKeys, NodeServices, Resources, Substrate, TailnetConfig,
-    UserNamespacePolicy, UserProposal, UserPubKeyEntry, VirtualIp, YggPubKeyEntry,
+    NodeProposal, NodePubKeys, NodeServices, ResolverPolicy, Resources, Substrate,
+    TailnetConfig as ProposalTailnetConfig, UserNamespacePolicy, UserProposal, UserPubKeyEntry,
+    VirtualIp, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, SshPubKeyLine, YggPubKey};
 use horizon_lib::species::{
@@ -42,9 +43,23 @@ use horizon_lib::species::{
 use horizon_lib::view::{
     BehavesAs, BuilderConfig, Cluster, Horizon, NixCache, Node, ProjectedNodeView, User,
 };
+use horizon_lib::view::cluster::TailnetConfig as ViewTailnetConfig;
 use serde_json::Value;
 
 // ── small helpers ──────────────────────────────────────────────────────
+
+fn horizon_proposal() -> HorizonProposal {
+    HorizonProposal::from_parts(
+        "TestOperator",
+        "criome",
+        "criome.net",
+        "10.18.0.0/16",
+        24,
+        "test-lan-v1",
+        vec!["tailnet".to_string()],
+    )
+    .unwrap()
+}
 
 fn assert_camel_key(value: &Value, key: &str) {
     let object = value
@@ -120,8 +135,10 @@ fn cluster_view_minimal() -> Cluster {
         domain: ClusterDomain::try_new("criome").unwrap(),
         trusted_build_pub_keys: Vec::new(),
         lan: None,
-        resolver: None,
-        tailnet: Some(TailnetConfig {
+        resolver: ResolverPolicy {
+            listens: Vec::new(),
+        },
+        tailnet: Some(ViewTailnetConfig {
             base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
             tls: None,
         }),
@@ -662,16 +679,9 @@ fn cluster_proposal() -> ClusterProposal {
             users: user_trust,
         },
         secret_bindings: Vec::new(),
-        lan: None,
-        resolver: None,
-        tailnet: Some(TailnetConfig {
-            base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
-            tls: None,
-        }),
+        tailnet: Some(ProposalTailnetConfig { tls: None }),
         ai_providers: Vec::new(),
         vpn_profiles: Vec::new(),
-        domain: ClusterDomain::try_new("criome").unwrap(),
-        public_domain: PublicDomain::try_new("criome.net").unwrap(),
     }
 }
 
@@ -682,7 +692,7 @@ fn horizon_end_to_end_round_trips_through_json_byte_stable() {
         cluster: ClusterName::try_new("goldragon").unwrap(),
         node: NodeName::try_new("ouranos").unwrap(),
     };
-    let horizon: Horizon = proposal.project(&viewpoint).expect("project");
+    let horizon: Horizon = proposal.project(&horizon_proposal(), &viewpoint).expect("project");
 
     // First serialisation is the canonical form.
     let bytes = serde_json::to_vec(&horizon).expect("serialise horizon");
@@ -711,7 +721,7 @@ fn horizon_end_to_end_node_system_renders_as_nix_system_tuple() {
         cluster: ClusterName::try_new("goldragon").unwrap(),
         node: NodeName::try_new("ouranos").unwrap(),
     };
-    let horizon: Horizon = proposal.project(&viewpoint).unwrap();
+    let horizon: Horizon = proposal.project(&horizon_proposal(), &viewpoint).unwrap();
     let value = serde_json::to_value(&horizon).unwrap();
     let system = value
         .get("node")
