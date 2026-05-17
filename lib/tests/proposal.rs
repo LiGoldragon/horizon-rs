@@ -13,11 +13,14 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, DomainName, NodeName, SecretName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
-    RouterInterfaces, SecretReference, UserProposal, WlanBand, WlanStandard, YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, PersonaDevelopmentRole,
+    RepositoryReceiveRole, RouterInterfaces, SecretReference, TailnetControllerRole, UserProposal,
+    WlanBand, WlanStandard, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
-use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};
+use horizon_lib::species::{
+    Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies,
+};
 use nota_codec::{Decoder, NotaDecode};
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -155,7 +158,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
         "(Machine Metal Arm64 4 None None None None None None) ",
         "(Io Qwerty Uboot [] []) ",
         "(NodePubKeys \"AAA=\" None None) ",
-        "[] None None false false [] false false None None None (NodeServices None None))",
+        "[] None None false false [] false false None None None (NodeServices None None None))",
     );
     let mut decoder = Decoder::new(text);
     let node = NodeProposal::decode(&mut decoder).unwrap();
@@ -168,7 +171,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
 
 #[test]
 fn tailnet_controller_server_decodes_with_port_and_base_domain() {
-    let text = "(NodeServices Client (Server 9443 \"tailnet.goldragon.criome\"))";
+    let text = "(NodeServices Client (Server 9443 \"tailnet.goldragon.criome\") None)";
     let mut decoder = Decoder::new(text);
     let services = NodeServices::decode(&mut decoder).unwrap();
 
@@ -177,6 +180,24 @@ fn tailnet_controller_server_decodes_with_port_and_base_domain() {
         Some(TailnetControllerRole::Server {
             port: 9443,
             base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
+        })
+    );
+}
+
+#[test]
+fn persona_development_workstation_decodes_repository_receive_role() {
+    let text = "(NodeServices Client None (Workstation (RepositoryReceiveRole true)))";
+    let mut decoder = Decoder::new(text);
+    let services = NodeServices::decode(&mut decoder).unwrap();
+
+    assert_eq!(
+        services.tailnet,
+        Some(horizon_lib::proposal::TailnetMembership::Client)
+    );
+    assert_eq!(
+        services.persona_development,
+        Some(PersonaDevelopmentRole::Workstation {
+            repository_receive: RepositoryReceiveRole { local_only: true },
         })
     );
 }

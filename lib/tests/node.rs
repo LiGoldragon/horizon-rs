@@ -10,8 +10,8 @@ use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, DomainName, ModelName, NodeName, UserName};
 use horizon_lib::node::{LidSwitchAction, NodeProjection};
 use horizon_lib::proposal::{
-    NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole, TailnetMembership,
-    YggPubKeyEntry,
+    NodeProposal, NodePubKeys, NodeServices, PersonaDevelopmentRole, RepositoryReceiveRole,
+    TailnetControllerRole, TailnetMembership, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
@@ -33,8 +33,8 @@ fn machine_x86() -> Machine {
 }
 
 fn io_with_root_disk() -> Io {
-    use std::collections::BTreeMap;
     use horizon_lib::io::{DevicePath, Disk, FsType, MountPath};
+    use std::collections::BTreeMap;
     let mut disks = BTreeMap::new();
     disks.insert(
         MountPath::new("/"),
@@ -130,8 +130,8 @@ fn edge_node_at_least_medium_with_keys_is_remote_nix_builder() {
 
 #[test]
 fn edge_node_below_medium_is_not_remote_nix_builder() {
-    let node = proposal(NodeSpecies::Edge, Magnitude::Min, true)
-        .project(ctx_for("zeus", Magnitude::Max));
+    let node =
+        proposal(NodeSpecies::Edge, Magnitude::Min, true).project(ctx_for("zeus", Magnitude::Max));
     assert!(!node.is_remote_nix_builder);
 }
 
@@ -166,8 +166,8 @@ fn lid_switch_policy_for_center_ignores_all_states() {
 
 #[test]
 fn lid_switch_policy_for_edge_locks_when_docked_and_on_external_power() {
-    let node = proposal(NodeSpecies::Edge, Magnitude::Min, true)
-        .project(ctx_for("zeus", Magnitude::Max));
+    let node =
+        proposal(NodeSpecies::Edge, Magnitude::Min, true).project(ctx_for("zeus", Magnitude::Max));
     assert!(matches!(
         node.handle_lid_switch_docked,
         LidSwitchAction::Lock
@@ -217,6 +217,23 @@ fn tailnet_roles_project_from_proposal_not_node_name() {
 }
 
 #[test]
+fn persona_development_role_projects_from_proposal_not_node_name() {
+    let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
+    prop.services.persona_development = Some(PersonaDevelopmentRole::Workstation {
+        repository_receive: RepositoryReceiveRole { local_only: true },
+    });
+
+    let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
+
+    assert_eq!(
+        node.services.persona_development,
+        Some(PersonaDevelopmentRole::Workstation {
+            repository_receive: RepositoryReceiveRole { local_only: true },
+        })
+    );
+}
+
+#[test]
 fn model_is_thinkpad_recognises_known_thinkpads() {
     let mut prop = proposal(NodeSpecies::Edge, Magnitude::Large, true);
     prop.machine.model = Some(ModelName::try_new("ThinkPadT14Gen5Intel").unwrap());
@@ -236,7 +253,10 @@ fn model_is_thinkpad_false_for_unknown_models() {
 fn pod_arch_resolved_via_super_node() {
     let mut proposals = BTreeMap::new();
     let host = NodeName::try_new("ouranos").unwrap();
-    proposals.insert(host.clone(), proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true));
+    proposals.insert(
+        host.clone(),
+        proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true),
+    );
 
     let mut pod_proposal = proposal(NodeSpecies::Edge, Magnitude::Min, true);
     pod_proposal.machine.species = MachineSpecies::Pod;
