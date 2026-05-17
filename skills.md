@@ -1,8 +1,8 @@
 # Skill — horizon-rs
 
 *The horizon schema, type-checking, and method computation for
-CriomOS. Reads a cluster proposal in nota; projects it from one
-viewpoint `(cluster, node)`; emits an enriched horizon that
+CriomOS. Reduces pan-horizon facts, cluster facts, and one
+viewpoint `(cluster, node)` into the enriched horizon that
 downstream Nix consumes verbatim.*
 
 ---
@@ -12,11 +12,13 @@ downstream Nix consumes verbatim.*
 Use this when adding, modifying, or debugging horizon
 projection. The repo owns:
 
-- the typed proposal schema (`ClusterProposal`, `NodeProposal`,
-  `UserProposal`, `ClusterTrust`, `Magnitude`, every `Species`
-  enum) — the input shape goldragon emits;
+- the typed pan-horizon schema (`HorizonProposal`) — operator-wide
+  facts such as domain suffixes and temporary IPv4 LAN data;
+- the typed cluster proposal schema (`ClusterProposal`,
+  `NodeProposal`, `UserProposal`, `ClusterTrust`, `Magnitude`,
+  every `Species` enum) — the input shape goldragon emits;
 - the projected schema (`Horizon`, `Node`, `User`, `Cluster`,
-  `BehavesAs`, `TypeIs`, `ComputerIs`, `BuilderConfig`) — the
+  `BehavesAs`, `BuilderConfig`, `NixCache`) — the
   output shape Nix consumes;
 - the projection logic (`ClusterProposal::project`,
   `NodeProposal::project`, `UserProposal::project`,
@@ -28,21 +30,27 @@ the build-cores rationale live under `docs/`.
 
 ---
 
-## Three layers, three shapes
+## Three inputs, one view
 
 Read in this order to understand the projection surface:
 
-1. **Input — `proposal.rs`.** `NodeProposal`, `UserProposal`,
-   `DomainProposal`, `ClusterTrust`. These mirror what
-   goldragon's `datom.nota` files declare. Pass-through types,
-   no derived fields.
-2. **Method computation — `node.rs`, `user.rs`,
-   `horizon.rs`.** Each `*Proposal::project` consumes the input
-   and adds derived booleans (`is_remote_nix_builder`,
-   `behaves_as`, `type_is`, `enable_linger`, etc.) plus
-   typed identifiers (`criome_domain_name`, `system`,
-   `nix_pub_key_line`).
-3. **Output — `node.rs::Node`, `user.rs::User`,
+1. **Pan-horizon input — `horizon_proposal.rs`.**
+   `HorizonProposal` carries horizon-operator facts: operator
+   identity, domain suffixes, temporary IPv4 LAN data, and future
+   horizon-level trust material.
+2. **Cluster input — `proposal.rs` and `proposal/*`.**
+   `NodeProposal`, `UserProposal`, `DomainProposal`, and
+   `ClusterTrust` mirror what goldragon's `datom.nota` files
+   declare. Pass-through types, no derived fields.
+3. **Viewpoint — `view::Viewpoint`.** `{ cluster, node }` is the
+   request-time lens. The same pan-horizon and cluster data project
+   differently depending on the viewpoint node.
+4. **Method computation — `proposal/*` and `view/*`.** Each
+   `*Proposal::project` consumes typed inputs and adds derived
+   booleans (`is_remote_nix_builder`, `behaves_as`,
+   `enable_linger`, etc.) plus typed identifiers
+   (`criome_domain_name`, `system`, `nix_pub_key_line`).
+5. **Output — `node.rs::Node`, `user.rs::User`,
    `cluster.rs::Cluster`, `horizon.rs::Horizon`.** Flat shape
    the Nix consumer reads via `builtins.fromJSON`. No method
    calls cross the boundary.
@@ -59,7 +67,9 @@ struct or enum with `serde` derives plus the matching
 
 The same Rust definition serves three audiences:
 
-- **goldragon's `datom.nota`** decodes via `NotaDecode`.
+- **`criomos-horizon-config/horizon.nota`** decodes as
+  `HorizonProposal`.
+- **goldragon's `datom.nota`** decodes as `ClusterProposal`.
 - **The projected horizon JSON** serialises via serde + the
   `#[serde(rename_all = "camelCase")]` attribute on output
   records.
@@ -69,8 +79,9 @@ The same Rust definition serves three audiences:
 Reordering, renaming, or retypifying any field on a public
 record is **a coordinated upstream-and-downstream change**:
 goldragon's `datom.nota` files must update; CriomOS Nix
-modules that read the JSON field must update; lojix-cli's
-pinned `horizon-rs` rev must bump in lockstep.
+modules that read the JSON field must update; `lojix-daemon`'s
+pinned `horizon-rs` rev must bump in lockstep when it consumes the
+changed schema.
 
 ---
 
@@ -159,15 +170,6 @@ A "no" on any of these means the field doesn't belong in
   the validation moves with it — the newtype retires from
   `proposal/*.rs`.
 
-The full audit and lean-down plan that prompted this section
-lives in
-`~/primary/reports/designer/207-horizon-boundary-audit-and-lean-down-plan-2026-05-17.md`.
-The pan-horizon-config brainstorm (a destination for several
-of the **Horizon constant** values) lives in
-`~/primary/reports/designer/208-pan-horizon-configuration-brainstorm-2026-05-17.md`.
-
----
-
 ## Magnitude is the size-and-trust ladder
 
 `Magnitude` is a five-point ordinal scale:
@@ -204,13 +206,12 @@ silently defaulting.
 
 ## CLI is for ad-hoc projection only
 
-`horizon-cli --cluster <C> --node <N> < proposal.nota` is a
-debugging tool — it reads stdin, projects, prints JSON or
-nota. The real consumer is `lojix-cli`, which links
-`horizon-lib` in-process and feeds the projected horizon
-into the Nix flake-input pipeline (per
-[lojix-cli](https://github.com/LiGoldragon/lojix-cli)'s
-`ARCHITECTURE.md`).
+`horizon-cli --horizon <horizon.nota> --proposal <datom.nota>
+--cluster <C> --node <N>` is a debugging tool. It reads a
+pan-horizon file and a cluster proposal file, projects one
+viewpoint, and prints JSON. The real consumer is `lojix-daemon`,
+which links `horizon-lib` in-process and feeds the projected
+horizon into the Nix flake-input pipeline.
 
 The Nota output mode is currently a stub
 (`Format::Nota` → "not implemented"); JSON is the
@@ -239,11 +240,12 @@ production output format.
 
 - this repo's `ARCHITECTURE.md` — what the projection
   exists to do and what it does not own.
-- `docs/DESIGN.md` — the projection spec.
+- `ARCHITECTURE.md` is the current projection spec. Older files under
+  `docs/` are historical unless this skill or the architecture file
+  names a section as current.
 - `docs/BUILD_CORES.md` — the build-cores derivation
   rationale.
-- [lojix-cli](https://github.com/LiGoldragon/lojix-cli)'s
-  `skills.md` — the consumer of this projection.
+- `lojix`'s `skills.md` — the daemon consumer of this projection.
 - primary's `skills/rust-discipline.md` — the Rust
   discipline this repo follows.
 - primary's `skills/system-specialist.md` — the role that

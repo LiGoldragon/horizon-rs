@@ -1,11 +1,11 @@
 # ARCHITECTURE — horizon-rs
 
-Typed schema and projection for criome cluster horizons. Reads an
-authored `ClusterProposal` (NOTA-encoded `datom.nota`), validates it,
-and produces a viewpoint-scoped `view::Horizon` whose JSON wire form
-is consumed by Nix modules in CriomOS / CriomOS-home (via
-`inputs.horizon`) and by `lojix-daemon` over the in-process
-`horizon-lib` dependency.
+Typed schema and projection for criome cluster horizons. Reads a
+pan-horizon `HorizonProposal`, a per-cluster `ClusterProposal`, and a
+request-time `Viewpoint`, validates the combination, and produces a
+viewpoint-scoped `view::Horizon` whose JSON wire form is consumed by
+Nix modules in CriomOS / CriomOS-home (via `inputs.horizon`) and by
+`lojix-daemon` over the in-process `horizon-lib` dependency.
 
 ## What goes in a `ClusterProposal` — the boundary rule
 
@@ -48,45 +48,52 @@ catalog, runtime config). The selection authors per cluster; the
 implementation does not. Split composites along the bucket
 boundary.
 
-The full audit driving this rule lives in
-`~/primary/reports/designer/207-horizon-boundary-audit-and-lean-down-plan-2026-05-17.md`;
-the brainstorm for the pan-horizon authored config is in
-`~/primary/reports/designer/208-pan-horizon-configuration-brainstorm-2026-05-17.md`.
-
 ## Status
 
-CANON. Active on the `horizon-leaner-shape` branch — a sibling of
-`horizon-re-engineering` carrying the structural cleanups proposed
-in `reports/designer-assistant/101-horizon-rs-overbuild-audit-2026-05-16.md`.
-The legacy ARCH on `main` is 41 lines, names `lojix-cli` as the
-consumer, and points at `docs/DESIGN.md` instead of describing the
-system. This document replaces both.
+CANON. Active on the `horizon-leaner-shape` branch. This branch is the
+current lean projection shape: pan-horizon input, cluster input,
+request-time viewpoint, and a viewpoint-scoped `view::Horizon`.
 
 ## Consumers
 
 | Consumer | How it reads the projection |
 |---|---|
-| `lojix-daemon` | In-process Rust dep (`horizon-lib`). Calls `ClusterProposal::project(&horizon_proposal, &viewpoint)` directly in its deploy actor. |
-| `cli/` (`horizon`) | Same crate, binary entry point. Decodes a `datom.nota` from a path, projects from a `(cluster, node)` viewpoint, writes JSON to stdout. |
+| `lojix-daemon` | In-process Rust dep (`horizon-lib`). Its deploy actor loads the configured `HorizonProposal`, loads the request's `ClusterProposal`, derives the request-time `Viewpoint`, and calls `ClusterProposal::project(&horizon_proposal, &viewpoint)`. |
+| `cli/` (`horizon`) | Same crate, binary entry point. Debugging/ad-hoc tool only. Decodes a pan-horizon file and a cluster proposal file, projects from a `(cluster, node)` viewpoint, writes JSON to stdout. |
 | CriomOS / CriomOS-home Nix modules | Read the JSON output via `inputs.horizon.cluster.{node, exNodes, users, …}`. Schema is the camelCase serialization of `view::*` records. |
 
-`lojix-cli` (the legacy monolithic deploy tool) is in retirement;
-new consumers integrate with `lojix-daemon`. The CLI binary stays
-useful for ad-hoc projection (debugging, schema introspection,
-generating fixtures).
+The legacy monolithic deploy tool is in retirement; new consumers
+integrate with `lojix-daemon`. The CLI binary stays useful for ad-hoc
+projection, schema introspection, and fixture generation.
 
 ## Shape — input and output namespaces
 
 ```mermaid
 flowchart LR
-    nota[datom.nota] -->|nota-codec decode| input[ClusterProposal]
-    input -->|project(&HorizonProposal, &Viewpoint)| output[view::Horizon]
+    pan[horizon.nota<br/>HorizonProposal] -->|nota-codec decode| horizon_input[HorizonProposal]
+    nota[datom.nota<br/>ClusterProposal] -->|nota-codec decode| input[ClusterProposal]
+    viewpoint[request-time Viewpoint<br/>cluster + node] --> project
+    horizon_input --> project
+    input --> project
+    project[project(&HorizonProposal, &Viewpoint)] --> output[view::Horizon]
     output -->|serde_json| json[JSON]
     json --> nix[Nix modules]
     output --> lojix[lojix-daemon actor]
 ```
 
-Two namespaces:
+Projection has three inputs:
+
+- **`HorizonProposal`** — pan-horizon authored facts owned by the
+  horizon operator: domain suffixes, temporary IPv4 LAN, and future
+  horizon-level trust material.
+- **`ClusterProposal`** — per-cluster authored facts owned by the
+  cluster: nodes, users, trust, secret bindings, provider selections,
+  hardware, placement.
+- **`Viewpoint`** — request-time lens `{ cluster, node }`. The same
+  pan-horizon and cluster data project differently for different
+  viewpoint nodes.
+
+Two record namespaces:
 
 - **`proposal::*`** — the authored input shape. Records and validated
   newtypes. Decoded from NOTA. The boundary every cluster owner
@@ -107,7 +114,8 @@ fragmentation.
 
 | Record | What it carries |
 |---|---|
-| `ClusterProposal` | Top-level: nodes, users, domains, trust, secret bindings, tailnet / AI / VPN policy, cluster + public domain. |
+| `HorizonProposal` | Pan-horizon input: operator identity, internal/public domain suffixes, temporary IPv4 LAN, future trusted keys. |
+| `ClusterProposal` | Top-level cluster input: nodes, users, domains, trust, secret bindings, optional tailnet trust material, AI provider selections, VPN provider selections. |
 | `ClusterTrust` | Per-cluster trust floor + per-cluster / per-node / per-user overrides. |
 | `NodeProposal` | Per-node authored shape: species, size, trust, machine, IO, pub keys, capability opt-ins, services, placement. |
 | `UserProposal` | Per-user authored shape: species, size, keyboard, style, pub keys, editor, text size. |
@@ -116,8 +124,8 @@ fragmentation.
 | `NodePlacement` | `Metal` vs `Contained { host, user, substrate, … }`. |
 | `RouterInterfaces` | Per-router WAN/WLAN interface roles + WLAN config (IsoCountryCode + band + channel + standard + WPA3-SAE password reference). |
 | `NodeServices` | Per-node service roles (tailnet membership + controller). |
-| `AiProvider` | Cluster-advertised AI inference endpoints. |
-| `VpnProfile` | VPN provider profiles (NordVPN today; WireguardMesh later). |
+| `AiProvider` | Cluster-selected AI provider profile and serving node. CriomOS owns model catalogs and runtime defaults. |
+| `VpnProfile` | VPN provider selections (NordVPN today; WireguardMesh later). CriomOS owns server catalogs and client defaults. |
 | `ClusterSecretBinding` / `SecretReference` / `SecretBackend` | Logical secret names + per-cluster backend resolution. |
 
 ## Projected records — `view::*`
@@ -125,8 +133,8 @@ fragmentation.
 | Record | What's new vs the proposal |
 |---|---|
 | `Horizon` | The output root. `{ cluster, node, ex_nodes, users, contained_nodes }`. |
-| `Cluster` | Cluster-level roll-up: trusted-build-pub-keys list, resolved `secret_bindings: BTreeMap<SecretName, SecretBackend>` (the proposal carries the authored `Vec`), passthrough of LAN / resolver / tailnet / AI providers / VPN profiles. |
-| `LanNetwork` / `LanCidr` / `DhcpPool` / `ResolverPolicy` | Projected network records derived from pan-horizon config. The current IPv4 LAN is an explicit temporary value, not an allocator. |
+| `Cluster` | Cluster-level roll-up: trusted-build-pub-keys list, resolved `secret_bindings: BTreeMap<SecretName, SecretBackend>`, projected LAN / resolver records, optional tailnet base domain, AI provider selections, VPN profile selections. |
+| `LanNetwork` / `LanCidr` / `DhcpPool` / `ResolverPolicy` | Projected network records derived from pan-horizon config. The current IPv4 LAN is an explicit temporary single-router value, not an allocator. |
 | `RouterInterfaces` / `Ssid` | Projected router interfaces with derived SSID. |
 | `Node` | Per-node projected view: every passthrough field + computed booleans (`is_remote_nix_builder`, `is_dispatcher`, `is_large_edge`, `enable_network_manager`, `is_fully_trusted`, `chip_is_intel`, `model_is_thinkpad`), sub-records (`BehavesAs`, `Option<NixCache>`), derived strings (`ssh_pub_key_line`, `nix_pub_key_line`, `criome_domain_name`), and viewpoint-only optionals (`io`, `use_colemak`, `builder_configs`, `cache_urls`, ex-node / dispatcher / admin SSH lines, `wireguard_untrusted_proxies`). |
 | `User` | Per-user projected view: trust ladder, computed booleans (`use_colemak`, `use_fast_repeat`, `is_multimedia_dev`, `is_code_dev`, `has_pub_key`, `enable_linger`), typed identifiers (`EmailAddress`, `MatrixId`), resolved keys, derived `extra_groups`. |
@@ -214,15 +222,10 @@ Nix consumers read these as `inputs.horizon.<path>`. Gate sites use
 direct field reads (no dispatch on string content):
 
 ```nix
-# Was: node.typeIs.center → before TypeIs retired.
-# Now: equality against the species tag string.
 isCenter = config.horizon.node.species == "Center";
 
-# Was: node.computerIs.gmktecEvoX2 → before ComputerIs retired.
-# Now: equality against the known-model tag (None ⇔ unknown).
 isGmktec = (config.horizon.node.machine.model or null) == "GmktecEvoX2";
 
-# behaves_as composes multiple inputs and stays on the view.
 isRouter = config.horizon.node.behavesAs.router;
 ```
 
@@ -337,12 +340,8 @@ cli/
 ## Versioning + cross-cutting context
 
 - Workspace `~/primary/ESSENCE.md` is upstream of every rule.
-- The `horizon-leaner-shape` branch implements the audit findings
-  in `~/primary/reports/designer-assistant/101-horizon-rs-overbuild-audit-2026-05-16.md`
-  on a sibling of `horizon-re-engineering` (the system-specialist's
-  active branch). Downstream consumer rewrites (CriomOS / CriomOS-home
-  Nix modules, lojix-daemon's horizon-lib pin) need to follow on
-  matching sibling branches before this lands on `main`.
-- The legacy `lojix-cli` deploy path stays at the current schema for
-  the duration of the horizon-re-engineering arc; retires after
-  CriomOS migrates to `lojix-daemon`.
+- Schema changes land with matching downstream updates in CriomOS,
+  CriomOS-home, goldragon, and `lojix-daemon` before they are treated
+  as deployable.
+- The legacy deploy path stays pinned to its current schema while the
+  daemon-backed deploy stack replaces it.
