@@ -43,8 +43,10 @@ Read in this order to understand the projection surface:
    `ClusterTrust` mirror what goldragon's `datom.nota` files
    declare. Pass-through types, no derived fields.
 3. **Viewpoint — `view::Viewpoint`.** `{ cluster, node }` is the
-   request-time lens. The same pan-horizon and cluster data project
-   differently depending on the viewpoint node.
+   caller-supplied request-time lens. `lojix-daemon` derives it from
+   the deploy request; `horizon-cli` derives it from ad-hoc debug
+   flags. The same pan-horizon and cluster data project differently
+   depending on the viewpoint node.
 4. **Method computation — `proposal/*` and `view/*`.** Each
    `*Proposal::project` consumes typed inputs and adds derived
    booleans (`is_remote_nix_builder`, `behaves_as`,
