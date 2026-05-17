@@ -62,7 +62,10 @@ fn main() -> ExitCode {
     let proposal_text = match std::fs::read_to_string(&cli.proposal) {
         Ok(text) => text,
         Err(e) => {
-            eprintln!("error: read cluster proposal {}: {e}", cli.proposal.display());
+            eprintln!(
+                "error: read cluster proposal {}: {e}",
+                cli.proposal.display()
+            );
             return ExitCode::from(2);
         }
     };

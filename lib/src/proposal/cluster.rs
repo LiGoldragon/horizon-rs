@@ -143,13 +143,16 @@ impl ClusterProposal {
         let router_node = self.router_node_name(cluster_trust_floor);
         let lan = router_node
             .as_ref()
-            .map(|router| horizon.lan_network(&viewpoint.cluster, router))
+            .map(|_router| horizon.lan_network(&viewpoint.cluster))
             .transpose()?;
         let resolver = horizon.resolver_policy(lan.as_ref())?;
         let tailnet = if self.tailnet.is_some() || tailnet_controller.is_some() {
             Some(crate::view::cluster::TailnetConfig {
                 base_domain: horizon.tailnet_base_domain(&viewpoint.cluster)?,
-                tls: self.tailnet.as_ref().and_then(|tailnet| tailnet.tls.clone()),
+                tls: self
+                    .tailnet
+                    .as_ref()
+                    .and_then(|tailnet| tailnet.tls.clone()),
             })
         } else {
             None
@@ -265,7 +268,10 @@ impl ClusterProposal {
         Ok(resolved)
     }
 
-    fn validate_tailnet_topology(&self, cluster_trust_floor: Magnitude) -> Result<Option<NodeName>> {
+    fn validate_tailnet_topology(
+        &self,
+        cluster_trust_floor: Magnitude,
+    ) -> Result<Option<NodeName>> {
         let mut server: Option<NodeName> = None;
 
         for (name, proposal) in &self.nodes {

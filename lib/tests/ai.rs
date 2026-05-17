@@ -33,7 +33,10 @@ fn ai_provider_selection_decodes_minimal_record() {
 
     assert_eq!(provider.name.as_str(), "criomos-local");
     assert_eq!(provider.serving_node.as_str(), "prometheus");
-    assert!(matches!(provider.profile, AiProviderProfile::CriomosLocalLlama));
+    assert!(matches!(
+        provider.profile,
+        AiProviderProfile::CriomosLocalLlama
+    ));
     assert!(provider.api_key.is_none());
 }
 

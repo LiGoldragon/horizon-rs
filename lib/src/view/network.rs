@@ -1,7 +1,7 @@
 //! Projected LAN and DNS-resolver typed records.
 //!
 //! These records are not authored in a cluster proposal. Horizon derives
-//! them from the pan-horizon LAN pool plus cluster/router identity.
+//! them from pan-horizon configuration plus cluster/viewpoint facts.
 
 use ipnet::IpNet;
 use nota_codec::{NotaDecode, NotaEncode, NotaRecord};

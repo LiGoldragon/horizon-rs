@@ -22,7 +22,6 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::{HorizonProposal, Viewpoint};
 use horizon_lib::address::{LinkLocalIp, YggAddress, YggSubnet};
 use horizon_lib::disk::{DevicePath, Disk, FsType, MountPath};
 use horizon_lib::magnitude::{AtLeast, Magnitude};
@@ -32,7 +31,7 @@ use horizon_lib::name::{
 };
 use horizon_lib::proposal::{
     ClusterProposal, ClusterTrust, ContainedNetwork, ContainedState, Io, Machine, NodePlacement,
-    NodeProposal, NodePubKeys, NodeServices, ResolverPolicy, Resources, Substrate,
+    NodeProposal, NodePubKeys, NodeServices, Resources, Substrate,
     TailnetConfig as ProposalTailnetConfig, UserNamespacePolicy, UserProposal, UserPubKeyEntry,
     VirtualIp, YggPubKeyEntry,
 };
@@ -40,10 +39,12 @@ use horizon_lib::pub_key::{NixPubKey, SshPubKey, SshPubKeyLine, YggPubKey};
 use horizon_lib::species::{
     Arch, Bootloader, Editor, Keyboard, NodeSpecies, Style, System, TextSize, UserSpecies,
 };
-use horizon_lib::view::{
-    BehavesAs, BuilderConfig, Cluster, Horizon, NixCache, Node, ProjectedNodeView, User,
-};
 use horizon_lib::view::cluster::TailnetConfig as ViewTailnetConfig;
+use horizon_lib::view::{
+    BehavesAs, BuilderConfig, Cluster, Horizon, NixCache, Node, ProjectedNodeView, ResolverPolicy,
+    User,
+};
+use horizon_lib::{HorizonProposal, Viewpoint};
 use serde_json::Value;
 
 // ── small helpers ──────────────────────────────────────────────────────
@@ -53,10 +54,11 @@ fn horizon_proposal() -> HorizonProposal {
         "TestOperator",
         "criome",
         "criome.net",
-        "10.18.0.0/16",
-        24,
-        "test-lan-v1",
-        vec!["tailnet".to_string()],
+        "10.18.0.0/24",
+        "10.18.0.1",
+        "10.18.0.100",
+        "10.18.0.240",
+        "TEMPORARY: single-router IPv4 LAN until IPv6-first networking lands",
     )
     .unwrap()
 }
@@ -692,7 +694,9 @@ fn horizon_end_to_end_round_trips_through_json_byte_stable() {
         cluster: ClusterName::try_new("goldragon").unwrap(),
         node: NodeName::try_new("ouranos").unwrap(),
     };
-    let horizon: Horizon = proposal.project(&horizon_proposal(), &viewpoint).expect("project");
+    let horizon: Horizon = proposal
+        .project(&horizon_proposal(), &viewpoint)
+        .expect("project");
 
     // First serialisation is the canonical form.
     let bytes = serde_json::to_vec(&horizon).expect("serialise horizon");

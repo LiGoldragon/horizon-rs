@@ -25,8 +25,8 @@ A "no" on any of these means the value lives somewhere else:
 | Bucket | Lives in | Examples |
 |---|---|---|
 | **Cluster fact** | `ClusterProposal` / `NodeProposal` | node names, trust, hardware, secret references, provider *selections*, regulatory country |
-| **Horizon constant** | pan-horizon authored config or `lib/src/` constants | internal DNS suffix (`criome`), public DNS suffix (`criome.net`), LAN address pool, reserved subdomain labels |
-| **Horizon derivation** | `lib/src/view/` projection code | node domain, tailnet base domain, LAN CIDR, router SSID, DHCP pool, resolver listen addresses |
+| **Horizon constant** | pan-horizon authored config or `lib/src/` constants | internal DNS suffix (`criome`), public DNS suffix (`criome.net`), temporary exact IPv4 LAN |
+| **Horizon derivation** | `lib/src/view/` projection code | node domain, tailnet base domain, router SSID, resolver listen addresses |
 | **CriomOS-side** | CriomOS Nix module default or catalog package | DNS upstream choice, AI runtime config, AI model catalog, NordVPN server catalog, DHCP lease TTL |
 
 **Smell — "replaces the literals scattered across CriomOS".** When
@@ -66,7 +66,7 @@ system. This document replaces both.
 
 | Consumer | How it reads the projection |
 |---|---|
-| `lojix-daemon` | In-process Rust dep (`horizon-lib`). Calls `ClusterProposal::project(&viewpoint)` directly in its deploy actor. |
+| `lojix-daemon` | In-process Rust dep (`horizon-lib`). Calls `ClusterProposal::project(&horizon_proposal, &viewpoint)` directly in its deploy actor. |
 | `cli/` (`horizon`) | Same crate, binary entry point. Decodes a `datom.nota` from a path, projects from a `(cluster, node)` viewpoint, writes JSON to stdout. |
 | CriomOS / CriomOS-home Nix modules | Read the JSON output via `inputs.horizon.cluster.{node, exNodes, users, …}`. Schema is the camelCase serialization of `view::*` records. |
 
@@ -80,7 +80,7 @@ generating fixtures).
 ```mermaid
 flowchart LR
     nota[datom.nota] -->|nota-codec decode| input[ClusterProposal]
-    input -->|project(&Viewpoint)| output[view::Horizon]
+    input -->|project(&HorizonProposal, &Viewpoint)| output[view::Horizon]
     output -->|serde_json| json[JSON]
     json --> nix[Nix modules]
     output --> lojix[lojix-daemon actor]
@@ -107,18 +107,17 @@ fragmentation.
 
 | Record | What it carries |
 |---|---|
-| `ClusterProposal` | Top-level: nodes, users, domains, trust, secret bindings, LAN / resolver / tailnet / AI / VPN policy, cluster + public domain. |
+| `ClusterProposal` | Top-level: nodes, users, domains, trust, secret bindings, tailnet / AI / VPN policy, cluster + public domain. |
 | `ClusterTrust` | Per-cluster trust floor + per-cluster / per-node / per-user overrides. |
 | `NodeProposal` | Per-node authored shape: species, size, trust, machine, IO, pub keys, capability opt-ins, services, placement. |
 | `UserProposal` | Per-user authored shape: species, size, keyboard, style, pub keys, editor, text size. |
 | `Machine` | Hardware: arch, cores, model, motherboard, chip-gen, RAM. (Same type used by `view::Node`.) |
 | `Io` | Filesystem + boot config. (Same type used by `view::Node`.) |
 | `NodePlacement` | `Metal` vs `Contained { host, user, substrate, … }`. |
-| `RouterInterfaces` | Per-router WAN/WLAN interface roles + WLAN config (Ssid + IsoCountryCode + band + channel + standard + WPA3-SAE password reference). |
+| `RouterInterfaces` | Per-router WAN/WLAN interface roles + WLAN config (IsoCountryCode + band + channel + standard + WPA3-SAE password reference). |
 | `NodeServices` | Per-node service roles (tailnet membership + controller). |
 | `AiProvider` | Cluster-advertised AI inference endpoints. |
 | `VpnProfile` | VPN provider profiles (NordVPN today; WireguardMesh later). |
-| `LanNetwork` / `ResolverPolicy` / `TailnetConfig` | Cluster-level network policy. |
 | `ClusterSecretBinding` / `SecretReference` / `SecretBackend` | Logical secret names + per-cluster backend resolution. |
 
 ## Projected records — `view::*`
@@ -127,6 +126,8 @@ fragmentation.
 |---|---|
 | `Horizon` | The output root. `{ cluster, node, ex_nodes, users, contained_nodes }`. |
 | `Cluster` | Cluster-level roll-up: trusted-build-pub-keys list, resolved `secret_bindings: BTreeMap<SecretName, SecretBackend>` (the proposal carries the authored `Vec`), passthrough of LAN / resolver / tailnet / AI providers / VPN profiles. |
+| `LanNetwork` / `LanCidr` / `DhcpPool` / `ResolverPolicy` | Projected network records derived from pan-horizon config. The current IPv4 LAN is an explicit temporary value, not an allocator. |
+| `RouterInterfaces` / `Ssid` | Projected router interfaces with derived SSID. |
 | `Node` | Per-node projected view: every passthrough field + computed booleans (`is_remote_nix_builder`, `is_dispatcher`, `is_large_edge`, `enable_network_manager`, `is_fully_trusted`, `chip_is_intel`, `model_is_thinkpad`), sub-records (`BehavesAs`, `Option<NixCache>`), derived strings (`ssh_pub_key_line`, `nix_pub_key_line`, `criome_domain_name`), and viewpoint-only optionals (`io`, `use_colemak`, `builder_configs`, `cache_urls`, ex-node / dispatcher / admin SSH lines, `wireguard_untrusted_proxies`). |
 | `User` | Per-user projected view: trust ladder, computed booleans (`use_colemak`, `use_fast_repeat`, `is_multimedia_dev`, `is_code_dev`, `has_pub_key`, `enable_linger`), typed identifiers (`EmailAddress`, `MatrixId`), resolved keys, derived `extra_groups`. |
 | `ProjectedNodeView` | One level of detail for contained nodes (nodes whose `placement = Contained { host: <viewpoint> }`). Populated only on the host's `horizon.contained_nodes` map. |
@@ -136,13 +137,14 @@ fragmentation.
 
 ## Projection contract
 
-`ClusterProposal::project(&Viewpoint) -> Result<Horizon>` is the
+`ClusterProposal::project(&HorizonProposal, &Viewpoint) -> Result<Horizon>` is the
 single entry-point.
 
 ```rust
+let horizon_proposal: HorizonProposal = decode_nota(pan_horizon_text)?;
 let proposal: ClusterProposal = decode_nota(datom_text)?;
 let viewpoint = Viewpoint { cluster, node };
-let horizon: Horizon = proposal.project(&viewpoint)?;
+let horizon: Horizon = proposal.project(&horizon_proposal, &viewpoint)?;
 let json: String = serde_json::to_string(&horizon)?;
 ```
 
@@ -277,12 +279,11 @@ lib/
       domain.rs            — DomainProposal
       io.rs                — Io  (shared with view side)
       machine.rs           — Machine  (shared with view side)
-      network.rs           — LanNetwork + ResolverPolicy
       node.rs              — NodeProposal + project() + resolve_arch()
       placement.rs         — NodePlacement (Metal | Contained)
       pub_keys.rs          — NodePubKeys + YggPubKeyEntry
       router.rs            — RouterInterfaces + WlanBand + WlanStandard
-                              + Ssid + IsoCountryCode
+                              + IsoCountryCode
       secret.rs            — ClusterSecretBinding + SecretReference
                               + SecretBackend + SecretPurpose
       services.rs          — NodeServices + TailnetConfig
@@ -295,9 +296,12 @@ lib/
     view/
       cluster.rs           — Cluster (the projected roll-up)
       horizon.rs           — Horizon + Viewpoint
+      network.rs           — LanNetwork + LanCidr + DhcpPool
+                              + ResolverPolicy
       node.rs              — Node + BehavesAs + BuilderConfig + NixCache
                               + ViewpointFill
       projected_node.rs    — ProjectedNodeView (contained-node detail)
+      router.rs            — projected RouterInterfaces + Ssid
       user.rs              — User (the projected user view)
   tests/                   — 21 integration test files
 cli/

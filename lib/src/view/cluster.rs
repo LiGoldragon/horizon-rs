@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::name::{ClusterDomain, ClusterName, DomainName};
 use crate::proposal::ai::AiProvider;
-use crate::proposal::network::{LanNetwork, ResolverPolicy};
 use crate::proposal::secret::{SecretBackend, SecretName};
 use crate::proposal::services::TlsTrustPolicy;
 use crate::proposal::vpn::VpnProfile;
 use crate::pub_key::NixPubKeyLine;
+use crate::view::network::{LanNetwork, ResolverPolicy};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,9 +19,8 @@ pub struct Cluster {
     pub domain: ClusterDomain,
     /// One entry per node that has a nix signing key.
     pub trusted_build_pub_keys: Vec<NixPubKeyLine>,
-    /// Cluster LAN policy (subnet, gateway, DHCP pool, lease policy)
-    /// passed through from the proposal. `None` means CriomOS
-    /// modules use their current implementation defaults.
+    /// Transitional IPv4 LAN view (subnet, gateway, DHCP pool).
+    /// `None` means the cluster currently has no router node.
     pub lan: Option<LanNetwork>,
     /// Derived local DNS-resolver listen addresses. Upstream and
     /// fallback resolvers are CriomOS defaults.

@@ -3,9 +3,9 @@
 use std::collections::BTreeMap;
 
 use horizon_lib::name::{ClusterDomain, ClusterName};
-use horizon_lib::proposal::{ResolverPolicy, SecretBackend, SecretName, SopsFilePath, SopsKeyPath};
+use horizon_lib::proposal::{SecretBackend, SecretName, SopsFilePath, SopsKeyPath};
 use horizon_lib::pub_key::{NixPubKey, NixPubKeyLine};
-use horizon_lib::view::Cluster;
+use horizon_lib::view::{Cluster, ResolverPolicy};
 
 fn cluster_name() -> ClusterName {
     ClusterName::try_new("goldragon").unwrap()

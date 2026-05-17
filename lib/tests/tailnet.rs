@@ -5,7 +5,6 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::{HorizonProposal, Viewpoint};
 use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::magnitude::Magnitude;
@@ -17,6 +16,7 @@ use horizon_lib::proposal::{
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
+use horizon_lib::{HorizonProposal, Viewpoint};
 use nota_codec::{Decoder, NotaDecode};
 
 const VALID_PEM: &str = "-----BEGIN CERTIFICATE-----\nMIIBxxxxxx...\n-----END CERTIFICATE-----";
@@ -27,10 +27,11 @@ fn horizon_proposal() -> HorizonProposal {
         "TestOperator",
         "criome",
         "criome.net",
-        "10.18.0.0/16",
-        24,
-        "test-lan-v1",
-        vec!["tailnet".to_string()],
+        "10.18.0.0/24",
+        "10.18.0.1",
+        "10.18.0.100",
+        "10.18.0.240",
+        "TEMPORARY: single-router IPv4 LAN until IPv6-first networking lands",
     )
     .unwrap()
 }
@@ -187,7 +188,9 @@ fn viewpoint(node: &str) -> Viewpoint {
 #[test]
 fn project_derives_tailnet_config_from_controller_service() {
     let proposal = cluster_with_one_controller(None);
-    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
+    let horizon = proposal
+        .project(&horizon_proposal(), &viewpoint("ouranos"))
+        .unwrap();
     let cluster_tailnet = horizon
         .cluster
         .tailnet
@@ -202,7 +205,9 @@ fn project_derives_tailnet_config_from_controller_service() {
 #[test]
 fn project_accepts_controller_when_cluster_tailnet_is_some() {
     let proposal = cluster_with_one_controller(Some(TailnetConfig { tls: None }));
-    let horizon = proposal.project(&horizon_proposal(), &viewpoint("ouranos")).unwrap();
+    let horizon = proposal
+        .project(&horizon_proposal(), &viewpoint("ouranos"))
+        .unwrap();
     assert_eq!(
         horizon.node.services.tailnet_controller,
         Some(TailnetControllerRole::Server { port: 8443 })

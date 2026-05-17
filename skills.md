@@ -114,8 +114,8 @@ proposal surface.**
 | Bucket | Lives in | Examples |
 |---|---|---|
 | **Cluster fact** | `ClusterProposal` / `NodeProposal` | Node inventory, trust, hardware, secret references, provider *selections*, regulatory country. |
-| **Horizon constant** | pan-horizon authored config or `lib/src/horizon_constants.rs` | Internal DNS suffix (`criome`), public DNS suffix (`criome.net`), LAN address pool, reserved subdomain labels. |
-| **Horizon derivation** | `lib/src/view/` projection code | Node domain, tailnet base domain, LAN CIDR / gateway / DHCP pool, router SSID, resolver listen addresses. |
+| **Horizon constant** | pan-horizon authored config or `lib/src/horizon_constants.rs` | Internal DNS suffix (`criome`), public DNS suffix (`criome.net`), temporary exact IPv4 LAN. |
+| **Horizon derivation** | `lib/src/view/` projection code | Node domain, tailnet base domain, router SSID, resolver listen addresses. |
 | **CriomOS-side** | CriomOS Nix module default or catalog package | DNS upstream choice, AI runtime config, AI model catalog, NordVPN server catalog, lease TTL. |
 
 The bucket rule, expanded:

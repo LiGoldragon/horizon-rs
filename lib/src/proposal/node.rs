@@ -19,12 +19,12 @@ use crate::proposal::machine::Machine;
 use crate::proposal::placement::NodePlacement;
 use crate::proposal::pub_keys::NodePubKeys;
 use crate::proposal::router::RouterInterfaces;
-use crate::proposal::router::Ssid;
 use crate::proposal::services::NodeServices;
 use crate::proposal::wireguard::WireguardProxy;
 use crate::pub_key::WireguardPubKey;
 use crate::species::{Arch, KnownModel, NodeSpecies};
 use crate::view;
+use crate::view::router::Ssid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
 #[serde(rename_all = "camelCase")]

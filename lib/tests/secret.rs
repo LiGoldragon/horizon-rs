@@ -154,7 +154,6 @@ fn cluster_secret_binding_decodes_with_name_and_backend() {
 fn duplicate_cluster_secret_binding_rejected_at_projection() {
     use std::collections::BTreeMap;
 
-    use horizon_lib::{HorizonProposal, Viewpoint};
     use horizon_lib::magnitude::Magnitude;
     use horizon_lib::name::{ClusterName, NodeName};
     use horizon_lib::proposal::{
@@ -164,16 +163,18 @@ fn duplicate_cluster_secret_binding_rejected_at_projection() {
     };
     use horizon_lib::pub_key::SshPubKey;
     use horizon_lib::species::{Bootloader, Keyboard, NodeSpecies};
+    use horizon_lib::{HorizonProposal, Viewpoint};
 
     fn horizon_proposal() -> HorizonProposal {
         HorizonProposal::from_parts(
             "TestOperator",
             "criome",
             "criome.net",
-            "10.18.0.0/16",
-            24,
-            "test-lan-v1",
-            vec!["tailnet".to_string()],
+            "10.18.0.0/24",
+            "10.18.0.1",
+            "10.18.0.100",
+            "10.18.0.240",
+            "TEMPORARY: single-router IPv4 LAN until IPv6-first networking lands",
         )
         .unwrap()
     }
@@ -260,7 +261,9 @@ fn duplicate_cluster_secret_binding_rejected_at_projection() {
         node: node_name,
     };
 
-    let error = proposal.project(&horizon_proposal(), &viewpoint).unwrap_err();
+    let error = proposal
+        .project(&horizon_proposal(), &viewpoint)
+        .unwrap_err();
     assert!(
         matches!(error, Error::DuplicateSecretBinding { ref name } if name == &duplicate_name),
         "expected DuplicateSecretBinding, got {error:?}"

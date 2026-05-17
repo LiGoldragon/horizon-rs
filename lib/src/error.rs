@@ -81,22 +81,6 @@ pub enum Error {
         source: ipnet::AddrParseError,
     },
 
-    #[error("LAN pool supernet must be IPv4")]
-    LanPoolMustBeIpv4,
-
-    #[error(
-        "invalid LAN pool target prefix {target_prefix}; must be between supernet prefix {supernet_prefix} and 24"
-    )]
-    InvalidLanPoolPrefixLength {
-        supernet_prefix: u8,
-        target_prefix: u8,
-    },
-
-    #[error(
-        "invalid reserved subdomain label {got:?} — must be non-empty ASCII letters, digits, or dashes"
-    )]
-    InvalidReservedSubdomainLabel { got: String },
-
     #[error("unknown {kind}: {got:?}")]
     UnknownVariant { kind: &'static str, got: String },
 
@@ -106,9 +90,7 @@ pub enum Error {
     #[error("multiple tailnet controller servers: {first:?} and {second:?}")]
     MultipleTailnetControllers { first: NodeName, second: NodeName },
 
-    #[error(
-        "tailnet controller declared on node {node:?} but cluster.tailnet is unset"
-    )]
+    #[error("tailnet controller declared on node {node:?} but cluster.tailnet is unset")]
     TailnetControllerWithoutClusterConfig { node: NodeName },
 
     #[error(

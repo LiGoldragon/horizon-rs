@@ -8,11 +8,12 @@ use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterDomain, ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::proposal::{
     ContainedNetwork, ContainedState, Io, Machine, NodePlacement, NodeProjection, NodeProposal,
-    NodePubKeys, NodeServices, Resources, Ssid, Substrate, TailnetControllerRole,
-    TailnetMembership, UserNamespacePolicy, VirtualIp, YggPubKeyEntry,
+    NodePubKeys, NodeServices, Resources, Substrate, TailnetControllerRole, TailnetMembership,
+    UserNamespacePolicy, VirtualIp, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, NodeSpecies};
+use horizon_lib::view::Ssid;
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
