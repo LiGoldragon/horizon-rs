@@ -70,16 +70,24 @@ projection, schema introspection, and fixture generation.
 
 ```mermaid
 flowchart LR
-    pan[horizon.nota<br/>HorizonProposal] -->|nota-codec decode| horizon_input[HorizonProposal]
-    nota[datom.nota<br/>ClusterProposal] -->|nota-codec decode| input[ClusterProposal]
-    viewpoint[request-time Viewpoint<br/>cluster + node] --> project
+    daemon["lojix-daemon deploy actor"] --> pan_source["horizon.nota<br/>HorizonProposal"]
+    daemon --> cluster_source["datom.nota<br/>ClusterProposal"]
+    daemon --> viewpoint["daemon-derived Viewpoint<br/>(cluster,node)"]
+    pan_source -->|nota-codec decode| horizon_input["HorizonProposal"]
+    cluster_source -->|nota-codec decode| input["ClusterProposal"]
     horizon_input --> project
     input --> project
-    project[project(&HorizonProposal, &Viewpoint)] --> output[view::Horizon]
-    output -->|serde_json| json[JSON]
-    json --> nix[Nix modules]
-    output --> lojix[lojix-daemon actor]
+    viewpoint --> project
+    project["ClusterProposal::project(&HorizonProposal, &Viewpoint)"] --> output["view::Horizon"]
+    output -->|serde_json| json["JSON"]
+    json --> nix["Nix modules"]
+    output --> daemon
 ```
+
+This diagram is the daemon deploy path. The human-facing `lojix` CLI is
+not a Horizon consumer; it sends one Signal request frame to
+`lojix-daemon` and receives one Signal reply frame. `horizon-cli` is a
+separate ad-hoc debugging binary inside this repo.
 
 Projection has three inputs:
 
@@ -89,9 +97,9 @@ Projection has three inputs:
 - **`ClusterProposal`** — per-cluster authored facts owned by the
   cluster: nodes, users, trust, secret bindings, provider selections,
   hardware, placement.
-- **`Viewpoint`** — request-time lens `{ cluster, node }`. The same
-  pan-horizon and cluster data project differently for different
-  viewpoint nodes.
+- **`Viewpoint`** — daemon-derived request-time lens `{ cluster,
+  node }`. The same pan-horizon and cluster data project differently
+  for different viewpoint nodes.
 
 Two record namespaces:
 
