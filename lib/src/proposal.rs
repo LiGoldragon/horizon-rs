@@ -112,11 +112,11 @@ pub struct NodeServices {
     #[serde(default)]
     pub tailnet_controller: Option<TailnetControllerRole>,
 
-    /// Whether this node hosts local development infrastructure for the
-    /// operator. CriomOS gates developer-only receive services from this
-    /// role instead of deriving them from the node name or species.
+    /// Whether this node hosts local Persona development infrastructure.
+    /// CriomOS gates developer-only services from this role instead of
+    /// deriving them from the node name or species.
     #[serde(default)]
-    pub persona_development: Option<PersonaDevelopmentRole>,
+    pub persona_development: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
@@ -128,23 +128,6 @@ pub enum TailnetMembership {
 #[serde(rename_all_fields = "camelCase")]
 pub enum TailnetControllerRole {
     Server { port: u16, base_domain: DomainName },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaSum)]
-#[serde(rename_all_fields = "camelCase")]
-pub enum PersonaDevelopmentRole {
-    Workstation {
-        repository_receive: RepositoryReceiveRole,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
-#[serde(rename_all = "camelCase")]
-pub struct RepositoryReceiveRole {
-    /// Deploy this receive point only as local development infrastructure.
-    /// This is not a network exposure rule; CriomOS still owns the SSH
-    /// transport details.
-    pub local_only: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]

@@ -13,9 +13,8 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, DomainName, NodeName, SecretName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, PersonaDevelopmentRole,
-    RepositoryReceiveRole, RouterInterfaces, SecretReference, TailnetControllerRole, UserProposal,
-    WlanBand, WlanStandard, YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, RouterInterfaces,
+    SecretReference, TailnetControllerRole, UserProposal, WlanBand, WlanStandard, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
@@ -158,7 +157,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
         "(Machine Metal Arm64 4 None None None None None None) ",
         "(Io Qwerty Uboot [] []) ",
         "(NodePubKeys \"AAA=\" None None) ",
-        "[] None None false false [] false false None None None (NodeServices None None None))",
+        "[] None None false false [] false false None None None (NodeServices None None false))",
     );
     let mut decoder = Decoder::new(text);
     let node = NodeProposal::decode(&mut decoder).unwrap();
@@ -171,7 +170,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
 
 #[test]
 fn tailnet_controller_server_decodes_with_port_and_base_domain() {
-    let text = "(NodeServices Client (Server 9443 \"tailnet.goldragon.criome\") None)";
+    let text = "(NodeServices Client (Server 9443 \"tailnet.goldragon.criome\") false)";
     let mut decoder = Decoder::new(text);
     let services = NodeServices::decode(&mut decoder).unwrap();
 
@@ -185,8 +184,8 @@ fn tailnet_controller_server_decodes_with_port_and_base_domain() {
 }
 
 #[test]
-fn persona_development_workstation_decodes_repository_receive_role() {
-    let text = "(NodeServices Client None (Workstation (RepositoryReceiveRole true)))";
+fn persona_development_decodes_as_a_single_role_boolean() {
+    let text = "(NodeServices Client None true)";
     let mut decoder = Decoder::new(text);
     let services = NodeServices::decode(&mut decoder).unwrap();
 
@@ -194,12 +193,7 @@ fn persona_development_workstation_decodes_repository_receive_role() {
         services.tailnet,
         Some(horizon_lib::proposal::TailnetMembership::Client)
     );
-    assert_eq!(
-        services.persona_development,
-        Some(PersonaDevelopmentRole::Workstation {
-            repository_receive: RepositoryReceiveRole { local_only: true },
-        })
-    );
+    assert!(services.persona_development);
 }
 
 #[test]

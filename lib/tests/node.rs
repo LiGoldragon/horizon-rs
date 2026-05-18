@@ -10,8 +10,8 @@ use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, DomainName, ModelName, NodeName, UserName};
 use horizon_lib::node::{LidSwitchAction, NodeProjection};
 use horizon_lib::proposal::{
-    NodeProposal, NodePubKeys, NodeServices, PersonaDevelopmentRole, RepositoryReceiveRole,
-    TailnetControllerRole, TailnetMembership, YggPubKeyEntry,
+    NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole, TailnetMembership,
+    YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
@@ -219,18 +219,11 @@ fn tailnet_roles_project_from_proposal_not_node_name() {
 #[test]
 fn persona_development_role_projects_from_proposal_not_node_name() {
     let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
-    prop.services.persona_development = Some(PersonaDevelopmentRole::Workstation {
-        repository_receive: RepositoryReceiveRole { local_only: true },
-    });
+    prop.services.persona_development = true;
 
     let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
 
-    assert_eq!(
-        node.services.persona_development,
-        Some(PersonaDevelopmentRole::Workstation {
-            repository_receive: RepositoryReceiveRole { local_only: true },
-        })
-    );
+    assert!(node.services.persona_development);
 }
 
 #[test]

@@ -175,7 +175,7 @@ pub struct NodeProposal {
 pub struct NodeServices {
     pub tailnet:            Option<TailnetMembership>,
     pub tailnet_controller: Option<TailnetControllerRole>,
-    pub persona_development: Option<PersonaDevelopmentRole>,
+    pub persona_development: bool,
 }
 
 pub enum TailnetControllerRole {
@@ -183,16 +183,6 @@ pub enum TailnetControllerRole {
         port:        u16,
         base_domain: DomainName,
     },
-}
-
-pub enum PersonaDevelopmentRole {
-    Workstation {
-        repository_receive: RepositoryReceiveRole,
-    },
-}
-
-pub struct RepositoryReceiveRole {
-    pub local_only: bool,
 }
 
 pub struct RouterInterfaces {
