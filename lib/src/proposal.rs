@@ -83,51 +83,120 @@ pub struct NodeProposal {
     #[serde(default)]
     pub online: Option<bool>,
 
-    /// `nix.buildMachines.<this>.maxJobs` from each dispatcher's
-    /// viewpoint when this node acts as a remote builder; also drives
-    /// `nix.settings.build-cores` locally on the node itself. `None`
-    /// (= default `Some(1)`) means single-job-at-a-time, matching
-    /// nix's default. Bump this up on large builders to unlock
-    /// parallel dispatch.
+    /// Per-node service roles. This is cluster role data: consumers
+    /// must not infer it from node names, and role variants must not
+    /// carry CriomOS-standard ports, domains, or implementation
+    /// defaults.
     #[serde(default)]
-    pub number_of_build_cores: Option<u32>,
-
-    /// Per-node service roles. This is cluster role data: consumers must
-    /// not infer it from node names.
-    #[serde(default)]
-    pub services: NodeServices,
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize, NotaRecord)]
-#[serde(rename_all = "camelCase")]
-pub struct NodeServices {
-    /// Whether this node should join the cluster tailnet. CriomOS
-    /// currently renders this with Tailscale, but the proposal names the
-    /// role rather than deriving it from node identity.
-    #[serde(default)]
-    pub tailnet: Option<TailnetMembership>,
-
-    /// Whether this node hosts the cluster tailnet controller service.
-    /// CriomOS currently renders this with Headscale.
-    #[serde(default)]
-    pub tailnet_controller: Option<TailnetControllerRole>,
-
-    /// Whether this node hosts local Persona development infrastructure.
-    /// CriomOS gates developer-only services from this role instead of
-    /// deriving them from the node name or species.
-    #[serde(default)]
-    pub persona_development: bool,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
-pub enum TailnetMembership {
-    Client,
+    pub services: Vec<NodeService>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaSum)]
 #[serde(rename_all_fields = "camelCase")]
-pub enum TailnetControllerRole {
-    Server { port: u16, base_domain: DomainName },
+pub enum NodeService {
+    /// Join the cluster tailnet. CriomOS currently renders this with
+    /// Tailscale.
+    TailnetClient {},
+    /// Host the cluster tailnet controller. CriomOS derives the
+    /// Headscale port and MagicDNS base domain.
+    TailnetController {},
+    /// Receive remote Nix builds. `maximum_jobs` is cluster-authored
+    /// capacity policy; absent means one job at a time.
+    NixBuilder {
+        #[serde(default)]
+        maximum_jobs: Option<u32>,
+    },
+    /// Serve a cluster Nix binary cache. CriomOS owns the service port
+    /// and signing-key path.
+    NixCache {},
+    /// Host Persona development infrastructure. Nested capabilities
+    /// select sub-roles without making the cluster author CriomOS
+    /// implementation details.
+    PersonaDevelopment {
+        #[serde(default)]
+        capabilities: Vec<PersonaDevelopmentCapability>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaSum)]
+#[serde(rename_all_fields = "camelCase")]
+pub enum PersonaDevelopmentCapability {
+    /// Host the Git repository receive surface used by Persona
+    /// development.
+    GitoliteServer {},
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NodeServiceKind {
+    TailnetClient,
+    TailnetController,
+    NixBuilder,
+    NixCache,
+    PersonaDevelopment,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PersonaDevelopmentCapabilityKind {
+    GitoliteServer,
+}
+
+impl NodeService {
+    pub fn kind(&self) -> NodeServiceKind {
+        match self {
+            Self::TailnetClient {} => NodeServiceKind::TailnetClient,
+            Self::TailnetController {} => NodeServiceKind::TailnetController,
+            Self::NixBuilder { .. } => NodeServiceKind::NixBuilder,
+            Self::NixCache {} => NodeServiceKind::NixCache,
+            Self::PersonaDevelopment { .. } => NodeServiceKind::PersonaDevelopment,
+        }
+    }
+
+    pub fn is_kind(&self, kind: NodeServiceKind) -> bool {
+        self.kind() == kind
+    }
+
+    pub fn nix_builder_maximum_jobs(&self) -> Option<u32> {
+        match self {
+            Self::NixBuilder { maximum_jobs } => *maximum_jobs,
+            _ => None,
+        }
+    }
+
+    pub fn has_persona_development_capability(
+        &self,
+        kind: PersonaDevelopmentCapabilityKind,
+    ) -> bool {
+        match self {
+            Self::PersonaDevelopment { capabilities } => capabilities
+                .iter()
+                .any(|capability| capability.is_kind(kind)),
+            _ => false,
+        }
+    }
+}
+
+impl PersonaDevelopmentCapability {
+    pub fn kind(&self) -> PersonaDevelopmentCapabilityKind {
+        match self {
+            Self::GitoliteServer {} => PersonaDevelopmentCapabilityKind::GitoliteServer,
+        }
+    }
+
+    pub fn is_kind(&self, kind: PersonaDevelopmentCapabilityKind) -> bool {
+        self.kind() == kind
+    }
+}
+
+impl NodeProposal {
+    pub fn has_service(&self, kind: NodeServiceKind) -> bool {
+        self.services.iter().any(|service| service.is_kind(kind))
+    }
+
+    pub fn nix_builder_maximum_jobs(&self) -> Option<u32> {
+        self.services
+            .iter()
+            .find_map(NodeService::nix_builder_maximum_jobs)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]

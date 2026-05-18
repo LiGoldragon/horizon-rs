@@ -9,7 +9,18 @@ use crate::species::KnownModel;
 
 macro_rules! string_newtype {
     ($name:ident, $kind:literal) => {
-        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+        #[derive(
+            Debug,
+            Clone,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
+            Serialize,
+            Deserialize,
+            NotaTransparent,
+        )]
         #[serde(transparent)]
         pub struct $name(pub(crate) String);
 
@@ -56,6 +67,12 @@ string_newtype!(ModelName, "model name");
 string_newtype!(GithubId, "github id");
 string_newtype!(DomainName, "domain name");
 string_newtype!(SecretName, "secret name");
+
+impl DomainName {
+    pub fn for_tailnet(cluster: &ClusterName) -> Self {
+        Self(format!("tailnet.{cluster}.criome"))
+    }
+}
 
 impl ModelName {
     /// Parse this model name into its `KnownModel` form, if it
@@ -130,7 +147,6 @@ impl Keygrip {
         &self.0
     }
 }
-
 
 impl AsRef<str> for Keygrip {
     fn as_ref(&self) -> &str {

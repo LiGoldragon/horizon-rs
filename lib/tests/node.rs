@@ -7,11 +7,10 @@ use horizon_lib::address::{YggAddress, YggSubnet};
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, DomainName, ModelName, NodeName, UserName};
+use horizon_lib::name::{ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::node::{LidSwitchAction, NodeProjection};
 use horizon_lib::proposal::{
-    NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole, TailnetMembership,
-    YggPubKeyEntry,
+    NodeProposal, NodePubKeys, NodeService, PersonaDevelopmentCapability, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
@@ -82,8 +81,7 @@ fn proposal(species: NodeSpecies, size: Magnitude, with_keys: bool) -> NodePropo
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        number_of_build_cores: None,
-        services: NodeServices::default(),
+        services: Vec::new(),
     }
 }
 
@@ -98,17 +96,11 @@ fn ctx_for(name: &str, trust: Magnitude) -> NodeProjection<'static> {
     }
 }
 
-fn tailnet_controller_server() -> TailnetControllerRole {
-    TailnetControllerRole::Server {
-        port: 9443,
-        base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
-    }
-}
-
 #[test]
 fn center_node_with_full_keys_is_nix_cache_and_dispatcher() {
-    let node = proposal(NodeSpecies::Center, Magnitude::Min, true)
-        .project(ctx_for("prometheus", Magnitude::Max));
+    let mut proposal = proposal(NodeSpecies::Center, Magnitude::Min, true);
+    proposal.services.push(NodeService::NixCache {});
+    let node = proposal.project(ctx_for("prometheus", Magnitude::Max));
     assert!(node.is_nix_cache);
     assert!(!node.is_dispatcher); // center → not a dispatcher (dispatcher is non-center)
     assert!(node.is_fully_trusted);
@@ -119,8 +111,11 @@ fn center_node_with_full_keys_is_nix_cache_and_dispatcher() {
 
 #[test]
 fn edge_node_at_least_medium_with_keys_is_remote_nix_builder() {
-    let node = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true)
-        .project(ctx_for("ouranos", Magnitude::Max));
+    let mut proposal = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
+    proposal
+        .services
+        .push(NodeService::NixBuilder { maximum_jobs: None });
+    let node = proposal.project(ctx_for("ouranos", Magnitude::Max));
     assert!(node.is_remote_nix_builder);
     assert!(node.is_dispatcher);
     assert!(node.has_video_output);
@@ -129,16 +124,19 @@ fn edge_node_at_least_medium_with_keys_is_remote_nix_builder() {
 }
 
 #[test]
-fn edge_node_below_medium_is_not_remote_nix_builder() {
-    let node =
-        proposal(NodeSpecies::Edge, Magnitude::Min, true).project(ctx_for("zeus", Magnitude::Max));
+fn node_without_nix_builder_service_is_not_remote_nix_builder() {
+    let node = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true)
+        .project(ctx_for("zeus", Magnitude::Max));
     assert!(!node.is_remote_nix_builder);
 }
 
 #[test]
 fn node_without_full_pub_keys_is_not_remote_nix_builder() {
-    let node = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, false)
-        .project(ctx_for("zeus", Magnitude::Max));
+    let mut proposal = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, false);
+    proposal
+        .services
+        .push(NodeService::NixBuilder { maximum_jobs: None });
+    let node = proposal.project(ctx_for("zeus", Magnitude::Max));
     assert!(!node.is_remote_nix_builder);
     assert!(!node.has_base_pub_keys);
 }
@@ -183,8 +181,9 @@ fn lid_switch_policy_for_edge_locks_when_docked_and_on_external_power() {
 
 #[test]
 fn nix_url_present_when_nix_cache() {
-    let node = proposal(NodeSpecies::Center, Magnitude::Min, true)
-        .project(ctx_for("prometheus", Magnitude::Max));
+    let mut proposal = proposal(NodeSpecies::Center, Magnitude::Min, true);
+    proposal.services.push(NodeService::NixCache {});
+    let node = proposal.project(ctx_for("prometheus", Magnitude::Max));
     let url = node.nix_url.as_ref().unwrap();
     assert_eq!(url, "http://nix.prometheus.goldragon.criome");
     assert_eq!(
@@ -204,26 +203,49 @@ fn nix_url_absent_for_non_cache() {
 #[test]
 fn tailnet_roles_project_from_proposal_not_node_name() {
     let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
-    prop.services.tailnet = Some(TailnetMembership::Client);
-    prop.services.tailnet_controller = Some(tailnet_controller_server());
+    prop.services.push(NodeService::TailnetClient {});
+    prop.services.push(NodeService::TailnetController {});
 
     let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
 
-    assert_eq!(node.services.tailnet, Some(TailnetMembership::Client));
     assert_eq!(
-        node.services.tailnet_controller,
-        Some(tailnet_controller_server())
+        node.services,
+        vec![
+            NodeService::TailnetClient {},
+            NodeService::TailnetController {},
+        ]
     );
 }
 
 #[test]
 fn persona_development_role_projects_from_proposal_not_node_name() {
     let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
-    prop.services.persona_development = true;
+    prop.services.push(NodeService::PersonaDevelopment {
+        capabilities: vec![PersonaDevelopmentCapability::GitoliteServer {}],
+    });
 
     let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
 
-    assert!(node.services.persona_development);
+    assert_eq!(
+        node.services,
+        vec![NodeService::PersonaDevelopment {
+            capabilities: vec![PersonaDevelopmentCapability::GitoliteServer {}],
+        }]
+    );
+}
+
+#[test]
+fn nix_builder_capacity_projects_from_service_variant() {
+    let mut proposal = proposal(NodeSpecies::Center, Magnitude::Max, true);
+    proposal.services.push(NodeService::NixBuilder {
+        maximum_jobs: Some(6),
+    });
+
+    let node = proposal.project(ctx_for("prometheus", Magnitude::Max));
+
+    assert!(node.is_remote_nix_builder);
+    assert_eq!(node.max_jobs, 6);
+    assert_eq!(node.build_cores, 6);
 }
 
 #[test]

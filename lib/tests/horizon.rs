@@ -3,20 +3,21 @@
 
 use std::collections::BTreeMap;
 
+use horizon_lib::Viewpoint;
 use horizon_lib::address::{Interface, YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath};
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, DomainName, NodeName, SecretName, UserName};
+use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, TailnetControllerRole,
-    RouterInterfaces, SecretReference, UserProposal, UserPubKeyEntry, WlanBand, WlanStandard,
-    YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeService, RouterInterfaces,
+    SecretReference, UserProposal, UserPubKeyEntry, WlanBand, WlanStandard, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
-use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies};
-use horizon_lib::Viewpoint;
+use horizon_lib::species::{
+    Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies,
+};
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -52,11 +53,8 @@ fn io() -> Io {
     }
 }
 
-fn tailnet_controller_server() -> TailnetControllerRole {
-    TailnetControllerRole::Server {
-        port: 9443,
-        base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
-    }
+fn tailnet_controller_service() -> NodeService {
+    NodeService::TailnetController {}
 }
 
 fn pub_keys(nix: bool, ygg: bool) -> NodePubKeys {
@@ -89,18 +87,15 @@ fn node_proposal(species: NodeSpecies, size: Magnitude, full_keys: bool) -> Node
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        number_of_build_cores: None,
-        services: NodeServices::default(),
+        services: Vec::new(),
     }
 }
 
 fn user_pubkey_entry() -> UserPubKeyEntry {
     UserPubKeyEntry {
         ssh: SshPubKey::try_new("AAAAC3NzaC1lZDI1NTE5AAAA").unwrap(),
-        keygrip: horizon_lib::name::Keygrip::try_new(
-            "0123456789ABCDEF0123456789ABCDEF01234567",
-        )
-        .unwrap(),
+        keygrip: horizon_lib::name::Keygrip::try_new("0123456789ABCDEF0123456789ABCDEF01234567")
+            .unwrap(),
     }
 }
 
@@ -136,21 +131,15 @@ fn cluster_proposal(viewpoint_trust: Magnitude) -> ClusterProposal {
     );
 
     let mut users = BTreeMap::new();
-    users.insert(UserName::try_new("li").unwrap(), user_proposal(UserSpecies::Unlimited));
+    users.insert(
+        UserName::try_new("li").unwrap(),
+        user_proposal(UserSpecies::Unlimited),
+    );
 
     let mut node_trust = BTreeMap::new();
-    node_trust.insert(
-        NodeName::try_new("ouranos").unwrap(),
-        viewpoint_trust,
-    );
-    node_trust.insert(
-        NodeName::try_new("prometheus").unwrap(),
-        Magnitude::Max,
-    );
-    node_trust.insert(
-        NodeName::try_new("zeus").unwrap(),
-        Magnitude::Max,
-    );
+    node_trust.insert(NodeName::try_new("ouranos").unwrap(), viewpoint_trust);
+    node_trust.insert(NodeName::try_new("prometheus").unwrap(), Magnitude::Max);
+    node_trust.insert(NodeName::try_new("zeus").unwrap(), Magnitude::Max);
 
     let mut user_trust = BTreeMap::new();
     user_trust.insert(UserName::try_new("li").unwrap(), Magnitude::Max);
@@ -181,9 +170,21 @@ fn project_returns_horizon_with_viewpoint_node_filled_and_others_in_ex_nodes() {
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
 
     assert_eq!(horizon.node.name.as_str(), "ouranos");
-    assert!(horizon.ex_nodes.contains_key(&NodeName::try_new("prometheus").unwrap()));
-    assert!(horizon.ex_nodes.contains_key(&NodeName::try_new("zeus").unwrap()));
-    assert!(!horizon.ex_nodes.contains_key(&NodeName::try_new("ouranos").unwrap()));
+    assert!(
+        horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("prometheus").unwrap())
+    );
+    assert!(
+        horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("zeus").unwrap())
+    );
+    assert!(
+        !horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("ouranos").unwrap())
+    );
 }
 
 #[test]
@@ -215,30 +216,46 @@ fn project_cluster_collects_nix_pub_key_lines_from_keyed_nodes() {
         .iter()
         .map(|line| line.as_str().to_string())
         .collect();
-    assert!(lines.iter().any(|l| l.contains("ouranos.goldragon.criome:")));
-    assert!(lines.iter().any(|l| l.contains("prometheus.goldragon.criome:")));
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("ouranos.goldragon.criome:"))
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("prometheus.goldragon.criome:"))
+    );
 }
 
 #[test]
 fn project_node_with_zero_trust_is_excluded_from_horizon() {
     let mut proposal = cluster_proposal(Magnitude::Max);
-    proposal.trust.nodes.insert(
-        NodeName::try_new("zeus").unwrap(),
-        Magnitude::Zero,
-    );
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("zeus").unwrap(), Magnitude::Zero);
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
-    assert!(!horizon.ex_nodes.contains_key(&NodeName::try_new("zeus").unwrap()));
+    assert!(
+        !horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("zeus").unwrap())
+    );
     // ouranos and prometheus still present.
-    assert!(horizon.ex_nodes.contains_key(&NodeName::try_new("prometheus").unwrap()));
+    assert!(
+        horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("prometheus").unwrap())
+    );
 }
 
 #[test]
 fn project_user_with_zero_trust_is_excluded_from_horizon() {
     let mut proposal = cluster_proposal(Magnitude::Max);
-    proposal.trust.users.insert(
-        UserName::try_new("li").unwrap(),
-        Magnitude::Zero,
-    );
+    proposal
+        .trust
+        .users
+        .insert(UserName::try_new("li").unwrap(), Magnitude::Zero);
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
     assert!(horizon.users.is_empty());
 }
@@ -246,9 +263,7 @@ fn project_user_with_zero_trust_is_excluded_from_horizon() {
 #[test]
 fn project_rejects_viewpoint_not_in_cluster() {
     let proposal = cluster_proposal(Magnitude::Max);
-    let error = proposal
-        .project(&viewpoint("nonexistent"))
-        .unwrap_err();
+    let error = proposal.project(&viewpoint("nonexistent")).unwrap_err();
     assert!(matches!(error, Error::NodeNotInCluster(_)));
 }
 
@@ -261,7 +276,7 @@ fn project_rejects_multiple_active_tailnet_controller_servers() {
             .get_mut(&NodeName::try_new(name).unwrap())
             .unwrap()
             .services
-            .tailnet_controller = Some(tailnet_controller_server());
+            .push(tailnet_controller_service());
     }
 
     let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
@@ -282,20 +297,21 @@ fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
             .get_mut(&NodeName::try_new(name).unwrap())
             .unwrap()
             .services
-            .tailnet_controller = Some(tailnet_controller_server());
+            .push(tailnet_controller_service());
     }
-    proposal.trust.nodes.insert(
-        NodeName::try_new("zeus").unwrap(),
-        Magnitude::Zero,
-    );
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("zeus").unwrap(), Magnitude::Zero);
 
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
 
-    assert_eq!(
-        horizon.node.services.tailnet_controller,
-        Some(tailnet_controller_server())
+    assert_eq!(horizon.node.services, vec![tailnet_controller_service()]);
+    assert!(
+        !horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("zeus").unwrap())
     );
-    assert!(!horizon.ex_nodes.contains_key(&NodeName::try_new("zeus").unwrap()));
 }
 
 #[test]

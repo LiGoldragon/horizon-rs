@@ -168,21 +168,19 @@ pub struct NodeProposal {
     pub wants_hw_video_accel: bool,
     pub router_interfaces: Option<RouterInterfaces>,
     pub online:            Option<bool>,
-    pub nb_of_build_cores: Option<u32>,
-    pub services:          NodeServices,
+    pub services:          Vec<NodeService>,
 }
 
-pub struct NodeServices {
-    pub tailnet:            Option<TailnetMembership>,
-    pub tailnet_controller: Option<TailnetControllerRole>,
-    pub persona_development: bool,
+pub enum NodeService {
+    TailnetClient {},
+    TailnetController {},
+    NixBuilder { maximum_jobs: Option<u32> },
+    NixCache {},
+    PersonaDevelopment { capabilities: Vec<PersonaDevelopmentCapability> },
 }
 
-pub enum TailnetControllerRole {
-    Server {
-        port:        u16,
-        base_domain: DomainName,
-    },
+pub enum PersonaDevelopmentCapability {
+    GitoliteServer {},
 }
 
 pub struct RouterInterfaces {
@@ -292,6 +290,7 @@ pub struct Horizon {
 
 pub struct Cluster {
     pub name: ClusterName,
+    pub tailnet_base_domain: DomainName,
     pub trusted_build_pub_keys: Vec<NixPubKeyLine>,
 }
 
@@ -310,12 +309,13 @@ pub struct Node {
     pub wants_printing:      bool,
     pub wants_hw_video_accel: bool,
     pub router_interfaces:   Option<RouterInterfaces>,
-    pub services:            NodeServices,
+    pub services:            Vec<NodeService>,
 
     // identity / connectivity (derived)
     pub criome_domain_name:  CriomeDomainName,
     pub system:              System,
-    pub nb_of_build_cores:   BuildCores,
+    pub max_jobs:            u32,
+    pub build_cores:         u32,
 
     // pubkey shadow flattened from input pubKeys
     pub ssh_pub_key:         SshPubKey,

@@ -11,10 +11,11 @@ use horizon_lib::address::{Interface, YggAddress, YggSubnet};
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, DomainName, NodeName, SecretName, UserName};
+use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeServices, RouterInterfaces,
-    SecretReference, TailnetControllerRole, UserProposal, WlanBand, WlanStandard, YggPubKeyEntry,
+    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeService,
+    PersonaDevelopmentCapability, RouterInterfaces, SecretReference, UserProposal, WlanBand,
+    WlanStandard, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
@@ -77,8 +78,7 @@ fn node_proposal(species: NodeSpecies, size: Magnitude) -> NodeProposal {
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        number_of_build_cores: None,
-        services: NodeServices::default(),
+        services: Vec::new(),
     }
 }
 
@@ -157,7 +157,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
         "(Machine Metal Arm64 4 None None None None None None) ",
         "(Io Qwerty Uboot [] []) ",
         "(NodePubKeys \"AAA=\" None None) ",
-        "[] None None false false [] false false None None None (NodeServices None None false))",
+        "[] None None false false [] false false None None [])",
     );
     let mut decoder = Decoder::new(text);
     let node = NodeProposal::decode(&mut decoder).unwrap();
@@ -169,31 +169,49 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
 }
 
 #[test]
-fn tailnet_controller_server_decodes_with_port_and_base_domain() {
-    let text = "(NodeServices Client (Server 9443 \"tailnet.goldragon.criome\") false)";
+fn service_vector_decodes_tailnet_controller_without_parameters() {
+    let text = "[(TailnetClient) (TailnetController)]";
     let mut decoder = Decoder::new(text);
-    let services = NodeServices::decode(&mut decoder).unwrap();
+    let services = Vec::<NodeService>::decode(&mut decoder).unwrap();
 
     assert_eq!(
-        services.tailnet_controller,
-        Some(TailnetControllerRole::Server {
-            port: 9443,
-            base_domain: DomainName::try_new("tailnet.goldragon.criome").unwrap(),
-        })
+        services,
+        vec![
+            NodeService::TailnetClient {},
+            NodeService::TailnetController {},
+        ]
     );
 }
 
 #[test]
-fn persona_development_decodes_as_a_single_role_boolean() {
-    let text = "(NodeServices Client None true)";
+fn persona_development_decodes_as_nested_capability_vector() {
+    let text = "[(PersonaDevelopment [(GitoliteServer)])]";
     let mut decoder = Decoder::new(text);
-    let services = NodeServices::decode(&mut decoder).unwrap();
+    let services = Vec::<NodeService>::decode(&mut decoder).unwrap();
 
     assert_eq!(
-        services.tailnet,
-        Some(horizon_lib::proposal::TailnetMembership::Client)
+        services,
+        vec![NodeService::PersonaDevelopment {
+            capabilities: vec![PersonaDevelopmentCapability::GitoliteServer {}],
+        }]
     );
-    assert!(services.persona_development);
+}
+
+#[test]
+fn nix_builder_decodes_capacity_policy_inside_role_variant() {
+    let text = "[(NixBuilder 6) (NixCache)]";
+    let mut decoder = Decoder::new(text);
+    let services = Vec::<NodeService>::decode(&mut decoder).unwrap();
+
+    assert_eq!(
+        services,
+        vec![
+            NodeService::NixBuilder {
+                maximum_jobs: Some(6),
+            },
+            NodeService::NixCache {},
+        ]
+    );
 }
 
 #[test]

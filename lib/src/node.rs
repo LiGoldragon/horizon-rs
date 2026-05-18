@@ -15,7 +15,9 @@ use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName, UserName};
-use crate::proposal::{NodeProposal, NodeServices, RouterInterfaces, WireguardProxy};
+use crate::proposal::{
+    NodeProposal, NodeService, NodeServiceKind, RouterInterfaces, WireguardProxy,
+};
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
 };
@@ -47,7 +49,7 @@ pub struct Node {
     pub router_interfaces: Option<RouterInterfaces>,
     /// Per-node service roles. Projected from proposal data; never
     /// inferred from the node name.
-    pub services: NodeServices,
+    pub services: Vec<NodeService>,
 
     // identity / connectivity (always derived)
     pub criome_domain_name: CriomeDomainName,
@@ -358,18 +360,18 @@ impl NodeProposal {
         let behaves_as = BehavesAs::derive(&type_is, &self.machine, io_disks_empty);
 
         let online = self.online.unwrap_or(true);
-        let is_remote_nix_builder = online
-            && !type_is.edge
+        let is_remote_nix_builder = self.has_service(NodeServiceKind::NixBuilder)
+            && online
             && is_fully_trusted
-            && (sized_at_least.medium || behaves_as.center)
             && has_base_pub_keys;
         let is_dispatcher = !behaves_as.center && is_fully_trusted && sized_at_least.min;
-        let is_nix_cache = behaves_as.center && sized_at_least.min && has_base_pub_keys;
+        let is_nix_cache = self.has_service(NodeServiceKind::NixCache)
+            && online
+            && is_fully_trusted
+            && has_base_pub_keys;
         let is_large_edge = sized_at_least.large && behaves_as.edge;
-        let enable_network_manager = sized_at_least.min
-            && !behaves_as.iso
-            && !behaves_as.center
-            && !behaves_as.router;
+        let enable_network_manager =
+            sized_at_least.min && !behaves_as.iso && !behaves_as.center && !behaves_as.router;
         let has_video_output = behaves_as.edge;
 
         let lid_policy = behaves_as.lid_switch_policy();
@@ -386,14 +388,11 @@ impl NodeProposal {
         let ssh_pub_key_line = ssh_pub_key.line();
 
         let chip_is_intel = ctx.resolved_arch.is_intel();
-        // Per-node `number_of_build_cores` from the datom drives
-        // both `nix.buildMachines.<n>.maxJobs` (when this node
-        // acts as a remote builder) and `nix.settings.build-cores`
-        // locally on the node itself. `None` defaults to 1 —
-        // matches nix's out-of-the-box single-job-at-a-time and
-        // keeps the wire backward-compat with datoms that don't
-        // set the field.
-        let max_jobs = self.number_of_build_cores.unwrap_or(1);
+        // NixBuilder's optional capacity knob drives both
+        // `nix.buildMachines.<n>.maxJobs` from dispatcher viewpoints
+        // and the local dedicated-builder `nix.settings.cores` value.
+        // Absence means single-job-at-a-time.
+        let max_jobs = self.nix_builder_maximum_jobs().unwrap_or(1);
         let build_cores = max_jobs;
         let model_is_thinkpad = self
             .machine

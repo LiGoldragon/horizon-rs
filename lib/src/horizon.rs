@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use crate::cluster::Cluster;
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, NodeName, UserName};
+use crate::name::{ClusterName, DomainName, NodeName, UserName};
 use crate::node::{Node, NodeProjection, ViewpointFill};
-use crate::proposal::{ClusterProposal, TailnetControllerRole};
+use crate::proposal::{ClusterProposal, NodeServiceKind};
 use crate::user::{User, UserProjection};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,6 +95,7 @@ impl ClusterProposal {
         // Cluster-level roll-up.
         let cluster = Cluster {
             name: viewpoint.cluster.clone(),
+            tailnet_base_domain: DomainName::for_tailnet(&viewpoint.cluster),
             trusted_build_pub_keys: nodes
                 .values()
                 .filter_map(|n| n.nix_pub_key_line.clone())
@@ -152,10 +153,7 @@ impl ClusterProposal {
             if matches!(trust, Magnitude::Zero) {
                 continue;
             }
-            if !matches!(
-                proposal.services.tailnet_controller,
-                Some(TailnetControllerRole::Server { .. })
-            ) {
+            if !proposal.has_service(NodeServiceKind::TailnetController) {
                 continue;
             }
 
