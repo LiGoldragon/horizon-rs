@@ -104,6 +104,91 @@ When extending an output record (`Node`, `User`,
 
 ---
 
+## The four-bucket sorter
+
+Before adding any field to `ClusterProposal`, `NodeProposal`,
+or any record reachable from them, name which of four buckets
+the value lives in. **Only the first bucket lives on the
+proposal surface.**
+
+| Bucket | Lives in | Examples |
+|---|---|---|
+| **Cluster fact** | `ClusterProposal` / `NodeProposal` | Node inventory, trust, hardware, secret references, provider *selections*, regulatory country. |
+| **Horizon constant** | pan-horizon authored config or `lib/src/horizon_constants.rs` | Internal DNS suffix (`criome`), public DNS suffix (`criome.net`), LAN address pool, reserved subdomain labels. |
+| **Horizon derivation** | `lib/src/view/` projection code | Node domain, tailnet base domain, LAN CIDR / gateway / DHCP pool, router SSID, resolver listen addresses. |
+| **CriomOS-side** | `CriomOS-lib` constants, CriomOS Nix module defaults, or catalog packages | Service ports, DNS upstream choice, AI runtime config, AI model catalog, NordVPN server catalog, lease TTL. |
+
+The bucket rule, expanded:
+
+1. **Variability.** Would another cluster owner author a
+   different value here?
+2. **Authority.** Is the cluster owner the authority — not the
+   horizon operator, not CriomOS, not a provider?
+3. **Non-derivable.** Must the projection be *told* this, or
+   can it compute it from other authored data?
+
+A "no" on any of these means the field doesn't belong in
+`ClusterProposal`.
+
+### Service roles are variant vectors
+
+Optional node roles are a vector of self-describing variants. Do not
+add another positional `NodeServices` record, boolean row, or
+`Option<T>` chain whose meaning only becomes clear after reading the
+field order.
+
+Use shapes that carry their noun:
+
+- `TailnetClient`
+- `TailnetController`
+- `NixBuilder { maximum_jobs }`
+- `NixCache`
+- `PersonaDevelopment { capabilities = [GitoliteServer] }`
+
+The variant names the cluster owner's selection. Horizon projection
+derives cluster-relative names from it. CriomOS owns the
+implementation: fixed ports, firewall openings, service packages, and
+systemd details. If a value would be identical in every cluster using
+this CriomOS generation, it is not cluster data.
+
+### Smells that mean you're misclassifying
+
+- **"Replaces the literals scattered across CriomOS"** in a doc
+  comment for a new `proposal/*.rs` record. The phrase usually
+  means the literals belong in CriomOS defaults (or a CriomOS
+  Nix package for catalog data), and what moves to horizon is
+  the *projection that derives the value* — not the literal
+  itself. A proposal record that transcribes the literals onto
+  the cluster surface makes the cluster owner author the
+  operating system.
+- **Field whose value never varies across clusters in this
+  horizon.** It's a horizon constant masquerading as a cluster
+  fact (`domain = "criome"` for every cluster).
+- **Field that carries the same value as another authored
+  field plus a constant** (`tailnet.base_domain =
+  "tailnet." + cluster_name + "." + cluster_domain`). It's a
+  derivation masquerading as data; the projection should
+  compute it.
+- **Composite that mixes a cluster selection with a provider
+  implementation.** An `AiProvider` carrying both `{ name,
+  serving_node }` (cluster choice) and `{ models[], serving_config,
+  protocol, port }` (CriomOS implementation) is two records
+  glued together. Split along the bucket boundary; only the
+  selection stays.
+- **A wire newtype validating a value that won't be authored
+  anymore.** When the value moves to derivation or CriomOS,
+  the validation moves with it — the newtype retires from
+  `proposal/*.rs`.
+
+The full audit and lean-down plan that prompted this section
+lives in primary's
+`reports/designer/207-horizon-boundary-audit-and-lean-down-plan-2026-05-17.md`.
+The pan-horizon-config brainstorm (a destination for several
+of the **Horizon constant** values) lives in
+`reports/designer/208-pan-horizon-configuration-brainstorm-2026-05-17.md`.
+
+---
+
 ## Magnitude is the size-and-trust ladder
 
 `Magnitude` is a five-point ordinal scale:
