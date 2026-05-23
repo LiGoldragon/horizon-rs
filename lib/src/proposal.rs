@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use nota_codec::{NotaRecord, NotaSum};
+use nota_codec::{NotaDecode, NotaEncode, NotaRecord};
 use serde::{Deserialize, Serialize};
 
 use crate::address::{Interface, LinkLocalIp, NodeIp};
@@ -91,7 +91,7 @@ pub struct NodeProposal {
     pub services: Vec<NodeService>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaSum)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all_fields = "camelCase")]
 pub enum NodeService {
     /// Join the cluster tailnet. CriomOS currently renders this with
@@ -118,7 +118,7 @@ pub enum NodeService {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaSum)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all_fields = "camelCase")]
 pub enum PersonaDevelopmentCapability {
     /// Host the Git repository receive surface used by Persona
@@ -175,6 +175,61 @@ impl NodeService {
     }
 }
 
+impl NotaEncode for NodeService {
+    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
+        match self {
+            NodeService::TailnetClient {} => {
+                encoder.start_record("TailnetClient")?;
+                encoder.end_record()
+            }
+            NodeService::TailnetController {} => {
+                encoder.start_record("TailnetController")?;
+                encoder.end_record()
+            }
+            NodeService::NixBuilder { maximum_jobs } => {
+                encoder.start_record("NixBuilder")?;
+                maximum_jobs.encode(encoder)?;
+                encoder.end_record()
+            }
+            NodeService::NixCache {} => {
+                encoder.start_record("NixCache")?;
+                encoder.end_record()
+            }
+            NodeService::PersonaDevelopment { capabilities } => {
+                encoder.start_record("PersonaDevelopment")?;
+                capabilities.encode(encoder)?;
+                encoder.end_record()
+            }
+        }
+    }
+}
+
+impl NotaDecode for NodeService {
+    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
+        decoder.expect_record_start()?;
+        let variant = decoder.read_pascal_identifier()?;
+        let service = match variant.as_str() {
+            "TailnetClient" => NodeService::TailnetClient {},
+            "TailnetController" => NodeService::TailnetController {},
+            "NixBuilder" => NodeService::NixBuilder {
+                maximum_jobs: Option::<u32>::decode(decoder)?,
+            },
+            "NixCache" => NodeService::NixCache {},
+            "PersonaDevelopment" => NodeService::PersonaDevelopment {
+                capabilities: Vec::<PersonaDevelopmentCapability>::decode(decoder)?,
+            },
+            other => {
+                return Err(nota_codec::Error::UnknownVariant {
+                    enum_name: "NodeService",
+                    got: other.to_string(),
+                });
+            }
+        };
+        decoder.expect_record_end()?;
+        Ok(service)
+    }
+}
+
 impl PersonaDevelopmentCapability {
     pub fn kind(&self) -> PersonaDevelopmentCapabilityKind {
         match self {
@@ -184,6 +239,35 @@ impl PersonaDevelopmentCapability {
 
     pub fn is_kind(&self, kind: PersonaDevelopmentCapabilityKind) -> bool {
         self.kind() == kind
+    }
+}
+
+impl NotaEncode for PersonaDevelopmentCapability {
+    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
+        match self {
+            PersonaDevelopmentCapability::GitoliteServer {} => {
+                encoder.start_record("GitoliteServer")?;
+                encoder.end_record()
+            }
+        }
+    }
+}
+
+impl NotaDecode for PersonaDevelopmentCapability {
+    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
+        decoder.expect_record_start()?;
+        let variant = decoder.read_pascal_identifier()?;
+        let capability = match variant.as_str() {
+            "GitoliteServer" => PersonaDevelopmentCapability::GitoliteServer {},
+            other => {
+                return Err(nota_codec::Error::UnknownVariant {
+                    enum_name: "PersonaDevelopmentCapability",
+                    got: other.to_string(),
+                });
+            }
+        };
+        decoder.expect_record_end()?;
+        Ok(capability)
     }
 }
 

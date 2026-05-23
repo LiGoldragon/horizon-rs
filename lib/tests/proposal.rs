@@ -120,7 +120,7 @@ fn node_proposal_carries_all_input_fields() {
 
 #[test]
 fn user_proposal_decodes_from_minimal_nota_record() {
-    let text = "(UserProposal Code Max Colemak Emacs LiGoldragon None [] None None)";
+    let text = "(Code Max Colemak Emacs (Some [LiGoldragon]) None {} None None)";
     let mut decoder = Decoder::new(text);
     let user = UserProposal::decode(&mut decoder).unwrap();
     assert!(matches!(user.species, UserSpecies::Code));
@@ -136,7 +136,7 @@ fn user_proposal_decodes_from_minimal_nota_record() {
 
 #[test]
 fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
-    let text = "(ClusterTrust Max [] [] [(Entry bird Medium) (Entry li Max)])";
+    let text = "(Max {} {} {bird Medium li Max})";
     let mut decoder = Decoder::new(text);
     let trust = ClusterTrust::decode(&mut decoder).unwrap();
     assert!(matches!(trust.cluster, Magnitude::Max));
@@ -152,12 +152,12 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
     // datom.nota is `Zero` (was `None`). Verify the new variant
     // decodes at the size position.
     let text = concat!(
-        "(NodeProposal ",
+        "(",
         "Center Zero Min ",
-        "(Machine Metal Arm64 4 None None None None None None) ",
-        "(Io Qwerty Uboot [] []) ",
-        "(NodePubKeys \"AAA=\" None None) ",
-        "[] None None false false [] false false None None [])",
+        "(Metal (Some Arm64) 4 None None None None None None) ",
+        "(Qwerty Uboot {} []) ",
+        "([AAA=] None None) ",
+        "[] None None False False [] False False None None [])",
     );
     let mut decoder = Decoder::new(text);
     let node = NodeProposal::decode(&mut decoder).unwrap();
@@ -199,7 +199,7 @@ fn persona_development_decodes_as_nested_capability_vector() {
 
 #[test]
 fn nix_builder_decodes_capacity_policy_inside_role_variant() {
-    let text = "[(NixBuilder 6) (NixCache)]";
+    let text = "[(NixBuilder (Some 6)) (NixCache)]";
     let mut decoder = Decoder::new(text);
     let services = Vec::<NodeService>::decode(&mut decoder).unwrap();
 
@@ -216,8 +216,7 @@ fn nix_builder_decodes_capacity_policy_inside_role_variant() {
 
 #[test]
 fn router_interfaces_decode_transitional_wifi_secret_reference() {
-    let text =
-        "(RouterInterfaces eno1 wlp195s0 TwoG 6 Wifi4 (SecretReference routerWifiSaePasswords))";
+    let text = "(eno1 wlp195s0 TwoG 6 Wifi4 (Some (routerWifiSaePasswords)))";
     let mut decoder = Decoder::new(text);
     let interfaces = RouterInterfaces::decode(&mut decoder).unwrap();
 

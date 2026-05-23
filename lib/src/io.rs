@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use nota_codec::{NotaEnum, NotaRecord, NotaTransparent};
+use nota_codec::{NotaEnum, NotaMapKey, NotaRecord, NotaTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::species::{Bootloader, Keyboard};
@@ -18,7 +18,10 @@ pub struct Io {
 }
 
 /// A filesystem mount point.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaMapKey,
+    NotaTransparent,
+)]
 #[serde(transparent)]
 pub struct MountPath(pub(crate) String);
 

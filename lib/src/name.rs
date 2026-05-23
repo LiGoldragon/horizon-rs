@@ -1,7 +1,7 @@
 //! Typed name newtypes. Each kind of name is a distinct type so a
 //! `NodeName` cannot be confused with a `UserName` or a `ClusterName`.
 
-use nota_codec::{NotaTransparent, NotaTryTransparent};
+use nota_codec::{NotaMapKey, NotaTransparent, NotaTryTransparent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
@@ -19,6 +19,7 @@ macro_rules! string_newtype {
             Hash,
             Serialize,
             Deserialize,
+            NotaMapKey,
             NotaTransparent,
         )]
         #[serde(transparent)]
