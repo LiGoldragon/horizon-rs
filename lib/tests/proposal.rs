@@ -135,6 +135,18 @@ fn user_proposal_decodes_from_minimal_nota_record() {
 }
 
 #[test]
+fn user_proposal_rejects_quote_delimited_string() {
+    let text = "(Code Max Colemak Emacs (Some \"LiGoldragon\") None {} None None)";
+    let mut decoder = Decoder::new(text);
+    let error = UserProposal::decode(&mut decoder).unwrap_err();
+
+    assert!(
+        error.to_string().contains("quotation mark"),
+        "unexpected error: {error}",
+    );
+}
+
+#[test]
 fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
     let text = "(Max {} {} {bird Medium li Max})";
     let mut decoder = Decoder::new(text);
