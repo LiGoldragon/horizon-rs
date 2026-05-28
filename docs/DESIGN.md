@@ -184,11 +184,26 @@ pub enum PersonaDevelopmentCapability {
 }
 
 pub struct RouterInterfaces {
-    pub wan:           Iface,
-    pub wlan:          Iface,
-    pub wlan_band:     WlanBand,
-    pub wlan_channel:  u16,
-    pub wlan_standard: WlanStandard,
+    pub wan:              Iface,
+    pub wlan:             Iface,
+    pub wlan_band:        WlanBand,
+    pub wlan_channel:     u16,
+    pub wlan_standard:    WlanStandard,
+    pub wpa3_sae_password: Option<SecretReference>,
+    pub backup_wireless:  Option<BackupWireless>,
+}
+
+pub struct BackupWireless {
+    pub interface:     Iface,
+    pub network_name:  WirelessNetworkName,
+    pub band:          WlanBand,
+    pub channel:       u16,
+    pub standard:      WlanStandard,
+    pub password:      SecretReference,
+}
+
+pub struct SecretReference {
+    pub name: SecretName,
 }
 
 pub struct NodePubKeys {

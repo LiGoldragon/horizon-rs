@@ -11,9 +11,9 @@ use horizon_lib::address::{Interface, YggAddress, YggSubnet};
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName};
+use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName, WirelessNetworkName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeService,
+    BackupWireless, ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeService,
     PersonaDevelopmentCapability, RouterInterfaces, SecretReference, UserProposal, WlanBand,
     WlanStandard, YggPubKeyEntry,
 };
@@ -228,7 +228,7 @@ fn nix_builder_decodes_capacity_policy_inside_role_variant() {
 
 #[test]
 fn router_interfaces_decode_transitional_wifi_secret_reference() {
-    let text = "(eno1 wlp195s0 TwoG 6 Wifi4 (Some (routerWifiSaePasswords)))";
+    let text = "(eno1 wlp195s0 TwoG 6 Wifi4 (Some (routerWifiSaePasswords)) None)";
     let mut decoder = Decoder::new(text);
     let interfaces = RouterInterfaces::decode(&mut decoder).unwrap();
 
@@ -241,6 +241,28 @@ fn router_interfaces_decode_transitional_wifi_secret_reference() {
         interfaces.wpa3_sae_password,
         Some(SecretReference {
             name: SecretName::try_new("routerWifiSaePasswords").unwrap(),
+        })
+    );
+    assert_eq!(interfaces.backup_wireless, None);
+}
+
+#[test]
+fn router_interfaces_decode_backup_wireless_access_point() {
+    let text = "(eno1 wlp195s0 TwoG 6 Wifi4 (Some (routerWifiSaePasswords)) (Some (wlp199s0f0u4 [CRIOM Backup] TwoG 11 Wifi4 (routerBackupWifiPassword))))";
+    let mut decoder = Decoder::new(text);
+    let interfaces = RouterInterfaces::decode(&mut decoder).unwrap();
+
+    assert_eq!(
+        interfaces.backup_wireless,
+        Some(BackupWireless {
+            interface: Interface::new("wlp199s0f0u4"),
+            network_name: WirelessNetworkName::try_new("CRIOM Backup").unwrap(),
+            band: WlanBand::TwoG,
+            channel: 11,
+            standard: WlanStandard::Wifi4,
+            password: SecretReference {
+                name: SecretName::try_new("routerBackupWifiPassword").unwrap(),
+            },
         })
     );
 }

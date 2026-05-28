@@ -14,7 +14,9 @@ use crate::address::{YggAddress, YggSubnet};
 use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, DomainName, GithubId, Keygrip, NodeName, SecretName, UserName};
+use crate::name::{
+    ClusterName, DomainName, GithubId, Keygrip, NodeName, SecretName, UserName, WirelessNetworkName,
+};
 use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
 
@@ -296,6 +298,22 @@ pub struct RouterInterfaces {
     /// decrypted path to hostapd's `saePasswordsFile`.
     #[serde(default)]
     pub wpa3_sae_password: Option<SecretReference>,
+    /// Optional physically separate backup wireless access point. This
+    /// is cluster-authored interface/SSID/secret data; CriomOS owns the
+    /// actual hostapd service shape and routing policy.
+    #[serde(default)]
+    pub backup_wireless: Option<BackupWireless>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupWireless {
+    pub interface: Interface,
+    pub network_name: WirelessNetworkName,
+    pub band: WlanBand,
+    pub channel: u16,
+    pub standard: WlanStandard,
+    pub password: SecretReference,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]

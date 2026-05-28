@@ -68,6 +68,7 @@ string_newtype!(ModelName, "model name");
 string_newtype!(GithubId, "github id");
 string_newtype!(DomainName, "domain name");
 string_newtype!(SecretName, "secret name");
+string_newtype!(WirelessNetworkName, "wireless network name");
 
 impl DomainName {
     pub fn for_tailnet(cluster: &ClusterName) -> Self {

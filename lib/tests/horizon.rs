@@ -9,10 +9,11 @@ use horizon_lib::error::Error;
 use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath};
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
-use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName};
+use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName, WirelessNetworkName};
 use horizon_lib::proposal::{
-    ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeService, RouterInterfaces,
-    SecretReference, UserProposal, UserPubKeyEntry, WlanBand, WlanStandard, YggPubKeyEntry,
+    BackupWireless, ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeService,
+    RouterInterfaces, SecretReference, UserProposal, UserPubKeyEntry, WlanBand, WlanStandard,
+    YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
@@ -378,6 +379,16 @@ fn project_preserves_router_wifi_secret_reference() {
         wlan_standard: WlanStandard::Wifi4,
         wpa3_sae_password: Some(SecretReference {
             name: SecretName::try_new("routerWifiSaePasswords").unwrap(),
+        }),
+        backup_wireless: Some(BackupWireless {
+            interface: Interface::new("wlp199s0f0u4"),
+            network_name: WirelessNetworkName::try_new("CRIOM Backup").unwrap(),
+            band: WlanBand::TwoG,
+            channel: 11,
+            standard: WlanStandard::Wifi4,
+            password: SecretReference {
+                name: SecretName::try_new("routerBackupWifiPassword").unwrap(),
+            },
         }),
     };
     proposal

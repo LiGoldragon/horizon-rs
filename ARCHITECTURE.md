@@ -31,7 +31,7 @@ A "no" on any of these means the value lives somewhere else:
 
 | Bucket | Lives in | Examples |
 |---|---|---|
-| **Cluster fact** | `ClusterProposal` / `NodeProposal` | Node names, trust, hardware, secret references, provider *selections*, regulatory country. |
+| **Cluster fact** | `ClusterProposal` / `NodeProposal` | Node names, trust, hardware, router interface roles, secret references, provider *selections*, regulatory country. |
 | **Horizon constant** | pan-horizon authored config or `lib/src/` constants | Internal DNS suffix (`criome`), public DNS suffix (`criome.net`), LAN address pool, reserved subdomain labels. |
 | **Horizon derivation** | `lib/src/view/` projection code | Node domain, tailnet base domain, LAN CIDR / gateway / DHCP pool, router SSID, resolver listen addresses. |
 | **CriomOS-side** | `CriomOS-lib` constants, CriomOS Nix module defaults, or catalog packages | Service ports, DNS upstream choice, AI runtime config, AI model catalog, NordVPN server catalog, DHCP lease TTL. |
