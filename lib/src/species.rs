@@ -4,7 +4,7 @@
 //! Variants serialize as their natural Rust spelling (PascalCase) per
 //! the nota identifier convention.
 
-use nota_codec::{NotaEnum};
+use nota_codec::NotaEnum;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]

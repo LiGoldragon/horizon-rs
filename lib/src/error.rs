@@ -17,13 +17,19 @@ pub enum Error {
     InvalidBase64Key { expected_len: usize, got: String },
 
     #[error("invalid yggdrasil address {got:?}: {source}")]
-    InvalidYggAddress { got: String, source: std::net::AddrParseError },
+    InvalidYggAddress {
+        got: String,
+        source: std::net::AddrParseError,
+    },
 
     #[error("yggdrasil subnet must not be empty")]
     EmptyYggSubnet,
 
     #[error("invalid node ip {got:?}: {source}")]
-    InvalidNodeIp { got: String, source: ipnet::AddrParseError },
+    InvalidNodeIp {
+        got: String,
+        source: ipnet::AddrParseError,
+    },
 
     #[error("unknown {kind}: {got:?}")]
     UnknownVariant { kind: &'static str, got: String },
@@ -32,10 +38,7 @@ pub enum Error {
     NodeNotInCluster(NodeName),
 
     #[error("multiple tailnet controller servers: {first:?} and {second:?}")]
-    MultipleTailnetControllers {
-        first: NodeName,
-        second: NodeName,
-    },
+    MultipleTailnetControllers { first: NodeName, second: NodeName },
 
     #[error("pod node {0:?} references missing super-node {1:?}")]
     MissingSuperNode(NodeName, NodeName),

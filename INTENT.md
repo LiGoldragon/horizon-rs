@@ -42,6 +42,10 @@ long-term parts may migrate into forge's in-process actors.
   half cluster-selection and half CriomOS-implementation (e.g. an
   "AI provider") is split: the selection authors per cluster; the
   implementation does not.
+- **Node I/O policy is cluster-authored when it is hardware/safety
+  inventory.** Filesystems, swap devices, swapfile sizing, and
+  compressed-swap sizing are projected through Horizon so CriomOS can
+  render them without node-name predicates.
 
 ## Naming and stack discipline
 

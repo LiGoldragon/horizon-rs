@@ -261,10 +261,11 @@ pub struct Machine {
 }
 
 pub struct Io {
-    pub keyboard:     Keyboard,
-    pub bootloader:   Bootloader,
-    pub disks:        HashMap<MountPath, Disk>,
-    pub swap_devices: Vec<SwapDevice>,
+    pub keyboard:        Keyboard,
+    pub bootloader:      Bootloader,
+    pub disks:           HashMap<MountPath, Disk>,
+    pub swap_devices:    Vec<SwapDevice>,
+    pub compressed_swap: Option<CompressedSwap>,
 }
 
 pub struct Disk {
@@ -274,7 +275,12 @@ pub struct Disk {
 }
 
 pub struct SwapDevice {
-    pub device: String,
+    pub device:          String,
+    pub size_mebibytes:  Option<u32>,
+}
+
+pub struct CompressedSwap {
+    pub memory_percent: u32,
 }
 
 pub struct LinkLocalIp {

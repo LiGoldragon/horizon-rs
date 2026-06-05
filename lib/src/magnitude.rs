@@ -12,7 +12,9 @@
 use nota_codec::{NotaEnum, NotaRecord};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaEnum,
+)]
 pub enum Magnitude {
     Zero,
     Min,

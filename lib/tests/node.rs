@@ -48,6 +48,7 @@ fn io_with_root_disk() -> Io {
         bootloader: Bootloader::Uefi,
         disks,
         swap_devices: Vec::new(),
+        compressed_swap: None,
     }
 }
 

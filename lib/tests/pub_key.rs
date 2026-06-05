@@ -82,7 +82,10 @@ fn nix_pub_key_rejects_wrong_length() {
 fn nix_pub_key_line_renders_domain_colon_key() {
     let key = NixPubKey::try_new(VALID_NIX).unwrap();
     let line = key.line(&cache_domain());
-    assert_eq!(line.as_str(), format!("prometheus.goldragon.criome:{VALID_NIX}"));
+    assert_eq!(
+        line.as_str(),
+        format!("prometheus.goldragon.criome:{VALID_NIX}")
+    );
 }
 
 #[test]

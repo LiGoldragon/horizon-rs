@@ -45,6 +45,7 @@ fn io() -> Io {
         bootloader: Bootloader::Uefi,
         disks: BTreeMap::new(),
         swap_devices: Vec::new(),
+        compressed_swap: None,
     }
 }
 
@@ -156,6 +157,32 @@ fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
     let li = UserName::try_new("li").unwrap();
     assert!(matches!(trust.users.get(&bird), Some(Magnitude::Medium)));
     assert!(matches!(trust.users.get(&li), Some(Magnitude::Max)));
+}
+
+#[test]
+fn io_decodes_legacy_shape_with_swap_defaults() {
+    let text = "(Qwerty Uefi {} [([/dev/disk/by-uuid/swap])])";
+    let mut decoder = Decoder::new(text);
+    let io = Io::decode(&mut decoder).unwrap();
+
+    assert!(matches!(io.keyboard, Keyboard::Qwerty));
+    assert_eq!(io.swap_devices.len(), 1);
+    assert_eq!(io.swap_devices[0].device.as_str(), "/dev/disk/by-uuid/swap");
+    assert_eq!(io.swap_devices[0].size_mebibytes, None);
+    assert!(io.compressed_swap.is_none());
+}
+
+#[test]
+fn io_decodes_swapfile_size_and_compressed_swap() {
+    let text = "(Colemak Uefi {} [([/swapfile] (Some 32768))] (Some (25)))";
+    let mut decoder = Decoder::new(text);
+    let io = Io::decode(&mut decoder).unwrap();
+
+    assert!(matches!(io.keyboard, Keyboard::Colemak));
+    assert_eq!(io.swap_devices.len(), 1);
+    assert_eq!(io.swap_devices[0].device.as_str(), "/swapfile");
+    assert_eq!(io.swap_devices[0].size_mebibytes, Some(32768));
+    assert_eq!(io.compressed_swap.unwrap().memory_percent, 25);
 }
 
 #[test]

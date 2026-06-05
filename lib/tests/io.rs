@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath, SwapDevice};
+use horizon_lib::io::{CompressedSwap, DevicePath, Disk, FsType, Io, MountPath, SwapDevice};
 use horizon_lib::species::{Bootloader, Keyboard};
 
 #[test]
@@ -46,13 +46,17 @@ fn io_struct_holds_keyboard_bootloader_disks_and_swap() {
         bootloader: Bootloader::Uefi,
         disks,
         swap_devices: vec![SwapDevice {
-            device: DevicePath::new("/dev/disk/by-uuid/swap"),
+            device: DevicePath::new("/swapfile"),
+            size_mebibytes: Some(32768),
         }],
+        compressed_swap: Some(CompressedSwap { memory_percent: 25 }),
     };
     assert!(matches!(io.keyboard, Keyboard::Colemak));
     assert!(matches!(io.bootloader, Bootloader::Uefi));
     assert_eq!(io.disks.len(), 1);
     assert_eq!(io.swap_devices.len(), 1);
+    assert_eq!(io.swap_devices[0].size_mebibytes, Some(32768));
+    assert_eq!(io.compressed_swap.unwrap().memory_percent, 25);
 }
 
 #[test]
