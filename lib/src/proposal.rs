@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use nota_codec::{NotaDecode, NotaEncode, NotaRecord};
+use nota_next::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::address::{Interface, LinkLocalIp, NodeIp};
@@ -21,7 +21,7 @@ use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
 
 /// The proposal a cluster owner emits.
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct ClusterProposal {
     #[serde(default)]
@@ -33,7 +33,7 @@ pub struct ClusterProposal {
     pub trust: ClusterTrust,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeProposal {
     pub species: NodeSpecies,
@@ -178,57 +178,90 @@ impl NodeService {
 }
 
 impl NotaEncode for NodeService {
-    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
+    fn to_nota(&self) -> String {
         match self {
             NodeService::TailnetClient {} => {
-                encoder.start_record("TailnetClient")?;
-                encoder.end_record()
+                Delimiter::Parenthesis.wrap(["TailnetClient".to_owned()])
             }
             NodeService::TailnetController {} => {
-                encoder.start_record("TailnetController")?;
-                encoder.end_record()
+                Delimiter::Parenthesis.wrap(["TailnetController".to_owned()])
             }
             NodeService::NixBuilder { maximum_jobs } => {
-                encoder.start_record("NixBuilder")?;
-                maximum_jobs.encode(encoder)?;
-                encoder.end_record()
+                Delimiter::Parenthesis.wrap(["NixBuilder".to_owned(), maximum_jobs.to_nota()])
             }
-            NodeService::NixCache {} => {
-                encoder.start_record("NixCache")?;
-                encoder.end_record()
-            }
-            NodeService::PersonaDevelopment { capabilities } => {
-                encoder.start_record("PersonaDevelopment")?;
-                capabilities.encode(encoder)?;
-                encoder.end_record()
-            }
+            NodeService::NixCache {} => Delimiter::Parenthesis.wrap(["NixCache".to_owned()]),
+            NodeService::PersonaDevelopment { capabilities } => Delimiter::Parenthesis
+                .wrap(["PersonaDevelopment".to_owned(), capabilities.to_nota()]),
         }
     }
 }
 
 impl NotaDecode for NodeService {
-    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
-        decoder.expect_record_start()?;
-        let variant = decoder.read_pascal_identifier()?;
-        let service = match variant.as_str() {
-            "TailnetClient" => NodeService::TailnetClient {},
-            "TailnetController" => NodeService::TailnetController {},
-            "NixBuilder" => NodeService::NixBuilder {
-                maximum_jobs: Option::<u32>::decode(decoder)?,
+    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+        let fields =
+            NotaBlock::new(block).expect_delimited(Delimiter::Parenthesis, "NodeService")?;
+        let variant = fields.first().and_then(Block::demote_to_string).ok_or(
+            NotaDecodeError::ExpectedAtom {
+                type_name: "NodeService",
             },
-            "NixCache" => NodeService::NixCache {},
-            "PersonaDevelopment" => NodeService::PersonaDevelopment {
-                capabilities: Vec::<PersonaDevelopmentCapability>::decode(decoder)?,
-            },
+        )?;
+        let service = match variant {
+            "TailnetClient" => {
+                Self::expect_service_arity(fields, variant, 1)?;
+                NodeService::TailnetClient {}
+            }
+            "TailnetController" => {
+                Self::expect_service_arity(fields, variant, 1)?;
+                NodeService::TailnetController {}
+            }
+            "NixBuilder" => {
+                Self::expect_service_arity(fields, variant, 2)?;
+                NodeService::NixBuilder {
+                    maximum_jobs: Option::<u32>::from_nota_block(&fields[1])?,
+                }
+            }
+            "NixCache" => {
+                Self::expect_service_arity(fields, variant, 1)?;
+                NodeService::NixCache {}
+            }
+            "PersonaDevelopment" => {
+                Self::expect_service_arity(fields, variant, 2)?;
+                NodeService::PersonaDevelopment {
+                    capabilities: Vec::<PersonaDevelopmentCapability>::from_nota_block(&fields[1])?,
+                }
+            }
             other => {
-                return Err(nota_codec::Error::UnknownVariant {
+                return Err(NotaDecodeError::UnknownVariant {
                     enum_name: "NodeService",
-                    got: other.to_string(),
+                    variant: other.to_string(),
                 });
             }
         };
-        decoder.expect_record_end()?;
         Ok(service)
+    }
+}
+
+impl NodeService {
+    fn expect_service_arity(
+        fields: &[Block],
+        variant: &str,
+        expected: usize,
+    ) -> Result<(), NotaDecodeError> {
+        if fields.len() != expected {
+            return Err(NotaDecodeError::ExpectedRootCount {
+                type_name: match variant {
+                    "TailnetClient" => "TailnetClient",
+                    "TailnetController" => "TailnetController",
+                    "NixBuilder" => "NixBuilder",
+                    "NixCache" => "NixCache",
+                    "PersonaDevelopment" => "PersonaDevelopment",
+                    _ => "NodeService",
+                },
+                expected,
+                found: fields.len(),
+            });
+        }
+        Ok(())
     }
 }
 
@@ -245,30 +278,40 @@ impl PersonaDevelopmentCapability {
 }
 
 impl NotaEncode for PersonaDevelopmentCapability {
-    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
+    fn to_nota(&self) -> String {
         match self {
             PersonaDevelopmentCapability::GitoliteServer {} => {
-                encoder.start_record("GitoliteServer")?;
-                encoder.end_record()
+                Delimiter::Parenthesis.wrap(["GitoliteServer".to_owned()])
             }
         }
     }
 }
 
 impl NotaDecode for PersonaDevelopmentCapability {
-    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
-        decoder.expect_record_start()?;
-        let variant = decoder.read_pascal_identifier()?;
-        let capability = match variant.as_str() {
+    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+        let fields = NotaBlock::new(block)
+            .expect_delimited(Delimiter::Parenthesis, "PersonaDevelopmentCapability")?;
+        if fields.len() != 1 {
+            return Err(NotaDecodeError::ExpectedRootCount {
+                type_name: "PersonaDevelopmentCapability",
+                expected: 1,
+                found: fields.len(),
+            });
+        }
+        let variant = fields[0]
+            .demote_to_string()
+            .ok_or(NotaDecodeError::ExpectedAtom {
+                type_name: "PersonaDevelopmentCapability",
+            })?;
+        let capability = match variant {
             "GitoliteServer" => PersonaDevelopmentCapability::GitoliteServer {},
             other => {
-                return Err(nota_codec::Error::UnknownVariant {
+                return Err(NotaDecodeError::UnknownVariant {
                     enum_name: "PersonaDevelopmentCapability",
-                    got: other.to_string(),
+                    variant: other.to_string(),
                 });
             }
         };
-        decoder.expect_record_end()?;
         Ok(capability)
     }
 }
@@ -285,7 +328,7 @@ impl NodeProposal {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct RouterInterfaces {
     pub wan: Interface,
@@ -305,7 +348,7 @@ pub struct RouterInterfaces {
     pub backup_wireless: Option<BackupWireless>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct BackupWireless {
     pub interface: Interface,
@@ -316,13 +359,13 @@ pub struct BackupWireless {
     pub password: SecretReference,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct SecretReference {
     pub name: SecretName,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 pub enum WlanBand {
     #[serde(rename = "2g")]
     TwoG,
@@ -332,7 +375,7 @@ pub enum WlanBand {
     SixG,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, nota_codec::NotaEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub enum WlanStandard {
     Wifi4,
@@ -340,7 +383,7 @@ pub enum WlanStandard {
     Wifi7,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct NodePubKeys {
     pub ssh: SshPubKey,
@@ -350,7 +393,7 @@ pub struct NodePubKeys {
     pub yggdrasil: Option<YggPubKeyEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct YggPubKeyEntry {
     pub pub_key: YggPubKey,
@@ -358,7 +401,7 @@ pub struct YggPubKeyEntry {
     pub subnet: YggSubnet,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct UserProposal {
     pub species: UserSpecies,
@@ -385,20 +428,20 @@ pub struct UserProposal {
     pub text_size: Option<TextSize>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct UserPubKeyEntry {
     pub ssh: SshPubKey,
     pub keygrip: Keygrip,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct DomainProposal {
     pub species: DomainSpecies,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct ClusterTrust {
     pub cluster: Magnitude,
@@ -413,7 +456,7 @@ pub struct ClusterTrust {
 /// An external WireGuard proxy this node tunnels through. Becomes a
 /// peer on the `wgProxies` interface; downstream nix module routes
 /// `0.0.0.0/0` through it. One per VPN connection (NordVPN, etc.).
-#[derive(Debug, Clone, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct WireguardProxy {
     pub pub_key: WireguardPubKey,

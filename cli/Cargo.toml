@@ -9,6 +9,6 @@ path = "src/main.rs"
 
 [dependencies]
 horizon-lib = { workspace = true }
-nota-codec  = { workspace = true }
+nota-next   = { workspace = true }
 serde_json  = { workspace = true }
 clap        = { workspace = true }

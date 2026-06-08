@@ -1,6 +1,6 @@
 //! Hardware description.
 
-use nota_codec::NotaRecord;
+use nota_next::{NotaDecode, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::name::{ModelName, NodeName, UserName};
@@ -9,7 +9,7 @@ use crate::species::{Arch, MachineSpecies, MotherBoard};
 /// Per-node hardware description. `arch` is `Option` because pod
 /// (virtual) machines defer it to their super-node; resolution into
 /// a concrete arch happens at projection time.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct Machine {
     pub species: MachineSpecies,

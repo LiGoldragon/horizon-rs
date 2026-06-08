@@ -15,12 +15,15 @@ It does not:
 
 - talk to goldragon or any source repo (the input arrives on stdin),
 - read any environment / filesystem state,
-- emit anything other than enriched horizon nota.
+- emit anything other than enriched horizon JSON.
 
-## Wire format: nota
+## Wire format: NOTA in, JSON out
 
-Both input and output are nota — see `~/git/nota/README.md` for the spec. nota-codec's typed `Decoder` + `Encoder` plus nota-derive's proc-macro derives (`NotaRecord`, `NotaEnum`, `NotaTransparent`, `NotaTryTransparent`).
-JSON is gone.
+The input is a cluster proposal in NOTA and decodes through
+`nota_next::{NotaDecode, NotaEncode}`. The output is enriched horizon
+JSON through serde/serde_json because Nix has `builtins.fromJSON` and
+does not have a NOTA reader. The same Rust types own both the typed
+proposal boundary and the JSON projection.
 
 ## Schema rules
 
@@ -533,24 +536,21 @@ pub enum Error {
     MissingField(&'static str),
 
     #[error("nota: {0}")]
-    Nota(#[from] nota_codec::Error),
+    Nota(#[from] nota_next::NotaDecodeError),
 }
 ```
 
 ## CLI
 
 ```
-horizon-cli --cluster <CLUSTER> --node <NODE> [--format nota|json]
-            < proposal.nota > horizon.<ext>
+horizon-cli --cluster <CLUSTER> --node <NODE> < proposal.nota > horizon.json
 ```
 
 - Reads cluster proposal **nota** from stdin (always nota — that's the
   source-of-truth format).
-- Writes the enriched horizon to stdout in the chosen format. `nota`
-  is the default (human-readable, canonical). **`json` is the
-  format Nix consumers ask for**, since `builtins.fromJSON` exists in
-  Nix and `builtins.fromNota` does not. Same data, different
-  encoding; both are produced by serde over the same `Horizon` types.
+- Writes the enriched horizon JSON to stdout. JSON is the format Nix
+  consumers ask for, since `builtins.fromJSON` exists in Nix and
+  `builtins.fromNota` does not.
 - Exit codes: `0` success, `1` projection error, `2` usage error.
 - `clap` derive. `main` is the only free function in the binary.
 
@@ -564,7 +564,7 @@ None. horizon-cli is a one-shot pure function.
 
 ## Dependencies
 
-- `nota-codec` (typed `Decoder` + `Encoder`) + `nota-derive` (six proc-macro derives) — nota I/O.
+- `nota-next` — NOTA input value codec and derive macros.
 - `serde` (derive) + `serde_json` — JSON output mode (Nix consumption path).
 - `thiserror` — Error enum derive.
 - `clap` (derive) — CLI parsing.
@@ -576,7 +576,7 @@ None. horizon-cli is a one-shot pure function.
 
 Phase 1 implemented (unit tests only). End-to-end: `horizon-cli
 --cluster <C> --node <N>` reads cluster proposal nota on stdin and
-writes enriched horizon nota on stdout. Integration tests against
+writes enriched horizon JSON on stdout. Integration tests against
 goldragon's `datom.nota` are pending the goldragon nota conversion.
 
 Next phases:

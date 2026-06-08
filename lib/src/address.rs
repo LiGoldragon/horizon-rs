@@ -4,10 +4,10 @@
 use std::net::Ipv6Addr;
 
 use ipnet::IpNet;
-use nota_codec::{NotaDecode, NotaEncode, NotaRecord, NotaTransparent};
+use nota_next::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
-use crate::error::{Error, Result};
+use crate::error::{Error, Result as HorizonResult};
 
 /// Yggdrasil-mesh IPv6 address. Always within `200::/7`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -15,7 +15,7 @@ use crate::error::{Error, Result};
 pub struct YggAddress(Ipv6Addr);
 
 impl YggAddress {
-    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+    pub fn try_new(s: impl Into<String>) -> HorizonResult<Self> {
         let s = s.into();
         s.parse()
             .map(Self)
@@ -29,7 +29,7 @@ impl YggAddress {
 
 impl TryFrom<String> for YggAddress {
     type Error = Error;
-    fn try_from(s: String) -> Result<Self> {
+    fn try_from(s: String) -> HorizonResult<Self> {
         Self::try_new(s)
     }
 }
@@ -47,17 +47,18 @@ impl std::fmt::Display for YggAddress {
 }
 
 impl NotaEncode for YggAddress {
-    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
-        encoder.write_string(&self.0.to_string())
+    fn to_nota(&self) -> String {
+        self.0.to_string().to_nota()
     }
 }
 
 impl NotaDecode for YggAddress {
-    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
-        let s = decoder.read_string()?;
-        YggAddress::try_new(s.clone()).map_err(|e| nota_codec::Error::Validation {
+    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+        let s = NotaBlock::new(block).parse_string()?;
+        YggAddress::try_new(s.clone()).map_err(|error| NotaDecodeError::InvalidValue {
             type_name: "YggAddress",
-            message: format!("invalid YggAddress {s:?}: {e}"),
+            value: s,
+            reason: error.to_string(),
         })
     }
 }
@@ -66,12 +67,12 @@ impl NotaDecode for YggAddress {
 /// today — not a parsed CIDR — because the legacy data carries it as
 /// the bare prefix without a prefix length. Promote to `Ipv6Net` when
 /// goldragon emits canonical CIDRs.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(transparent)]
 pub struct YggSubnet(pub(crate) String);
 
 impl YggSubnet {
-    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+    pub fn try_new(s: impl Into<String>) -> HorizonResult<Self> {
         let s = s.into();
         if s.is_empty() {
             Err(Error::EmptyYggSubnet)
@@ -91,23 +92,24 @@ impl YggSubnet {
 pub struct NodeIp(IpNet);
 
 impl NotaEncode for NodeIp {
-    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
-        encoder.write_string(&self.0.to_string())
+    fn to_nota(&self) -> String {
+        self.0.to_string().to_nota()
     }
 }
 
 impl NotaDecode for NodeIp {
-    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
-        let s = decoder.read_string()?;
-        NodeIp::try_new(s.clone()).map_err(|e| nota_codec::Error::Validation {
+    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+        let s = NotaBlock::new(block).parse_string()?;
+        NodeIp::try_new(s.clone()).map_err(|error| NotaDecodeError::InvalidValue {
             type_name: "NodeIp",
-            message: format!("invalid NodeIp {s:?}: {e}"),
+            value: s,
+            reason: error.to_string(),
         })
     }
 }
 
 impl NodeIp {
-    pub fn try_new(s: impl Into<String>) -> Result<Self> {
+    pub fn try_new(s: impl Into<String>) -> HorizonResult<Self> {
         let s = s.into();
         s.parse()
             .map(Self)
@@ -121,7 +123,7 @@ impl NodeIp {
 
 impl TryFrom<String> for NodeIp {
     type Error = Error;
-    fn try_from(s: String) -> Result<Self> {
+    fn try_from(s: String) -> HorizonResult<Self> {
         Self::try_new(s)
     }
 }
@@ -134,7 +136,7 @@ impl From<NodeIp> for String {
 
 /// Network interface name (`enp0s25`, `wlp3s0`, …). Hardware-dependent;
 /// the proposal author specifies it per link-local entry.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(transparent)]
 pub struct Interface(pub(crate) String);
 
@@ -156,7 +158,7 @@ impl std::fmt::Display for Interface {
 
 /// Raw input form of a link-local address: an interface plus a
 /// 64-bit suffix. Renders as `fe80::<suffix>%<iface>`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkLocalIp {
     pub iface: Interface,
@@ -170,7 +172,7 @@ impl LinkLocalIp {
 }
 
 /// Projected (rendered) link-local address.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(transparent)]
 pub struct LinkLocalAddress(pub(crate) String);
 

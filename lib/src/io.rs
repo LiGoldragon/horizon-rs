@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use nota_codec::{NotaDecode, NotaEncode, NotaEnum, NotaMapKey, NotaRecord, NotaTransparent};
+use nota_next::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::species::{Bootloader, Keyboard};
@@ -32,8 +32,8 @@ pub struct Io {
     Hash,
     Serialize,
     Deserialize,
-    NotaMapKey,
-    NotaTransparent,
+    NotaDecode,
+    NotaEncode,
 )]
 #[serde(transparent)]
 pub struct MountPath(pub(crate) String);
@@ -55,7 +55,7 @@ impl std::fmt::Display for MountPath {
 }
 
 /// A device path (e.g. `/dev/disk/by-uuid/abcd-…`).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaTransparent)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(transparent)]
 pub struct DevicePath(pub(crate) String);
 
@@ -69,7 +69,7 @@ impl DevicePath {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct Disk {
     pub device: DevicePath,
@@ -88,7 +88,7 @@ pub struct SwapDevice {
     pub size_mebibytes: Option<u32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaRecord)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct CompressedSwap {
     /// Percent of physical memory made available as compressed swap.
@@ -96,30 +96,35 @@ pub struct CompressedSwap {
 }
 
 impl NotaEncode for Io {
-    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
-        encoder.start_record_untagged()?;
-        self.keyboard.encode(encoder)?;
-        self.bootloader.encode(encoder)?;
-        self.disks.encode(encoder)?;
-        self.swap_devices.encode(encoder)?;
-        self.compressed_swap.encode(encoder)?;
-        encoder.end_record()
+    fn to_nota(&self) -> String {
+        Delimiter::Parenthesis.wrap([
+            self.keyboard.to_nota(),
+            self.bootloader.to_nota(),
+            self.disks.to_nota(),
+            self.swap_devices.to_nota(),
+            self.compressed_swap.to_nota(),
+        ])
     }
 }
 
 impl NotaDecode for Io {
-    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
-        decoder.expect_positional_record_start("Io", 5)?;
-        let keyboard = Keyboard::decode(decoder)?;
-        let bootloader = Bootloader::decode(decoder)?;
-        let disks = BTreeMap::<MountPath, Disk>::decode(decoder)?;
-        let swap_devices = Vec::<SwapDevice>::decode(decoder)?;
-        let compressed_swap = if decoder.peek_is_record_end()? {
-            None
-        } else {
-            Option::<CompressedSwap>::decode(decoder)?
+    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+        let fields = NotaBlock::new(block).expect_delimited(Delimiter::Parenthesis, "Io")?;
+        if !(4..=5).contains(&fields.len()) {
+            return Err(NotaDecodeError::ExpectedRootCount {
+                type_name: "Io",
+                expected: 5,
+                found: fields.len(),
+            });
+        }
+        let keyboard = Keyboard::from_nota_block(&fields[0])?;
+        let bootloader = Bootloader::from_nota_block(&fields[1])?;
+        let disks = BTreeMap::<MountPath, Disk>::from_nota_block(&fields[2])?;
+        let swap_devices = Vec::<SwapDevice>::from_nota_block(&fields[3])?;
+        let compressed_swap = match fields.get(4) {
+            Some(field) => Option::<CompressedSwap>::from_nota_block(field)?,
+            None => None,
         };
-        decoder.expect_record_end()?;
 
         Ok(Self {
             keyboard,
@@ -132,24 +137,27 @@ impl NotaDecode for Io {
 }
 
 impl NotaEncode for SwapDevice {
-    fn encode(&self, encoder: &mut nota_codec::Encoder) -> nota_codec::Result<()> {
-        encoder.start_record_untagged()?;
-        self.device.encode(encoder)?;
-        self.size_mebibytes.encode(encoder)?;
-        encoder.end_record()
+    fn to_nota(&self) -> String {
+        Delimiter::Parenthesis.wrap([self.device.to_nota(), self.size_mebibytes.to_nota()])
     }
 }
 
 impl NotaDecode for SwapDevice {
-    fn decode(decoder: &mut nota_codec::Decoder<'_>) -> nota_codec::Result<Self> {
-        decoder.expect_positional_record_start("SwapDevice", 2)?;
-        let device = DevicePath::decode(decoder)?;
-        let size_mebibytes = if decoder.peek_is_record_end()? {
-            None
-        } else {
-            Option::<u32>::decode(decoder)?
+    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+        let fields =
+            NotaBlock::new(block).expect_delimited(Delimiter::Parenthesis, "SwapDevice")?;
+        if !(1..=2).contains(&fields.len()) {
+            return Err(NotaDecodeError::ExpectedRootCount {
+                type_name: "SwapDevice",
+                expected: 2,
+                found: fields.len(),
+            });
+        }
+        let device = DevicePath::from_nota_block(&fields[0])?;
+        let size_mebibytes = match fields.get(1) {
+            Some(field) => Option::<u32>::from_nota_block(field)?,
+            None => None,
         };
-        decoder.expect_record_end()?;
 
         Ok(Self {
             device,
@@ -161,7 +169,9 @@ impl NotaDecode for SwapDevice {
 /// Filesystem type. Closed set of NixOS-supported filesystems we
 /// realistically use as a root, boot, or data filesystem. Add a
 /// variant when a new one shows up in real config.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum FsType {
     Ext2,
     Ext3,

@@ -7,6 +7,9 @@ pub enum Error {
     #[error("invalid name: {kind} cannot be empty")]
     EmptyName { kind: &'static str },
 
+    #[error("invalid name: {kind} contains a quotation mark: {got:?}")]
+    QuotationMarkInName { kind: &'static str, got: String },
+
     #[error("invalid keygrip: expected 40 hex chars, got {got:?}")]
     InvalidKeygrip { got: String },
 
@@ -47,7 +50,7 @@ pub enum Error {
     UnresolvableArch(NodeName),
 
     #[error("nota: {0}")]
-    Nota(#[from] nota_codec::Error),
+    Nota(#[from] nota_next::NotaDecodeError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

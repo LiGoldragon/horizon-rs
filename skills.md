@@ -51,15 +51,15 @@ Read in this order to understand the projection surface:
 
 ## The wire is the schema
 
-Every public type that participates in the wire — every
-proposal record, every projected record — is a typed Rust
-struct or enum with `serde` derives plus the matching
-`nota_codec::Nota*` derive (`NotaRecord`, `NotaEnum`,
-`NotaTransparent`, `NotaTryTransparent`).
+Every public type that participates in the proposal surface is a
+typed Rust struct or enum. Proposal input decodes from NOTA through
+`nota_next::{NotaDecode, NotaEncode}`. The projected horizon output
+serialises through serde/serde_json because downstream Nix consumes
+JSON.
 
 The same Rust definition serves three audiences:
 
-- **goldragon's `datom.nota`** decodes via `NotaDecode`.
+- **goldragon's `datom.nota`** decodes via `nota_next::NotaDecode`.
 - **The projected horizon JSON** serialises via serde + the
   `#[serde(rename_all = "camelCase")]` attribute on output
   records.
@@ -82,11 +82,11 @@ proposal record:
 - **New fields go at the tail.** Positional Nota records
   parse by source-declaration order. Inserting a field in the
   middle is a wire break.
-- **`#[serde(default)]` on every new field.** Existing
-  `datom.nota` files must keep parsing without the new
-  positional slot. Use `Option<T>` (default `None`),
-  `Vec<T>` (default empty), or `bool` (default `false`) so
-  the absence is meaningful.
+- **Compatibility is explicit.** `nota-next` records are positional;
+  if existing `datom.nota` files must keep parsing without a new
+  positional slot, add a manual decoder for that record and tests
+  proving the shorter legacy shape. `#[serde(default)]` only affects
+  serde/JSON, not NOTA decode.
 - **Document the gate.** New fields that drive Nix config
   branches need a doc comment naming the consumer (e.g.
   "drives `nix.settings.maxJobs`") and the fallback when

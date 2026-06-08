@@ -1,7 +1,7 @@
 //! Tests for `proposal` — the input shapes goldragon emits as
 //! cluster-proposal nota.
 //!
-//! Round-trips a minimal proposal through `nota-codec` and asserts
+//! Round-trips a minimal proposal through `nota-next` and asserts
 //! the typed fields decode at the right positions. Per the
 //! all-fields-explicit rule, every Optional position needs a token.
 
@@ -21,7 +21,7 @@ use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
     Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies,
 };
-use nota_codec::{Decoder, NotaDecode};
+use nota_next::{NotaDecode, NotaSource};
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -102,6 +102,13 @@ fn cluster_proposal() -> ClusterProposal {
     }
 }
 
+fn decode<Value>(text: &str) -> Result<Value, nota_next::NotaDecodeError>
+where
+    Value: NotaDecode,
+{
+    NotaSource::new(text).parse()
+}
+
 #[test]
 fn cluster_proposal_constructs_with_minimum_fields() {
     let proposal = cluster_proposal();
@@ -122,8 +129,7 @@ fn node_proposal_carries_all_input_fields() {
 #[test]
 fn user_proposal_decodes_from_minimal_nota_record() {
     let text = "(Code Max Colemak Emacs (Some [LiGoldragon]) None {} None None)";
-    let mut decoder = Decoder::new(text);
-    let user = UserProposal::decode(&mut decoder).unwrap();
+    let user = decode::<UserProposal>(text).unwrap();
     assert!(matches!(user.species, UserSpecies::Code));
     assert!(matches!(user.size, Magnitude::Max));
     assert!(matches!(user.keyboard, Keyboard::Colemak));
@@ -138,8 +144,7 @@ fn user_proposal_decodes_from_minimal_nota_record() {
 #[test]
 fn user_proposal_rejects_quote_delimited_string() {
     let text = "(Code Max Colemak Emacs (Some \"LiGoldragon\") None {} None None)";
-    let mut decoder = Decoder::new(text);
-    let error = UserProposal::decode(&mut decoder).unwrap_err();
+    let error = decode::<UserProposal>(text).unwrap_err();
 
     assert!(
         error.to_string().contains("quotation mark"),
@@ -150,8 +155,7 @@ fn user_proposal_rejects_quote_delimited_string() {
 #[test]
 fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
     let text = "(Max {} {} {bird Medium li Max})";
-    let mut decoder = Decoder::new(text);
-    let trust = ClusterTrust::decode(&mut decoder).unwrap();
+    let trust = decode::<ClusterTrust>(text).unwrap();
     assert!(matches!(trust.cluster, Magnitude::Max));
     let bird = UserName::try_new("bird").unwrap();
     let li = UserName::try_new("li").unwrap();
@@ -162,8 +166,7 @@ fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
 #[test]
 fn io_decodes_legacy_shape_with_swap_defaults() {
     let text = "(Qwerty Uefi {} [([/dev/disk/by-uuid/swap])])";
-    let mut decoder = Decoder::new(text);
-    let io = Io::decode(&mut decoder).unwrap();
+    let io = decode::<Io>(text).unwrap();
 
     assert!(matches!(io.keyboard, Keyboard::Qwerty));
     assert_eq!(io.swap_devices.len(), 1);
@@ -175,8 +178,7 @@ fn io_decodes_legacy_shape_with_swap_defaults() {
 #[test]
 fn io_decodes_swapfile_size_and_compressed_swap() {
     let text = "(Colemak Uefi {} [([/swapfile] (Some 32768))] (Some (25)))";
-    let mut decoder = Decoder::new(text);
-    let io = Io::decode(&mut decoder).unwrap();
+    let io = decode::<Io>(text).unwrap();
 
     assert!(matches!(io.keyboard, Keyboard::Colemak));
     assert_eq!(io.swap_devices.len(), 1);
@@ -198,8 +200,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
         "([AAA=] None None) ",
         "[] None None False False [] False False None None [])",
     );
-    let mut decoder = Decoder::new(text);
-    let node = NodeProposal::decode(&mut decoder).unwrap();
+    let node = decode::<NodeProposal>(text).unwrap();
     assert!(matches!(node.species, NodeSpecies::Center));
     assert!(matches!(node.size, Magnitude::Zero));
     assert!(matches!(node.trust, Magnitude::Min));
@@ -210,8 +211,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
 #[test]
 fn service_vector_decodes_tailnet_controller_without_parameters() {
     let text = "[(TailnetClient) (TailnetController)]";
-    let mut decoder = Decoder::new(text);
-    let services = Vec::<NodeService>::decode(&mut decoder).unwrap();
+    let services = decode::<Vec<NodeService>>(text).unwrap();
 
     assert_eq!(
         services,
@@ -225,8 +225,7 @@ fn service_vector_decodes_tailnet_controller_without_parameters() {
 #[test]
 fn persona_development_decodes_as_nested_capability_vector() {
     let text = "[(PersonaDevelopment [(GitoliteServer)])]";
-    let mut decoder = Decoder::new(text);
-    let services = Vec::<NodeService>::decode(&mut decoder).unwrap();
+    let services = decode::<Vec<NodeService>>(text).unwrap();
 
     assert_eq!(
         services,
@@ -239,8 +238,7 @@ fn persona_development_decodes_as_nested_capability_vector() {
 #[test]
 fn nix_builder_decodes_capacity_policy_inside_role_variant() {
     let text = "[(NixBuilder (Some 6)) (NixCache)]";
-    let mut decoder = Decoder::new(text);
-    let services = Vec::<NodeService>::decode(&mut decoder).unwrap();
+    let services = decode::<Vec<NodeService>>(text).unwrap();
 
     assert_eq!(
         services,
@@ -256,8 +254,7 @@ fn nix_builder_decodes_capacity_policy_inside_role_variant() {
 #[test]
 fn router_interfaces_decode_transitional_wifi_secret_reference() {
     let text = "(eno1 wlp195s0 TwoG 6 Wifi4 (Some (routerWifiSaePasswords)) None)";
-    let mut decoder = Decoder::new(text);
-    let interfaces = RouterInterfaces::decode(&mut decoder).unwrap();
+    let interfaces = decode::<RouterInterfaces>(text).unwrap();
 
     assert_eq!(interfaces.wan, Interface::new("eno1"));
     assert_eq!(interfaces.wlan, Interface::new("wlp195s0"));
@@ -276,8 +273,7 @@ fn router_interfaces_decode_transitional_wifi_secret_reference() {
 #[test]
 fn router_interfaces_decode_backup_wireless_access_point() {
     let text = "(eno1 wlp195s0 TwoG 6 Wifi4 (Some (routerWifiSaePasswords)) (Some (wlp199s0f0u4 [CRIOM Backup] TwoG 11 Wifi4 (routerBackupWifiPassword))))";
-    let mut decoder = Decoder::new(text);
-    let interfaces = RouterInterfaces::decode(&mut decoder).unwrap();
+    let interfaces = decode::<RouterInterfaces>(text).unwrap();
 
     assert_eq!(
         interfaces.backup_wireless,

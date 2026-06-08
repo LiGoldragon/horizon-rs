@@ -7,7 +7,7 @@ use std::process::ExitCode;
 use clap::Parser;
 use horizon_lib::name::{ClusterName, NodeName};
 use horizon_lib::{ClusterProposal, Viewpoint};
-use nota_codec::{Decoder, NotaDecode};
+use nota_next::NotaSource;
 
 #[derive(Parser)]
 #[command(
@@ -50,8 +50,7 @@ fn main() -> ExitCode {
     }
 
     let proposal: ClusterProposal = {
-        let mut decoder = Decoder::new(&buf);
-        match ClusterProposal::decode(&mut decoder) {
+        match NotaSource::new(&buf).parse() {
             Ok(p) => p,
             Err(e) => {
                 eprintln!("error: parse cluster proposal: {e}");

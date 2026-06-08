@@ -4,10 +4,12 @@
 //! Variants serialize as their natural Rust spelling (PascalCase) per
 //! the nota identifier convention.
 
-use nota_codec::NotaEnum;
+use nota_next::{NotaDecode, NotaEncode};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum NodeSpecies {
     Center,
     LargeAi,
@@ -20,26 +22,34 @@ pub enum NodeSpecies {
     RouterTesting,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum UserSpecies {
     Code,
     Multimedia,
     Unlimited,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum MachineSpecies {
     Metal,
     Pod,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum Keyboard {
     Qwerty,
     Colemak,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum Style {
     Vim,
     Emacs,
@@ -50,7 +60,9 @@ pub enum Style {
 /// selected on top of either editor). When absent on a `UserProposal`,
 /// the projection picks `Emacs` for code developers and `Codium`
 /// otherwise.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum Editor {
     Codium,
     Emacs,
@@ -60,7 +72,9 @@ pub enum Editor {
 /// size, editor font size, and editor UI zoom. A user setting; later
 /// composed with hardware DPI to compute actual pixel values.
 /// Default is `Medium`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum TextSize {
     ExtraSmall,
     Small,
@@ -70,21 +84,27 @@ pub enum TextSize {
     ExtraLarge,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum Bootloader {
     Uefi,
     Mbr,
     Uboot,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum Arch {
     X86_64,
     Arm64,
 }
 
 /// The Nix system tuple. Derived from `Arch`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum System {
     X86_64Linux,
     Aarch64Linux,
@@ -103,7 +123,9 @@ impl Arch {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum MotherBoard {
     Ondyfaind,
 }
@@ -137,7 +159,9 @@ impl KnownModel {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaEnum)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
 pub enum DomainSpecies {
     Cloudflare,
 }
