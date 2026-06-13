@@ -20,6 +20,14 @@ pub enum NodeSpecies {
     MediaBroadcast,
     Router,
     RouterTesting,
+    /// On-demand test virtual machine — a first-class cluster role,
+    /// distinct from `EdgeTesting` (a next-gen edge desktop). A
+    /// `TestVm` node derives a deliberately minimal profile: it is a
+    /// virtual machine (its substrate is `MachineSpecies::Pod`) but is
+    /// NOT an edge, center, or router node. The host the VM runs on is
+    /// `Machine::super_node`; the guest is launched to run a test and
+    /// stopped after.
+    TestVm,
 }
 
 #[derive(

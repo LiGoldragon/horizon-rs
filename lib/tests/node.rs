@@ -28,6 +28,8 @@ fn machine_x86() -> Machine {
         super_user: None,
         chip_gen: None,
         ram_gb: None,
+        disk_gb: None,
+        location: None,
     }
 }
 

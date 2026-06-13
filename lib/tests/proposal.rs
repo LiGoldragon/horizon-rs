@@ -36,6 +36,8 @@ fn machine() -> Machine {
         super_user: None,
         chip_gen: None,
         ram_gb: None,
+        disk_gb: None,
+        location: None,
     }
 }
 
@@ -195,7 +197,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
     let text = concat!(
         "(",
         "Center Zero Min ",
-        "(Metal (Some Arm64) 4 None None None None None None) ",
+        "(Metal (Some Arm64) 4 None None None None None None None None) ",
         "(Qwerty Uboot {} []) ",
         "([AAA=] None None) ",
         "[] None None False False [] False False None None [])",

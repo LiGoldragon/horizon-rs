@@ -15,6 +15,8 @@ fn metal_x86() -> Machine {
         super_user: None,
         chip_gen: Some(13),
         ram_gb: Some(32),
+        disk_gb: None,
+        location: None,
     }
 }
 
@@ -44,6 +46,8 @@ fn pod_machine_can_omit_arch_for_super_node_resolution() {
         super_user: Some(horizon_lib::name::UserName::try_new("li").unwrap()),
         chip_gen: None,
         ram_gb: None,
+        disk_gb: None,
+        location: None,
     };
     assert!(matches!(pod.species, MachineSpecies::Pod));
     assert!(pod.arch.is_none());

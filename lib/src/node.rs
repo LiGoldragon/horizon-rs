@@ -147,6 +147,11 @@ pub struct BehavesAs {
     pub virtual_machine: bool,
     pub iso: bool,
     pub large_ai: bool,
+    /// The guest's own lean test-VM profile gate. True only for a
+    /// `NodeSpecies::TestVm` node. CriomOS gates the guest's minimal
+    /// config on this facet; it is orthogonal to `virtual_machine`
+    /// (which flags "runs on a host" for the host's substrate wiring).
+    pub test_vm: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -161,6 +166,7 @@ pub struct TypeIs {
     pub media_broadcast: bool,
     pub router: bool,
     pub router_testing: bool,
+    pub test_vm: bool,
 }
 
 impl TypeIs {
@@ -175,6 +181,7 @@ impl TypeIs {
             media_broadcast: matches!(s, NodeSpecies::MediaBroadcast),
             router: matches!(s, NodeSpecies::Router),
             router_testing: matches!(s, NodeSpecies::RouterTesting),
+            test_vm: matches!(s, NodeSpecies::TestVm),
         }
     }
 }
@@ -190,6 +197,13 @@ impl BehavesAs {
         let bare_metal = matches!(machine.species, crate::species::MachineSpecies::Metal);
         let virtual_machine = matches!(machine.species, crate::species::MachineSpecies::Pod);
         let iso = !virtual_machine && io_disks_empty;
+        // A TestVm derives a deliberately lean profile: it carries
+        // `test_vm` plus the `virtual_machine` it already gets from its
+        // Pod substrate, and nothing else. It is NOT edge/center/router
+        // — those facets stay false purely because `NodeSpecies::TestVm`
+        // sets none of the `type_is` flags they read from, keeping the
+        // guest config minimal.
+        let test_vm = type_is.test_vm;
         BehavesAs {
             center,
             router,
@@ -200,6 +214,7 @@ impl BehavesAs {
             virtual_machine,
             iso,
             large_ai,
+            test_vm,
         }
     }
 

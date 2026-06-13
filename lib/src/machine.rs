@@ -36,4 +36,45 @@ pub struct Machine {
     /// means the operator hasn't filled it in yet.
     #[serde(default)]
     pub ram_gb: Option<u32>,
+    /// Virtual disk size in gibibytes for a Pod (VM) node. None for a
+    /// Metal node (disk comes from the partition layout in `Io`) or a
+    /// Pod whose host pre-provisions the disk. Cluster-authored: a VM's
+    /// root disk is allocated at create time and is not derivable from
+    /// anything else. MUST stay near the end of the struct so positional
+    /// nota records keep parsing with implicit None defaults.
+    #[serde(default)]
+    pub disk_gb: Option<u32>,
+    /// Physical placement of this machine — a free site/datacenter/rack
+    /// label (e.g. `home-lab`, `hetzner-fsn1`). Cluster-authored,
+    /// variable, and non-derivable. Optional; None means unspecified.
+    /// For a Pod this MAY later resolve to the host's location at
+    /// projection time. MUST stay near the end so positional nota
+    /// records keep parsing with implicit None defaults.
+    #[serde(default)]
+    pub location: Option<Location>,
+}
+
+/// Physical placement label for a machine — a free site, datacenter,
+/// or rack name (`home-lab`, `hetzner-fsn1`). A transparent newtype
+/// over `String` so the wire form is a bare string while the type
+/// stays distinct from any other string-shaped value (mirrors
+/// `ModelName`).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[serde(transparent)]
+pub struct Location(pub(crate) String);
+
+impl Location {
+    pub fn new(s: impl Into<String>) -> Self {
+        Self(s.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
 }

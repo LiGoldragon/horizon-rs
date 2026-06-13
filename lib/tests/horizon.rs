@@ -4,10 +4,10 @@
 use std::collections::BTreeMap;
 
 use horizon_lib::Viewpoint;
-use horizon_lib::address::{Interface, YggAddress, YggSubnet};
+use horizon_lib::address::{Interface, NodeIp, YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath};
-use horizon_lib::machine::Machine;
+use horizon_lib::machine::{Location, Machine};
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName, WirelessNetworkName};
 use horizon_lib::proposal::{
@@ -33,6 +33,8 @@ fn machine_x86() -> Machine {
         super_user: None,
         chip_gen: None,
         ram_gb: None,
+        disk_gb: None,
+        location: None,
     }
 }
 
@@ -401,4 +403,137 @@ fn project_preserves_router_wifi_secret_reference() {
     let horizon = proposal.project(&viewpoint("prometheus")).unwrap();
 
     assert_eq!(horizon.node.router_interfaces, Some(router_interfaces));
+}
+
+/// A test-VM Pod hosted on `prometheus` with a real root disk (NOT
+/// tmpfs), declaring its own disk size and physical location. This is
+/// horizon-rs's own test fixture (host `prometheus`, cluster
+/// `goldragon`); it does NOT mirror the `mercury` declaration in
+/// `CriomOS-test-cluster/clusters/fieldlab.nota`.
+fn test_vm_pod() -> NodeProposal {
+    let mut disks = BTreeMap::new();
+    disks.insert(
+        MountPath::new("/"),
+        Disk {
+            device: DevicePath::new("/dev/vda"),
+            fs_type: FsType::Ext4,
+            options: Vec::new(),
+        },
+    );
+    let real_disk_io = Io {
+        keyboard: Keyboard::Qwerty,
+        bootloader: Bootloader::Uefi,
+        disks,
+        swap_devices: Vec::new(),
+        compressed_swap: None,
+    };
+
+    NodeProposal {
+        species: NodeSpecies::TestVm,
+        size: Magnitude::Min,
+        trust: Magnitude::Max,
+        machine: Machine {
+            species: MachineSpecies::Pod,
+            arch: Some(Arch::X86_64),
+            cores: 4,
+            model: None,
+            mother_board: None,
+            super_node: Some(NodeName::try_new("prometheus").unwrap()),
+            super_user: Some(UserName::try_new("li").unwrap()),
+            chip_gen: None,
+            ram_gb: Some(8),
+            disk_gb: Some(40),
+            location: Some(Location::new("home-lab")),
+        },
+        io: real_disk_io,
+        pub_keys: pub_keys(true, true),
+        link_local_ips: Vec::new(),
+        node_ip: Some(NodeIp::try_new("10.77.0.7/24").unwrap()),
+        wireguard_pub_key: None,
+        nordvpn: false,
+        wifi_cert: false,
+        wireguard_untrusted_proxies: Vec::new(),
+        wants_printing: false,
+        wants_hw_video_accel: false,
+        router_interfaces: None,
+        online: None,
+        services: vec![NodeService::TailnetClient {}],
+    }
+}
+
+/// A horizon-rs unit test of `TestVm` projection, driven entirely by
+/// horizon-rs's own test `cluster_proposal` (host `prometheus`, cluster
+/// `goldragon`, derived domain `mercury.goldragon.criome`). It asserts
+/// the lean derived profile, the host/location/disk machine facts
+/// surviving projection, and the derived Criome domain. It does NOT
+/// mirror the `mercury` declaration in
+/// `CriomOS-test-cluster/clusters/fieldlab.nota`.
+#[test]
+fn project_test_vm_pod_derives_lean_profile_and_carries_host_location_disk() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    proposal
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), test_vm_pod());
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), Magnitude::Max);
+
+    let horizon = proposal.project(&viewpoint("mercury")).unwrap();
+    let mercury = &horizon.node;
+
+    // Species + the lean derived behaves-as profile: test_vm and
+    // virtual_machine (from the Pod substrate) are the ONLY role facets
+    // set. It is NOT an edge/center/router node, so the heavy desktop /
+    // server stacks never derive onto the guest.
+    assert!(matches!(mercury.species, NodeSpecies::TestVm));
+    assert!(mercury.behaves_as.test_vm);
+    assert!(mercury.behaves_as.virtual_machine);
+    assert!(!mercury.behaves_as.edge);
+    assert!(!mercury.behaves_as.center);
+    assert!(!mercury.behaves_as.router);
+    assert!(!mercury.behaves_as.large_ai);
+    assert!(!mercury.behaves_as.next_gen);
+    assert!(!mercury.behaves_as.low_power);
+    assert!(!mercury.behaves_as.bare_metal);
+    // A Pod with a real root disk is not an installer image.
+    assert!(!mercury.behaves_as.iso);
+
+    // type_is reflects only the TestVm role.
+    assert!(mercury.type_is.test_vm);
+    assert!(!mercury.type_is.edge);
+    assert!(!mercury.type_is.edge_testing);
+    assert!(!mercury.type_is.center);
+    assert!(!mercury.type_is.router);
+
+    // Machine facts survive projection unchanged: the host
+    // (`super_node`), the declared virtual-disk size, and the location.
+    assert_eq!(
+        mercury.machine.super_node.as_ref().unwrap().as_str(),
+        "prometheus"
+    );
+    assert_eq!(mercury.machine.disk_gb, Some(40));
+    assert_eq!(
+        mercury.machine.location.as_ref().unwrap().as_str(),
+        "home-lab"
+    );
+    // Pod arch is inherited from the resolved host arch.
+    assert_eq!(mercury.machine.arch, Some(Arch::X86_64));
+
+    // Its own routed address and the derived Criome domain — the
+    // address lojix deploys to with no special path.
+    assert_eq!(
+        mercury
+            .node_ip
+            .as_ref()
+            .unwrap()
+            .clone()
+            .ipnet()
+            .to_string(),
+        "10.77.0.7/24"
+    );
+    assert_eq!(
+        mercury.criome_domain_name.as_str(),
+        "mercury.goldragon.criome"
+    );
 }
