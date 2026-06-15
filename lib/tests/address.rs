@@ -1,7 +1,7 @@
 //! Tests for `address` — yggdrasil identifiers, node IPs, link-local
 //! per-interface addresses.
 
-use horizon_lib::address::{Interface, LinkLocalIp, NodeIp, YggAddress, YggSubnet};
+use horizon_lib::address::{Interface, LinkLocalIp, NodeIp, TapSubnet, YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 
 #[test]
@@ -38,6 +38,47 @@ fn node_ip_accepts_cidr() {
 fn node_ip_rejects_non_cidr_string() {
     let error = NodeIp::try_new("definitely not a cidr").unwrap_err();
     assert!(matches!(error, Error::InvalidNodeIp { .. }));
+}
+
+#[test]
+fn tap_subnet_accepts_ipv4_cidr() {
+    let subnet = TapSubnet::try_new("169.254.100.0/22").unwrap();
+    assert_eq!(subnet.ipv4_net().to_string(), "169.254.100.0/22");
+}
+
+#[test]
+fn tap_subnet_rejects_ipv6_cidr() {
+    // PATTERN: TapSubnet is IPv4-only because the Nix generator slices
+    // it on `.` as dotted-decimal; an IPv6 net must fail at the typed
+    // boundary, not silently misbehave later in Nix.
+    let error = TapSubnet::try_new("fd00::/64").unwrap_err();
+    assert!(matches!(error, Error::InvalidTapSubnet { .. }));
+}
+
+#[test]
+fn tap_subnet_rejects_non_cidr_string() {
+    let error = TapSubnet::try_new("definitely not a cidr").unwrap_err();
+    assert!(matches!(error, Error::InvalidTapSubnet { .. }));
+}
+
+#[test]
+fn tap_subnet_usable_host_count_excludes_network_and_broadcast() {
+    // /22 = 1024 addresses, minus network + broadcast = 1022 usable.
+    let large = TapSubnet::try_new("169.254.100.0/22").unwrap();
+    assert_eq!(large.usable_host_count(), 1022);
+    // /30 = 4 addresses, minus network + broadcast = 2 usable.
+    let small = TapSubnet::try_new("10.0.0.0/30").unwrap();
+    assert_eq!(small.usable_host_count(), 2);
+}
+
+#[test]
+fn tap_subnet_can_host_gates_on_usable_capacity() {
+    // PATTERN: the generator asserts the hosted guest set fits the
+    // subnet so over-subscription fails loudly instead of slicing
+    // outside the declared network.
+    let subnet = TapSubnet::try_new("10.0.0.0/30").unwrap();
+    assert!(subnet.can_host(2));
+    assert!(!subnet.can_host(3));
 }
 
 #[test]

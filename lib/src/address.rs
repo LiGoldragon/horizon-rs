@@ -3,7 +3,7 @@
 
 use std::net::Ipv6Addr;
 
-use ipnet::IpNet;
+use ipnet::{IpNet, Ipv4Net};
 use nota_next::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
@@ -134,16 +134,19 @@ impl From<NodeIp> for String {
     }
 }
 
-/// The CIDR subnet a VM host slices per-guest taps out of. One
+/// The IPv4 CIDR subnet a VM host slices per-guest taps out of. One
 /// cluster-authored subnet (e.g. `169.254.100.0/22`); the VM-test
 /// generator derives each guest's host endpoint and route from this
 /// subnet plus the guest index — replacing the per-guest
 /// `169.254.100+index.1` scheme previously invented in the Nix layer.
-/// A parsed `IpNet`, never a bare string: the value carries a real
-/// network identity and `ipnet` owns the parse.
+///
+/// IPv4-only on purpose: the CriomOS Nix generator slices this subnet
+/// on `.` as dotted-decimal, so an IPv6 net would parse the Rust type
+/// then silently misbehave in Nix. `ipnet::Ipv4Net` owns the parse and
+/// rejects IPv6 at the boundary into `Error::InvalidTapSubnet`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub struct TapSubnet(IpNet);
+pub struct TapSubnet(Ipv4Net);
 
 impl TapSubnet {
     pub fn try_new(s: impl Into<String>) -> HorizonResult<Self> {
@@ -153,8 +156,32 @@ impl TapSubnet {
             .map_err(|e| Error::InvalidTapSubnet { got: s, source: e })
     }
 
-    pub fn ipnet(&self) -> IpNet {
+    /// The underlying IPv4 network. The generator reads `.network()` /
+    /// `.hosts()` off this to derive per-guest endpoints.
+    pub fn ipv4_net(&self) -> Ipv4Net {
         self.0
+    }
+
+    /// The same value widened to `IpNet`, for callers that render or
+    /// compare against the generic address type.
+    pub fn ipnet(&self) -> IpNet {
+        IpNet::V4(self.0)
+    }
+
+    /// Count of usable host addresses in the subnet — the host endpoints
+    /// the generator can hand to guests. Excludes network and broadcast
+    /// for prefixes shorter than `/31`, matching `Ipv4Net::hosts()`. The
+    /// Nix capacity assert compares the hosted guest count against this.
+    pub fn usable_host_count(&self) -> u64 {
+        self.0.hosts().count() as u64
+    }
+
+    /// Whether the subnet has enough usable host slots to address
+    /// `count` guests. The generator asserts this so an over-subscribed
+    /// host fails loudly at eval rather than silently slicing outside
+    /// the declared network.
+    pub fn can_host(&self, count: u64) -> bool {
+        self.usable_host_count() >= count
     }
 }
 
