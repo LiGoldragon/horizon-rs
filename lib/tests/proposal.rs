@@ -13,15 +13,15 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName, WirelessNetworkName};
 use horizon_lib::proposal::{
-    BackupWireless, ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeService,
-    PersonaDevelopmentCapability, RouterInterfaces, SecretReference, UserProposal, WlanBand,
-    WlanStandard, YggPubKeyEntry,
+    BackupWireless, ClusterProposal, ClusterTrust, KvmAvailability, MaximumGuests, NodeProposal,
+    NodePubKeys, NodeService, PersonaDevelopmentCapability, RouterInterfaces, SecretReference,
+    UserProposal, WlanBand, WlanStandard, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
     Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies,
 };
-use nota_next::{NotaDecode, NotaSource};
+use nota_next::{NotaDecode, NotaEncode, NotaSource};
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -251,6 +251,31 @@ fn nix_builder_decodes_capacity_policy_inside_role_variant() {
             NodeService::NixCache {},
         ]
     );
+}
+
+#[test]
+fn vm_host_decodes_typed_subnet_kvm_and_capacity_then_round_trips() {
+    // The host's VM substrate as cluster nota: a sliced tap subnet, KVM
+    // availability, and a guest ceiling — every field a typed domain
+    // value, none a bare string or bool.
+    let text = "[(VmHost 169.254.100.0/22 Available (Some 4))]";
+    let services = decode::<Vec<NodeService>>(text).unwrap();
+
+    assert_eq!(
+        services,
+        vec![NodeService::VmHost {
+            guest_subnet: horizon_lib::address::TapSubnet::try_new("169.254.100.0/22").unwrap(),
+            kvm: KvmAvailability::Available,
+            maximum_guests: Some(MaximumGuests::new(4)),
+        }]
+    );
+
+    // The encoder projects the same wire shape back; decoding it again
+    // yields the identical typed value (no quotation marks emitted).
+    let reencoded = services.to_nota();
+    assert!(!reencoded.contains('"'));
+    let round_tripped = decode::<Vec<NodeService>>(&reencoded).unwrap();
+    assert_eq!(round_tripped, services);
 }
 
 #[test]

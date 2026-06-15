@@ -134,6 +134,66 @@ impl From<NodeIp> for String {
     }
 }
 
+/// The CIDR subnet a VM host slices per-guest taps out of. One
+/// cluster-authored subnet (e.g. `169.254.100.0/22`); the VM-test
+/// generator derives each guest's host endpoint and route from this
+/// subnet plus the guest index — replacing the per-guest
+/// `169.254.100+index.1` scheme previously invented in the Nix layer.
+/// A parsed `IpNet`, never a bare string: the value carries a real
+/// network identity and `ipnet` owns the parse.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct TapSubnet(IpNet);
+
+impl TapSubnet {
+    pub fn try_new(s: impl Into<String>) -> HorizonResult<Self> {
+        let s = s.into();
+        s.parse()
+            .map(Self)
+            .map_err(|e| Error::InvalidTapSubnet { got: s, source: e })
+    }
+
+    pub fn ipnet(&self) -> IpNet {
+        self.0
+    }
+}
+
+impl TryFrom<String> for TapSubnet {
+    type Error = Error;
+    fn try_from(s: String) -> HorizonResult<Self> {
+        Self::try_new(s)
+    }
+}
+
+impl From<TapSubnet> for String {
+    fn from(subnet: TapSubnet) -> Self {
+        subnet.0.to_string()
+    }
+}
+
+impl std::fmt::Display for TapSubnet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl NotaEncode for TapSubnet {
+    fn to_nota(&self) -> String {
+        self.0.to_string().to_nota()
+    }
+}
+
+impl NotaDecode for TapSubnet {
+    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+        let s = NotaBlock::new(block).parse_string()?;
+        TapSubnet::try_new(s.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+            type_name: "TapSubnet",
+            value: s,
+            reason: error.to_string(),
+        })
+    }
+}
+
 /// Network interface name (`enp0s25`, `wlp3s0`, …). Hardware-dependent;
 /// the proposal author specifies it per link-local entry.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]

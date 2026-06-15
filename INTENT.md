@@ -46,6 +46,18 @@ long-term parts may migrate into forge's in-process actors.
   inventory.** Filesystems, swap devices, swapfile sizing, and
   compressed-swap sizing are projected through Horizon so CriomOS can
   render them without node-name predicates.
+- **The test-VM host carries an explicit `NodeService::VmHost` role —
+  VM testing is cluster-data-generated, not cluster-specific.** A host
+  that runs test VMs declares a `VmHost` service (sibling to
+  `NixBuilder`) carrying the cluster-authored host data the VM-test
+  generator reads: the guest tap subnet (one sliced `TapSubnet` CIDR),
+  KVM availability, and a maximum-guests ceiling. This replaces the
+  bespoke hardcoded `169.254.100+index.1` subnet and `inputs ? microvm`
+  probe invented in the Nix layer, giving the predictable interface a
+  readable OS/home-profile test suite is built on. The host→guest graph
+  is total: a `Pod` substrate must name a `super_node` that exists in
+  the cluster (`Error::MissingSuperNode`). Per the recorded principle in
+  `primary/reports/cloud-designer/50-general-vm-testing-interface/intent-capture.md`.
 
 ## Naming and stack discipline
 

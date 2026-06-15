@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use nota_next::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
-use crate::address::{Interface, LinkLocalIp, NodeIp};
+use crate::address::{Interface, LinkLocalIp, NodeIp, TapSubnet};
 use crate::address::{YggAddress, YggSubnet};
 use crate::io::Io;
 use crate::machine::Machine;
@@ -118,6 +118,77 @@ pub enum NodeService {
         #[serde(default)]
         capabilities: Vec<PersonaDevelopmentCapability>,
     },
+    /// Run cluster test VMs. The host's VM substrate (tap subnet, KVM
+    /// availability, capacity ceiling) is cluster-authored here rather
+    /// than invented in the Nix layer. Guests are still discovered by
+    /// the `ex_nodes` fold (`super_node == this_node` &&
+    /// `behaves_as.test_vm`); this carries only the host's own
+    /// capability data. Sibling to `NixBuilder` — both are opt-in
+    /// per-node capabilities, never inferred from the node name.
+    VmHost {
+        /// CIDR the per-guest taps live in. Replaces the hardcoded
+        /// `169.254.100+index.1` host-endpoint scheme. The generator
+        /// derives each guest's host endpoint and route from this
+        /// subnet plus the guest index.
+        guest_subnet: TapSubnet,
+        /// Hardware acceleration availability (`/dev/kvm`). When
+        /// `Absent` the generator emits a TCG (software) substrate.
+        kvm: KvmAvailability,
+        /// Maximum concurrent guests this host advertises. `None` means
+        /// no declared ceiling; the generator asserts the hosted set
+        /// fits when a ceiling is present.
+        #[serde(default)]
+        maximum_guests: Option<MaximumGuests>,
+    },
+}
+
+/// Whether a VM host offers hardware acceleration (`/dev/kvm`). A
+/// closed-set domain value rather than a bare `bool`: the projection
+/// and the generator switch substrate on it, so it earns a name and a
+/// type the wire renders as `Available` / `Absent` instead of an
+/// anonymous boolean.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+pub enum KvmAvailability {
+    /// `/dev/kvm` is present; guests boot under hardware acceleration.
+    Available,
+    /// No `/dev/kvm`; guests fall back to a software (TCG) substrate.
+    Absent,
+}
+
+impl KvmAvailability {
+    pub fn is_available(self) -> bool {
+        matches!(self, Self::Available)
+    }
+}
+
+/// Maximum concurrent test-VM guests a host advertises. A typed count
+/// rather than a bare `u32` so the capacity ceiling cannot be confused
+/// with any other small integer the projection carries (cores, jobs,
+/// guest index).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[serde(transparent)]
+pub struct MaximumGuests(u32);
+
+impl MaximumGuests {
+    pub fn new(count: u32) -> Self {
+        Self(count)
+    }
+
+    pub fn count(self) -> u32 {
+        self.0
+    }
+}
+
+/// A borrowed view of a host's `VmHost` capability — the exact
+/// cluster-authored data the VM-test generator reads off a host's
+/// projection. One object out of `NodeService::vm_host`, so a consumer
+/// pattern-matches the service once and reads tap subnet, KVM
+/// availability, and capacity together.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VmHostCapability<'a> {
+    pub guest_subnet: &'a TapSubnet,
+    pub kvm: KvmAvailability,
+    pub maximum_guests: Option<MaximumGuests>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -135,6 +206,7 @@ pub enum NodeServiceKind {
     NixBuilder,
     NixCache,
     PersonaDevelopment,
+    VmHost,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,6 +222,7 @@ impl NodeService {
             Self::NixBuilder { .. } => NodeServiceKind::NixBuilder,
             Self::NixCache {} => NodeServiceKind::NixCache,
             Self::PersonaDevelopment { .. } => NodeServiceKind::PersonaDevelopment,
+            Self::VmHost { .. } => NodeServiceKind::VmHost,
         }
     }
 
@@ -160,6 +233,24 @@ impl NodeService {
     pub fn nix_builder_maximum_jobs(&self) -> Option<u32> {
         match self {
             Self::NixBuilder { maximum_jobs } => *maximum_jobs,
+            _ => None,
+        }
+    }
+
+    /// The cluster-authored VM-host capability data, if this service is
+    /// a `VmHost`. The VM-test generator reads the host's tap subnet,
+    /// KVM availability, and capacity ceiling through this.
+    pub fn vm_host(&self) -> Option<VmHostCapability<'_>> {
+        match self {
+            Self::VmHost {
+                guest_subnet,
+                kvm,
+                maximum_guests,
+            } => Some(VmHostCapability {
+                guest_subnet,
+                kvm: *kvm,
+                maximum_guests: *maximum_guests,
+            }),
             _ => None,
         }
     }
@@ -192,6 +283,16 @@ impl NotaEncode for NodeService {
             NodeService::NixCache {} => Delimiter::Parenthesis.wrap(["NixCache".to_owned()]),
             NodeService::PersonaDevelopment { capabilities } => Delimiter::Parenthesis
                 .wrap(["PersonaDevelopment".to_owned(), capabilities.to_nota()]),
+            NodeService::VmHost {
+                guest_subnet,
+                kvm,
+                maximum_guests,
+            } => Delimiter::Parenthesis.wrap([
+                "VmHost".to_owned(),
+                guest_subnet.to_nota(),
+                kvm.to_nota(),
+                maximum_guests.to_nota(),
+            ]),
         }
     }
 }
@@ -230,6 +331,14 @@ impl NotaDecode for NodeService {
                     capabilities: Vec::<PersonaDevelopmentCapability>::from_nota_block(&fields[1])?,
                 }
             }
+            "VmHost" => {
+                Self::expect_service_arity(fields, variant, 4)?;
+                NodeService::VmHost {
+                    guest_subnet: TapSubnet::from_nota_block(&fields[1])?,
+                    kvm: KvmAvailability::from_nota_block(&fields[2])?,
+                    maximum_guests: Option::<MaximumGuests>::from_nota_block(&fields[3])?,
+                }
+            }
             other => {
                 return Err(NotaDecodeError::UnknownVariant {
                     enum_name: "NodeService",
@@ -255,6 +364,7 @@ impl NodeService {
                     "NixBuilder" => "NixBuilder",
                     "NixCache" => "NixCache",
                     "PersonaDevelopment" => "PersonaDevelopment",
+                    "VmHost" => "VmHost",
                     _ => "NodeService",
                 },
                 expected,
@@ -325,6 +435,13 @@ impl NodeProposal {
         self.services
             .iter()
             .find_map(NodeService::nix_builder_maximum_jobs)
+    }
+
+    /// The host's `VmHost` capability data, if it declares one. The
+    /// VM-test generator reads the tap subnet, KVM availability, and
+    /// capacity ceiling through this.
+    pub fn vm_host_capability(&self) -> Option<VmHostCapability<'_>> {
+        self.services.iter().find_map(NodeService::vm_host)
     }
 }
 

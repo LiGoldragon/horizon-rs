@@ -47,6 +47,11 @@ impl ClusterProposal {
                 // from the horizon entirely.
                 continue;
             }
+            // Invariant: a Pod (test-VM guest) must name a super-node
+            // that exists in the cluster, even when its arch is explicit
+            // (which short-circuits `resolve_arch` before its own
+            // existence check). Keeps the host→guest graph total.
+            proposal.validate_pod_super_node(name, &self.nodes)?;
             let resolved_arch = proposal.resolve_arch(name, &self.nodes)?;
             let ctx = NodeProjection {
                 name: name.clone(),

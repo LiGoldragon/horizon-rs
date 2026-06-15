@@ -16,7 +16,7 @@ use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName, UserName};
 use crate::proposal::{
-    NodeProposal, NodeService, NodeServiceKind, RouterInterfaces, WireguardProxy,
+    NodeProposal, NodeService, NodeServiceKind, RouterInterfaces, VmHostCapability, WireguardProxy,
 };
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
@@ -559,6 +559,15 @@ impl Node {
         self.admin_ssh_pub_keys = Some(admin_ssh_pub_keys);
         self.wireguard_untrusted_proxies = Some(fill.wireguard_untrusted_proxies);
     }
+
+    /// This node's `VmHost` capability, if it declares one. Exposes the
+    /// cluster-authored tap subnet, KVM availability, and capacity
+    /// ceiling on the projection so the VM-test generator reads them
+    /// off `horizon.node.services` exactly as the guest fold reads its
+    /// facts off `horizon.ex_nodes`.
+    pub fn vm_host_capability(&self) -> Option<VmHostCapability<'_>> {
+        self.services.iter().find_map(NodeService::vm_host)
+    }
 }
 
 impl NodeProposal {
@@ -586,5 +595,33 @@ impl NodeProposal {
             .machine
             .arch
             .ok_or_else(|| Error::UnresolvableArch(name.clone()))
+    }
+
+    /// Invariant: a `Pod` machine substrate must name a `super_node`
+    /// that EXISTS in the cluster. The host→guest graph is total — no
+    /// test-VM guest may name a host that isn't there. This is checked
+    /// independently of arch resolution: `resolve_arch` returns early
+    /// when `machine.arch` is explicit and so never reaches the
+    /// existence check, but a Pod with an explicit arch and an absent
+    /// host is still a broken cluster. `name` identifies this proposal
+    /// for error reporting.
+    pub fn validate_pod_super_node(
+        &self,
+        name: &NodeName,
+        proposals: &BTreeMap<NodeName, NodeProposal>,
+    ) -> Result<()> {
+        if !matches!(self.machine.species, crate::species::MachineSpecies::Pod) {
+            return Ok(());
+        }
+        let super_name = self
+            .machine
+            .super_node
+            .as_ref()
+            .ok_or_else(|| Error::UnresolvableArch(name.clone()))?;
+        if proposals.contains_key(super_name) {
+            Ok(())
+        } else {
+            Err(Error::MissingSuperNode(name.clone(), super_name.clone()))
+        }
     }
 }

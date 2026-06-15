@@ -4,16 +4,16 @@
 use std::collections::BTreeMap;
 
 use horizon_lib::Viewpoint;
-use horizon_lib::address::{Interface, NodeIp, YggAddress, YggSubnet};
+use horizon_lib::address::{Interface, NodeIp, TapSubnet, YggAddress, YggSubnet};
 use horizon_lib::error::Error;
 use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath};
 use horizon_lib::machine::{Location, Machine};
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName, WirelessNetworkName};
 use horizon_lib::proposal::{
-    BackupWireless, ClusterProposal, ClusterTrust, NodeProposal, NodePubKeys, NodeService,
-    RouterInterfaces, SecretReference, UserProposal, UserPubKeyEntry, WlanBand, WlanStandard,
-    YggPubKeyEntry,
+    BackupWireless, ClusterProposal, ClusterTrust, KvmAvailability, MaximumGuests, NodeProposal,
+    NodePubKeys, NodeService, RouterInterfaces, SecretReference, UserProposal, UserPubKeyEntry,
+    WlanBand, WlanStandard, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
@@ -536,4 +536,105 @@ fn project_test_vm_pod_derives_lean_profile_and_carries_host_location_disk() {
         mercury.criome_domain_name.as_str(),
         "mercury.goldragon.criome"
     );
+}
+
+/// The cluster-authored VM-host capability a host declares: one sliced
+/// tap subnet, hardware-acceleration availability, and a concurrent-guest
+/// ceiling. Built in the test (Spirit [dqg3]) — no shared fixture carries
+/// a `VmHost` service yet.
+fn vm_host_service() -> NodeService {
+    NodeService::VmHost {
+        guest_subnet: TapSubnet::try_new("169.254.100.0/22").unwrap(),
+        kvm: KvmAvailability::Available,
+        maximum_guests: Some(MaximumGuests::new(4)),
+    }
+}
+
+/// PATTERN — the host-viewpoint interface invariant: projecting from the
+/// VM HOST's viewpoint exposes exactly the data `mkVmTest` reads —
+/// (a) the host's own `VmHost` capability (tap subnet / KVM / capacity)
+/// on `horizon.node.services`, and (b) the host→guest exNode relation
+/// (`super_node == host && behaves_as.test_vm`) on `horizon.ex_nodes`.
+/// Driven entirely by horizon-rs's own `cluster_proposal` (host
+/// `prometheus`, guest `mercury`, cluster `goldragon`); it does NOT
+/// mirror `CriomOS-test-cluster/clusters/fieldlab.nota`.
+#[test]
+fn project_host_viewpoint_exposes_vm_host_capability_and_guest_relation() {
+    // A host (`prometheus`) declaring its VmHost capability, and a
+    // TestVm Pod guest (`mercury`) hosted on it. Both built here.
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    proposal
+        .nodes
+        .get_mut(&NodeName::try_new("prometheus").unwrap())
+        .unwrap()
+        .services
+        .push(vm_host_service());
+    proposal
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), test_vm_pod());
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), Magnitude::Max);
+
+    // Project from the HOST's viewpoint.
+    let horizon = proposal.project(&viewpoint("prometheus")).unwrap();
+
+    // (a) The host's own projected VmHost service carries the
+    // cluster-authored guest_subnet / kvm / maximum_guests. Read it
+    // through the typed projection accessor, not by re-matching the raw
+    // vector — the data the generator reads off `horizon.node.services`.
+    let capability = horizon
+        .node
+        .vm_host_capability()
+        .expect("host projection should expose its VmHost capability");
+    assert_eq!(
+        capability.guest_subnet.ipnet().to_string(),
+        "169.254.100.0/22"
+    );
+    assert_eq!(capability.kvm, KvmAvailability::Available);
+    assert_eq!(capability.maximum_guests, Some(MaximumGuests::new(4)));
+
+    // (b) The host→guest exNode relation: the guest appears in the
+    // host's ex_nodes, names this host as its super_node, and carries
+    // the test_vm facet — exactly the fold `mkVmTest` runs to discover
+    // its guests.
+    let mercury = &horizon.ex_nodes[&NodeName::try_new("mercury").unwrap()];
+    assert_eq!(
+        mercury.machine.super_node.as_ref().unwrap().as_str(),
+        "prometheus"
+    );
+    assert!(mercury.behaves_as.test_vm);
+}
+
+/// PATTERN — the Pod-super-node-exists invariant: a Pod (test-VM guest)
+/// whose `super_node` names a host ABSENT from the cluster must fail
+/// projection with `Error::MissingSuperNode`, even when the Pod's arch
+/// is explicit (which short-circuits `resolve_arch` before its own
+/// existence check). The host→guest graph must be total. Fixture built
+/// in the test (Spirit [dqg3]): a Pod pointing at a non-existent host.
+#[test]
+fn project_rejects_pod_with_explicit_arch_and_absent_super_node() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    // A test-VM Pod whose super_node names a host that is NOT in the
+    // cluster. `test_vm_pod()` carries an explicit arch (Some(X86_64)),
+    // so the failure must come from the dedicated invariant, not arch
+    // resolution.
+    let mut orphan_guest = test_vm_pod();
+    orphan_guest.machine.super_node = Some(NodeName::try_new("nonexistent-host").unwrap());
+    proposal
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), orphan_guest);
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), Magnitude::Max);
+
+    let error = proposal.project(&viewpoint("prometheus")).unwrap_err();
+
+    assert!(matches!(
+        error,
+        Error::MissingSuperNode(guest, host)
+            if guest.as_str() == "mercury" && host.as_str() == "nonexistent-host"
+    ));
 }

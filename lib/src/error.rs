@@ -34,6 +34,12 @@ pub enum Error {
         source: ipnet::AddrParseError,
     },
 
+    #[error("invalid guest tap subnet {got:?}: {source}")]
+    InvalidTapSubnet {
+        got: String,
+        source: ipnet::AddrParseError,
+    },
+
     #[error("unknown {kind}: {got:?}")]
     UnknownVariant { kind: &'static str, got: String },
 
