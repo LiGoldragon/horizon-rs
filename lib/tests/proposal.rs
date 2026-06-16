@@ -38,6 +38,7 @@ fn machine() -> Machine {
         ram_gb: None,
         disk_gb: None,
         location: None,
+        super_nodes: Vec::new(),
     }
 }
 
@@ -193,11 +194,15 @@ fn io_decodes_swapfile_size_and_compressed_swap() {
 fn node_proposal_size_zero_decodes_via_renamed_variant() {
     // After the audit Tier 2 rename, balboa's size token in
     // datom.nota is `Zero` (was `None`). Verify the new variant
-    // decodes at the size position.
+    // decodes at the size position. The trailing `[]` inside the
+    // Machine record is the additive `super_nodes` host-set tail —
+    // empty for a Metal node, positional like every other field (the
+    // nota codec requires every positional field present; the empty
+    // default is the literal `[]`, not an omitted token).
     let text = concat!(
         "(",
         "Center Zero Min ",
-        "(Metal (Some Arm64) 4 None None None None None None None None) ",
+        "(Metal (Some Arm64) 4 None None None None None None None None []) ",
         "(Qwerty Uboot {} []) ",
         "([AAA=] None None) ",
         "[] None None False False [] False False None None [])",

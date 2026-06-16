@@ -52,6 +52,37 @@ pub struct Machine {
     /// records keep parsing with implicit None defaults.
     #[serde(default)]
     pub location: Option<Location>,
+    /// Additional hosts permitted to hold and exchange this Pod's image,
+    /// beyond the primary `super_node`. Empty (the default, and the
+    /// majority) means the single-host case — the declared host-set is
+    /// exactly `{super_node}`. Non-empty extends the image-distribution
+    /// trust boundary to `{super_node} ∪ super_nodes`. Pod-only;
+    /// cluster-authored; FIXED in the declaration. `super_node` stays the
+    /// primary/canonical host (arch resolution, the guest-fold discovery
+    /// predicate, the single-host majority all read it). MUST stay at the
+    /// positional tail so single-host nota records keep parsing with an
+    /// implicit empty default and project byte-identically.
+    #[serde(default)]
+    pub super_nodes: Vec<NodeName>,
+}
+
+impl Machine {
+    /// The declared host-set: the primary `super_node` first, then the
+    /// additional `super_nodes`, deduped (primary order preserved). This
+    /// is the set of vmhosts permitted to hold and exchange this node's
+    /// image. For the single-host majority (`super_nodes` empty) it is
+    /// exactly `{super_node}`. Empty only for a machine with no
+    /// `super_node` at all (a non-Pod, or a Pod missing its host — which
+    /// projection rejects upstream).
+    pub fn host_set(&self) -> Vec<&NodeName> {
+        let mut hosts: Vec<&NodeName> = Vec::new();
+        for host in self.super_node.iter().chain(self.super_nodes.iter()) {
+            if !hosts.contains(&host) {
+                hosts.push(host);
+            }
+        }
+        hosts
+    }
 }
 
 /// Physical placement label for a machine — a free site, datacenter,

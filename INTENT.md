@@ -58,6 +58,22 @@ long-term parts may migrate into forge's in-process actors.
   is total: a `Pod` substrate must name a `super_node` that exists in
   the cluster (`Error::MissingSuperNode`). Per the recorded principle in
   `primary/reports/cloud-designer/50-general-vm-testing-interface/intent-capture.md`.
+- **A test-VM node may declare MULTIPLE vmhosts; the declared host-set is
+  the SCOPED image-exchange trust boundary.** Beyond the primary
+  `super_node`, a Pod may carry an additive `super_nodes` tail
+  (`Machine::host_set()` = `{super_node} ∪ super_nodes`, deduped, primary
+  first; empty `super_nodes` is the single-host majority, unchanged). The
+  host→guest existence invariant extends to EVERY host in the set, and a
+  new single-arch invariant requires every host to share one architecture
+  (a guest image is one closure; `Error::HostSetArchMismatch`). The
+  co-hosting hosts — and only they — trust each other's Nix signing keys
+  for that node's image: the projection derives a scoped
+  `image_exchange_pub_keys` on the output `Node` from the host-set,
+  tighter than the cluster-wide `Cluster.trusted_build_pub_keys` pool. A
+  non-co-host node's key is absent. CriomOS emits these as scoped
+  `extra-trusted-public-keys` in a later unit. Per report 54
+  (`primary/reports/cloud-designer/54-lojix-test-op/4-proposal.md`,
+  psyche decisions A additive + B scoped).
 
 ## Naming and stack discipline
 

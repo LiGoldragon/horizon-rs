@@ -2,6 +2,7 @@
 
 use horizon_lib::error::Error;
 use horizon_lib::name::NodeName;
+use horizon_lib::species::Arch;
 
 fn node(name: &str) -> NodeName {
     NodeName::try_new(name).unwrap()
@@ -46,6 +47,23 @@ fn missing_super_node_names_both_nodes() {
 fn unresolvable_arch_names_the_node() {
     let error = Error::UnresolvableArch(node("orphan"));
     assert!(error.to_string().contains("orphan"));
+}
+
+#[test]
+fn host_set_arch_mismatch_names_the_node_and_both_diverging_hosts() {
+    let error = Error::HostSetArchMismatch {
+        node: node("guest"),
+        first_host: node("host-x86"),
+        first_arch: Arch::X86_64,
+        second_host: node("host-arm"),
+        second_arch: Arch::Arm64,
+    };
+    let text = error.to_string();
+    assert!(text.contains("guest"));
+    assert!(text.contains("host-x86"));
+    assert!(text.contains("host-arm"));
+    assert!(text.contains("X86_64"));
+    assert!(text.contains("Arm64"));
 }
 
 #[test]

@@ -121,6 +121,19 @@ pub struct Node {
     pub dispatchers_ssh_pub_keys: Option<Vec<SshPubKeyLine>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub admin_ssh_pub_keys: Option<Vec<SshPubKeyLine>>,
+    /// SCOPED image-exchange signing keys: the Nix signing-key lines of
+    /// the hosts in this node's declared host-set
+    /// (`machine.host_set()` = `{super_node} ∪ super_nodes`). These are
+    /// the only hosts permitted to hold and exchange this node's image,
+    /// so the trust edge they form is tighter than the cluster-wide
+    /// signing-key pool (`Cluster.trusted_build_pub_keys`): a non-co-host
+    /// node's key is absent. CriomOS emits these as
+    /// `extra-trusted-public-keys` scoped to the co-hosting hosts in a
+    /// later unit. `Some(empty)` for a non-Pod (no host-set) or a host
+    /// whose hosts carry no signing key; the order follows the host-set
+    /// (primary first).
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub image_exchange_pub_keys: Option<Vec<NixPubKeyLine>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub wireguard_untrusted_proxies: Option<Vec<WireguardProxy>>,
 }
@@ -485,6 +498,7 @@ impl NodeProposal {
             ex_nodes_ssh_pub_keys: None,
             dispatchers_ssh_pub_keys: None,
             admin_ssh_pub_keys: None,
+            image_exchange_pub_keys: None,
             wireguard_untrusted_proxies: None,
         }
     }
@@ -531,6 +545,24 @@ impl Node {
             .map(|n| n.ssh_pub_key_line.clone())
             .collect();
 
+        // imageExchangePubKeys: the SCOPED image-exchange trust edge.
+        // The keys of exactly this node's declared host-set
+        // (`{super_node} ∪ super_nodes`) — the hosts permitted to hold
+        // and exchange this node's image. Looked up in the full node map,
+        // mapped to each host's signing-key line, in host-set order
+        // (primary first). This is tighter than the cluster-wide
+        // signing-key pool (`Cluster.trusted_build_pub_keys`): only
+        // co-hosting hosts appear, so a non-co-host node's key is absent.
+        // Empty for a single-host node whose one host carries no signing
+        // key, and for a non-Pod (whose host-set is empty).
+        let image_exchange_pub_keys: Vec<NixPubKeyLine> = self
+            .machine
+            .host_set()
+            .iter()
+            .filter_map(|host| fill.all_nodes.get(host))
+            .filter_map(|host_node| host_node.nix_pub_key_line.clone())
+            .collect();
+
         // adminSshPubKeys: for each user with trust=Max, walk their pubKeys; for each
         // entry whose node is fully trusted, take that ssh line. Dedup preserving order.
         let mut admin_ssh_pub_keys: Vec<SshPubKeyLine> = Vec::new();
@@ -557,6 +589,7 @@ impl Node {
         self.ex_nodes_ssh_pub_keys = Some(ex_nodes_ssh_pub_keys);
         self.dispatchers_ssh_pub_keys = Some(dispatchers_ssh_pub_keys);
         self.admin_ssh_pub_keys = Some(admin_ssh_pub_keys);
+        self.image_exchange_pub_keys = Some(image_exchange_pub_keys);
         self.wireguard_untrusted_proxies = Some(fill.wireguard_untrusted_proxies);
     }
 
@@ -597,14 +630,18 @@ impl NodeProposal {
             .ok_or_else(|| Error::UnresolvableArch(name.clone()))
     }
 
-    /// Invariant: a `Pod` machine substrate must name a `super_node`
-    /// that EXISTS in the cluster. The host→guest graph is total — no
-    /// test-VM guest may name a host that isn't there. This is checked
-    /// independently of arch resolution: `resolve_arch` returns early
-    /// when `machine.arch` is explicit and so never reaches the
+    /// Invariant: a `Pod` machine substrate must name a host-set whose
+    /// EVERY member exists in the cluster. The host→guest graph is total
+    /// — no test-VM guest may name a host that isn't there. The host-set
+    /// is `{super_node} ∪ super_nodes` (`Machine::host_set`), so this
+    /// covers both the primary host and every additional declared host.
+    /// Checked independently of arch resolution: `resolve_arch` returns
+    /// early when `machine.arch` is explicit and so never reaches the
     /// existence check, but a Pod with an explicit arch and an absent
-    /// host is still a broken cluster. `name` identifies this proposal
-    /// for error reporting.
+    /// host is still a broken cluster. The first missing host (primary
+    /// first, then additional in declared order) reports
+    /// `Error::MissingSuperNode`. `name` identifies this proposal for
+    /// error reporting.
     pub fn validate_pod_super_node(
         &self,
         name: &NodeName,
@@ -613,15 +650,59 @@ impl NodeProposal {
         if !matches!(self.machine.species, crate::species::MachineSpecies::Pod) {
             return Ok(());
         }
-        let super_name = self
-            .machine
-            .super_node
-            .as_ref()
-            .ok_or_else(|| Error::UnresolvableArch(name.clone()))?;
-        if proposals.contains_key(super_name) {
-            Ok(())
-        } else {
-            Err(Error::MissingSuperNode(name.clone(), super_name.clone()))
+        let host_set = self.machine.host_set();
+        if host_set.is_empty() {
+            // A Pod with neither a primary super_node nor any additional
+            // hosts cannot resolve its arch or its host — the same broken
+            // shape `resolve_arch` rejects.
+            return Err(Error::UnresolvableArch(name.clone()));
         }
+        for host in host_set {
+            if !proposals.contains_key(host) {
+                return Err(Error::MissingSuperNode(name.clone(), host.clone()));
+            }
+        }
+        Ok(())
+    }
+
+    /// Invariant: every host in this Pod's declared host-set must resolve
+    /// to the SAME architecture. A guest image is one closure; every host
+    /// permitted to hold and exchange it must share its arch, or the
+    /// image cannot run there. The primary host's arch is the reference
+    /// (arch resolution itself stays the single hop on `super_node`); any
+    /// additional host whose arch diverges fails with
+    /// `Error::HostSetArchMismatch`. A no-op for the single-host majority
+    /// (a one-element host-set is trivially uniform) and for non-Pods.
+    /// Call after `validate_pod_super_node` has proven every host exists.
+    /// `name` identifies this proposal for error reporting.
+    pub fn validate_host_set_single_arch(
+        &self,
+        name: &NodeName,
+        proposals: &BTreeMap<NodeName, NodeProposal>,
+    ) -> Result<()> {
+        if !matches!(self.machine.species, crate::species::MachineSpecies::Pod) {
+            return Ok(());
+        }
+        let mut reference: Option<(&NodeName, Arch)> = None;
+        for host in self.machine.host_set() {
+            let host_proposal = proposals
+                .get(host)
+                .ok_or_else(|| Error::MissingSuperNode(name.clone(), host.clone()))?;
+            let host_arch = host_proposal.resolve_arch(host, proposals)?;
+            match reference {
+                None => reference = Some((host, host_arch)),
+                Some((first_host, first_arch)) if first_arch != host_arch => {
+                    return Err(Error::HostSetArchMismatch {
+                        node: name.clone(),
+                        first_host: first_host.clone(),
+                        first_arch,
+                        second_host: host.clone(),
+                        second_arch: host_arch,
+                    });
+                }
+                Some(_) => {}
+            }
+        }
+        Ok(())
     }
 }

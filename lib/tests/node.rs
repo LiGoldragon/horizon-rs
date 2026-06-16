@@ -30,6 +30,7 @@ fn machine_x86() -> Machine {
         ram_gb: None,
         disk_gb: None,
         location: None,
+        super_nodes: Vec::new(),
     }
 }
 

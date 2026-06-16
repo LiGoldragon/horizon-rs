@@ -35,6 +35,7 @@ fn machine_x86() -> Machine {
         ram_gb: None,
         disk_gb: None,
         location: None,
+        super_nodes: Vec::new(),
     }
 }
 
@@ -444,6 +445,7 @@ fn test_vm_pod() -> NodeProposal {
             ram_gb: Some(8),
             disk_gb: Some(40),
             location: Some(Location::new("home-lab")),
+            super_nodes: Vec::new(),
         },
         io: real_disk_io,
         pub_keys: pub_keys(true, true),
@@ -637,4 +639,271 @@ fn project_rejects_pod_with_explicit_arch_and_absent_super_node() {
         Error::MissingSuperNode(guest, host)
             if guest.as_str() == "mercury" && host.as_str() == "nonexistent-host"
     ));
+}
+
+/// A multi-host test-VM Pod: hosted on `ouranos` (primary) AND
+/// `prometheus` (additional), declaring its host-set as both. Built
+/// from `test_vm_pod()` (the single-host fixture) by adding the
+/// `super_nodes` tail — the only difference from the single-host case.
+fn multi_host_test_vm_pod() -> NodeProposal {
+    let mut pod = test_vm_pod();
+    pod.machine.super_node = Some(NodeName::try_new("ouranos").unwrap());
+    pod.machine.super_nodes = vec![NodeName::try_new("prometheus").unwrap()];
+    pod
+}
+
+/// PATTERN — the multi-host SCOPED image-exchange golden: a test-VM
+/// node whose declared host-set spans TWO hosts projects an
+/// `image_exchange_pub_keys` set that is EXACTLY those two hosts'
+/// signing-key lines — and nothing else. The scope is tighter than the
+/// cluster-wide signing-key pool (`cluster.trusted_build_pub_keys`): a
+/// third keyed cluster host (`apollo`), present in the cluster-wide
+/// pool, is ABSENT from this node's image-exchange set, proving the
+/// trust edge is between co-hosting hosts only. Driven by horizon-rs's
+/// own `cluster_proposal` (hosts `ouranos`/`prometheus`, off-set keyed
+/// host `apollo`, guest `mercury`, cluster `goldragon`); it does NOT
+/// mirror `CriomOS-test-cluster/clusters/fieldlab.nota`.
+#[test]
+fn project_multi_host_node_scopes_image_exchange_keys_to_declared_hosts() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    // A third host with a real signing key, NOT in the guest's host-set.
+    // Its key joins the cluster-wide pool but must stay OUT of the
+    // guest's scoped image-exchange set.
+    proposal.nodes.insert(
+        NodeName::try_new("apollo").unwrap(),
+        node_proposal(NodeSpecies::Center, Magnitude::Min, true),
+    );
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("apollo").unwrap(), Magnitude::Max);
+    // The guest, hosted on ouranos + prometheus (both keyed, both x86).
+    proposal.nodes.insert(
+        NodeName::try_new("mercury").unwrap(),
+        multi_host_test_vm_pod(),
+    );
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), Magnitude::Max);
+
+    let horizon = proposal.project(&viewpoint("mercury")).unwrap();
+    let mercury = &horizon.node;
+
+    // The declared host-set: both hosts, primary first, deduped.
+    let host_set: Vec<&str> = mercury
+        .machine
+        .host_set()
+        .iter()
+        .map(|host| host.as_str())
+        .collect();
+    assert_eq!(host_set, vec!["ouranos", "prometheus"]);
+
+    // The SCOPED image-exchange set: exactly the two declared hosts'
+    // signing-key lines, in host-set order (primary first).
+    let exchange: Vec<String> = mercury
+        .image_exchange_pub_keys
+        .as_ref()
+        .expect("viewpoint node should have image-exchange keys filled")
+        .iter()
+        .map(|line| line.as_str().to_string())
+        .collect();
+    assert_eq!(exchange.len(), 2);
+    assert!(
+        exchange[0].contains("ouranos.goldragon.criome:"),
+        "primary host key first: {exchange:?}"
+    );
+    assert!(
+        exchange[1].contains("prometheus.goldragon.criome:"),
+        "additional host key second: {exchange:?}"
+    );
+
+    // SCOPED, not cluster-wide: apollo IS a keyed cluster host (its key
+    // is in the cluster-wide pool) but is NOT a co-host, so its key is
+    // ABSENT from mercury's image-exchange set.
+    assert!(
+        !exchange
+            .iter()
+            .any(|line| line.contains("apollo.goldragon.criome:")),
+        "a non-co-host key must be absent from the scoped set: {exchange:?}"
+    );
+    let cluster_pool: Vec<String> = horizon
+        .cluster
+        .trusted_build_pub_keys
+        .iter()
+        .map(|line| line.as_str().to_string())
+        .collect();
+    assert!(
+        cluster_pool
+            .iter()
+            .any(|line| line.contains("apollo.goldragon.criome:")),
+        "apollo's key IS in the cluster-wide pool, proving the scope is tighter: {cluster_pool:?}"
+    );
+    // The scoped set is strictly smaller than the cluster-wide pool.
+    assert!(exchange.len() < cluster_pool.len());
+}
+
+/// PATTERN — single-host projection is byte-identical with and without
+/// the additive `super_nodes` field. A `super_nodes = []` (the default,
+/// the majority) projects exactly as a node carrying no such field would
+/// have before this unit: host-set is `{super_node}`, and the scoped
+/// image-exchange set is exactly the single host's own signing key.
+/// Driven by horizon-rs's own `cluster_proposal` (host `prometheus`,
+/// guest `mercury`).
+#[test]
+fn project_single_host_node_is_unchanged_by_empty_super_nodes() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    let pod = test_vm_pod();
+    // The single-host fixture carries the default empty super_nodes.
+    assert!(pod.machine.super_nodes.is_empty());
+    proposal
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), pod);
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), Magnitude::Max);
+
+    let horizon = proposal.project(&viewpoint("mercury")).unwrap();
+    let mercury = &horizon.node;
+
+    // Host-set is exactly the single primary host — unchanged behaviour.
+    let host_set: Vec<&str> = mercury
+        .machine
+        .host_set()
+        .iter()
+        .map(|host| host.as_str())
+        .collect();
+    assert_eq!(host_set, vec!["prometheus"]);
+
+    // The scoped image-exchange set is exactly the one host's signing
+    // key — the single-host majority, no broader than its own host.
+    let exchange = mercury
+        .image_exchange_pub_keys
+        .as_ref()
+        .expect("viewpoint node should have image-exchange keys filled");
+    assert_eq!(exchange.len(), 1);
+    assert!(
+        exchange[0]
+            .as_str()
+            .contains("prometheus.goldragon.criome:")
+    );
+}
+
+/// PATTERN — the host-set existence invariant extends C1 to EVERY host:
+/// a multi-host node whose `super_nodes` names a host ABSENT from the
+/// cluster fails projection with `Error::MissingSuperNode` naming the
+/// absent host — even though the PRIMARY `super_node` exists (C1 alone
+/// would have passed). The host→guest graph is total across the whole
+/// declared set. Fixture built in the test: a guest whose additional
+/// host is missing.
+#[test]
+fn project_rejects_multi_host_node_with_absent_additional_host() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    let mut guest = multi_host_test_vm_pod();
+    // Primary host (ouranos) exists; the ADDITIONAL host does not.
+    guest.machine.super_nodes = vec![NodeName::try_new("ghost-host").unwrap()];
+    proposal
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), guest);
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), Magnitude::Max);
+
+    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
+
+    assert!(matches!(
+        error,
+        Error::MissingSuperNode(guest, host)
+            if guest.as_str() == "mercury" && host.as_str() == "ghost-host"
+    ));
+}
+
+/// PATTERN — the single-arch invariant: a multi-host node whose declared
+/// host-set spans TWO architectures fails projection with
+/// `Error::HostSetArchMismatch`. A guest image is one closure, runnable
+/// only on hosts of its architecture. The primary host (`ouranos`, x86)
+/// is the reference; an additional host forced to Arm64 diverges.
+/// Fixture built in the test.
+#[test]
+fn project_rejects_multi_host_node_spanning_two_arches() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    // Force the additional host (prometheus) to a different arch than
+    // the primary (ouranos, x86).
+    proposal
+        .nodes
+        .get_mut(&NodeName::try_new("prometheus").unwrap())
+        .unwrap()
+        .machine
+        .arch = Some(Arch::Arm64);
+    proposal.nodes.insert(
+        NodeName::try_new("mercury").unwrap(),
+        multi_host_test_vm_pod(),
+    );
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("mercury").unwrap(), Magnitude::Max);
+
+    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
+
+    assert!(matches!(
+        error,
+        Error::HostSetArchMismatch {
+            node,
+            first_host,
+            first_arch,
+            second_host,
+            second_arch,
+        } if node.as_str() == "mercury"
+            && first_host.as_str() == "ouranos"
+            && first_arch == Arch::X86_64
+            && second_host.as_str() == "prometheus"
+            && second_arch == Arch::Arm64
+    ));
+}
+
+/// PATTERN — codec round-trip for the additive `super_nodes` tail: a
+/// `Machine` carrying a non-empty host-set encodes and decodes through
+/// the nota codec to the identical typed value, emitting NO quotation
+/// marks (node names are bare atoms). Proves the new field is on the
+/// wire as a positional `[NodeName]` tail.
+#[test]
+fn machine_super_nodes_round_trips_through_nota_without_quotes() {
+    use nota_next::{NotaEncode, NotaSource};
+
+    let machine = Machine {
+        species: MachineSpecies::Pod,
+        arch: Some(Arch::X86_64),
+        cores: 4,
+        model: None,
+        mother_board: None,
+        super_node: Some(NodeName::try_new("ouranos").unwrap()),
+        super_user: Some(UserName::try_new("li").unwrap()),
+        chip_gen: None,
+        ram_gb: Some(8),
+        disk_gb: Some(40),
+        location: Some(Location::new("home-lab")),
+        super_nodes: vec![
+            NodeName::try_new("prometheus").unwrap(),
+            NodeName::try_new("apollo").unwrap(),
+        ],
+    };
+
+    let encoded = machine.to_nota();
+    assert!(
+        !encoded.contains('"'),
+        "node names must be bare atoms, no quotes: {encoded}"
+    );
+    let decoded: Machine = NotaSource::new(&encoded).parse().unwrap();
+    assert_eq!(decoded, machine);
+    assert_eq!(
+        decoded
+            .super_nodes
+            .iter()
+            .map(|host| host.as_str())
+            .collect::<Vec<_>>(),
+        vec!["prometheus", "apollo"]
+    );
 }

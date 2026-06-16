@@ -17,6 +17,7 @@ fn metal_x86() -> Machine {
         ram_gb: Some(32),
         disk_gb: None,
         location: None,
+        super_nodes: Vec::new(),
     }
 }
 
@@ -48,6 +49,7 @@ fn pod_machine_can_omit_arch_for_super_node_resolution() {
         ram_gb: None,
         disk_gb: None,
         location: None,
+        super_nodes: Vec::new(),
     };
     assert!(matches!(pod.species, MachineSpecies::Pod));
     assert!(pod.arch.is_none());

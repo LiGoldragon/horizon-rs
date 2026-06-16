@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 use crate::name::NodeName;
+use crate::species::Arch;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -51,6 +52,19 @@ pub enum Error {
 
     #[error("pod node {0:?} references missing super-node {1:?}")]
     MissingSuperNode(NodeName, NodeName),
+
+    #[error(
+        "pod node {node:?} declares a host-set spanning two architectures: \
+         host {first_host:?} is {first_arch:?} but host {second_host:?} is {second_arch:?} — \
+         a guest image is one closure, so every declared host must share its arch"
+    )]
+    HostSetArchMismatch {
+        node: NodeName,
+        first_host: NodeName,
+        first_arch: Arch,
+        second_host: NodeName,
+        second_arch: Arch,
+    },
 
     #[error("pod node {0:?} has no super-node and no arch of its own")]
     UnresolvableArch(NodeName),
