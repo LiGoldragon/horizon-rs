@@ -131,7 +131,7 @@ fn node_proposal_carries_all_input_fields() {
 
 #[test]
 fn user_proposal_decodes_from_minimal_nota_record() {
-    let text = "(Code Max Colemak Emacs (Some [LiGoldragon]) None {} None None)";
+    let text = "(Code Max Colemak Emacs (Some LiGoldragon) None {} None None)";
     let user = decode::<UserProposal>(text).unwrap();
     assert!(matches!(user.species, UserSpecies::Code));
     assert!(matches!(user.size, Magnitude::Max));
@@ -168,7 +168,7 @@ fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
 
 #[test]
 fn io_decodes_legacy_shape_with_swap_defaults() {
-    let text = "(Qwerty Uefi {} [([/dev/disk/by-uuid/swap])])";
+    let text = "(Qwerty Uefi {} [(/dev/disk/by-uuid/swap)])";
     let io = decode::<Io>(text).unwrap();
 
     assert!(matches!(io.keyboard, Keyboard::Qwerty));
@@ -180,7 +180,7 @@ fn io_decodes_legacy_shape_with_swap_defaults() {
 
 #[test]
 fn io_decodes_swapfile_size_and_compressed_swap() {
-    let text = "(Colemak Uefi {} [([/swapfile] (Some 32768))] (Some (25)))";
+    let text = "(Colemak Uefi {} [(/swapfile (Some 32768))] (Some (25)))";
     let io = decode::<Io>(text).unwrap();
 
     assert!(matches!(io.keyboard, Keyboard::Colemak));
@@ -204,7 +204,7 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
         "Center Zero Min ",
         "(Metal (Some Arm64) 4 None None None None None None None None []) ",
         "(Qwerty Uboot {} []) ",
-        "([AAA=] None None) ",
+        "(AAA= None None) ",
         "[] None None False False [] False False None None [])",
     );
     let node = decode::<NodeProposal>(text).unwrap();
