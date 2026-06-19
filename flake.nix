@@ -19,10 +19,14 @@
       mkContext = system:
         let
           pkgs = import nixpkgs { inherit system; };
-          toolchain = fenix.packages.${system}.fromToolchainFile {
-            file = ./rust-toolchain.toml;
-            sha256 = "sha256-gh/xTkxKHL4eiRXzWv8KP7vfjSk61Iq48x47BEDFgfk=";
-          };
+          toolchain = fenix.packages.${system}.complete.withComponents [
+            "cargo"
+            "rustc"
+            "rustfmt"
+            "clippy"
+            "rust-analyzer"
+            "rust-src"
+          ];
           craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
           src = craneLib.cleanCargoSource ./.;
           # No `cargoVendorDir.outputHashes` — per
