@@ -8,6 +8,7 @@
 
 pub mod address;
 pub mod cluster;
+pub mod domain;
 pub mod error;
 pub mod horizon;
 pub mod io;

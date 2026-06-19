@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::domain::{DomainConfiguration, UserDomainContext};
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, GithubId, NodeName, UserName};
 use crate::proposal::{UserProposal, UserPubKeyEntry};
@@ -61,6 +62,7 @@ pub struct User {
 pub struct UserProjection<'a> {
     pub name: UserName,
     pub cluster: &'a ClusterName,
+    pub domain_configuration: &'a DomainConfiguration,
     pub viewpoint_node: &'a NodeName,
     pub trust: Magnitude,
     /// Whether the projection's viewpoint node behaves as a `center`.
@@ -89,8 +91,12 @@ impl UserProposal {
         let ssh_pub_keys: Vec<SshPubKeyLine> =
             self.pub_keys.values().map(|e| e.ssh.line()).collect();
 
-        let email_address = format!("{}@{}.criome.net", ctx.name, ctx.cluster);
-        let matrix_id = format!("@{}:{}.criome.net", ctx.name, ctx.cluster);
+        let user_domain_context = UserDomainContext {
+            user: &ctx.name,
+            cluster: ctx.cluster,
+        };
+        let email_address = ctx.domain_configuration.email_address(user_domain_context);
+        let matrix_id = ctx.domain_configuration.matrix_id(user_domain_context);
 
         let trust_ladder = ctx.trust.ladder();
         let mut extra_groups: Vec<String> = vec!["audio".into()];

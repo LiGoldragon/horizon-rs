@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 
+use horizon_lib::domain::DomainConfiguration;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, GithubId, Keygrip, NodeName, UserName};
 use horizon_lib::proposal::{UserProposal, UserPubKeyEntry};
@@ -35,20 +36,17 @@ fn user_proposal(species: UserSpecies, size: Magnitude, with_viewpoint_key: bool
     }
 }
 
-fn ctx<'cluster, 'name>(
-    cluster: &'cluster ClusterName,
-    viewpoint_node: &'name NodeName,
+fn ctx(
+    cluster: &'static ClusterName,
+    viewpoint_node: &'static NodeName,
     trust: Magnitude,
     viewpoint_behaves_as_center: bool,
     viewpoint_node_size: Magnitude,
-) -> UserProjection<'static>
-where
-    'cluster: 'static,
-    'name: 'static,
-{
+) -> UserProjection<'static> {
     UserProjection {
         name: UserName::try_new("li").unwrap(),
         cluster,
+        domain_configuration: domain_configuration(),
         viewpoint_node,
         trust,
         viewpoint_behaves_as_center,
@@ -64,6 +62,13 @@ fn cluster() -> &'static ClusterName {
 fn viewpoint() -> &'static NodeName {
     static NODE: std::sync::OnceLock<NodeName> = std::sync::OnceLock::new();
     NODE.get_or_init(|| NodeName::try_new("ouranos").unwrap())
+}
+
+fn domain_configuration() -> &'static DomainConfiguration {
+    static DOMAIN_CONFIGURATION: std::sync::OnceLock<DomainConfiguration> =
+        std::sync::OnceLock::new();
+    DOMAIN_CONFIGURATION
+        .get_or_init(|| DomainConfiguration::default().with_cluster_defaults(cluster()))
 }
 
 #[test]

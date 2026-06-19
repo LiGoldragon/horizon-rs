@@ -1,6 +1,7 @@
 //! Tests for `cluster::Cluster` — the cluster-level roll-up.
 
 use horizon_lib::cluster::Cluster;
+use horizon_lib::domain::DomainConfiguration;
 use horizon_lib::name::{ClusterName, DomainName};
 use horizon_lib::pub_key::{NixPubKey, NixPubKeyLine};
 
@@ -8,10 +9,15 @@ fn cluster_name() -> ClusterName {
     ClusterName::try_new("goldragon").unwrap()
 }
 
+fn domain_configuration() -> DomainConfiguration {
+    DomainConfiguration::default().with_cluster_defaults(&cluster_name())
+}
+
 #[test]
 fn cluster_round_trips_name_and_keys() {
     let cluster = Cluster {
         name: cluster_name(),
+        domain_configuration: domain_configuration(),
         tailnet_base_domain: DomainName::for_tailnet(&cluster_name()),
         trusted_build_pub_keys: Vec::new(),
     };
@@ -33,6 +39,7 @@ fn cluster_collects_trusted_build_pub_keys() {
     let line: NixPubKeyLine = key.line(&domain);
     let cluster = Cluster {
         name: cluster_name(),
+        domain_configuration: domain_configuration(),
         tailnet_base_domain: DomainName::for_tailnet(&cluster_name()),
         trusted_build_pub_keys: vec![line.clone()],
     };

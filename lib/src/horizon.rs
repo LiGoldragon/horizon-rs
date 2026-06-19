@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::cluster::Cluster;
 use crate::error::{Error, Result};
 use crate::magnitude::Magnitude;
-use crate::name::{ClusterName, DomainName, NodeName, UserName};
+use crate::name::{ClusterName, NodeName, UserName};
 use crate::node::{Node, NodeProjection, ViewpointFill};
 use crate::proposal::{ClusterProposal, NodeServiceKind};
 use crate::user::{User, UserProjection};
@@ -37,6 +37,9 @@ impl ClusterProposal {
 
         let cluster_trust_floor = self.trust.cluster;
         self.validate_tailnet_controller_singleton(cluster_trust_floor)?;
+        let domain_configuration = self
+            .domain_configuration
+            .with_cluster_defaults(&viewpoint.cluster);
 
         // Build every Node (no viewpoint fill yet).
         let mut nodes: BTreeMap<NodeName, Node> = BTreeMap::new();
@@ -61,6 +64,7 @@ impl ClusterProposal {
             let ctx = NodeProjection {
                 name: name.clone(),
                 cluster: &viewpoint.cluster,
+                domain_configuration: &domain_configuration,
                 trust,
                 resolved_arch,
             };
@@ -94,6 +98,7 @@ impl ClusterProposal {
             let ctx = UserProjection {
                 name: name.clone(),
                 cluster: &viewpoint.cluster,
+                domain_configuration: &domain_configuration,
                 viewpoint_node: &viewpoint.node,
                 trust,
                 viewpoint_behaves_as_center,
@@ -105,7 +110,8 @@ impl ClusterProposal {
         // Cluster-level roll-up.
         let cluster = Cluster {
             name: viewpoint.cluster.clone(),
-            tailnet_base_domain: DomainName::for_tailnet(&viewpoint.cluster),
+            tailnet_base_domain: domain_configuration.tailnet_base_domain(&viewpoint.cluster),
+            domain_configuration: domain_configuration.clone(),
             trusted_build_pub_keys: nodes
                 .values()
                 .filter_map(|n| n.nix_pub_key_line.clone())

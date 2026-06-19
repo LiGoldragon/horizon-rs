@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 
 use horizon_lib::address::{Interface, YggAddress, YggSubnet};
+use horizon_lib::domain::DomainConfiguration;
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
@@ -102,6 +103,7 @@ fn cluster_proposal() -> ClusterProposal {
             nodes: BTreeMap::new(),
             users: BTreeMap::new(),
         },
+        domain_configuration: DomainConfiguration::default(),
     }
 }
 

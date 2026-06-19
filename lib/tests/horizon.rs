@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 
 use horizon_lib::Viewpoint;
 use horizon_lib::address::{Interface, NodeIp, TapSubnet, YggAddress, YggSubnet};
+use horizon_lib::domain::{DomainConfiguration, InternalDomainSuffix, PublicClusterDomain};
 use horizon_lib::error::Error;
 use horizon_lib::io::{DevicePath, Disk, FsType, Io, MountPath};
 use horizon_lib::machine::{Location, Machine};
@@ -159,6 +160,7 @@ fn cluster_proposal(viewpoint_trust: Magnitude) -> ClusterProposal {
             nodes: node_trust,
             users: user_trust,
         },
+        domain_configuration: DomainConfiguration::default(),
     }
 }
 
@@ -189,6 +191,36 @@ fn project_returns_horizon_with_viewpoint_node_filled_and_others_in_ex_nodes() {
         !horizon
             .ex_nodes
             .contains_key(&NodeName::try_new("ouranos").unwrap())
+    );
+}
+
+#[test]
+fn project_uses_configured_domain_configuration() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    proposal.domain_configuration = DomainConfiguration {
+        internal_suffix: InternalDomainSuffix::new("cluster-lan"),
+        public_cluster_domains: vec![PublicClusterDomain::new("goldragon.criome.net")],
+    };
+
+    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    let user = horizon
+        .users
+        .get(&UserName::try_new("li").unwrap())
+        .unwrap();
+
+    assert_eq!(
+        horizon.cluster.tailnet_base_domain.as_str(),
+        "tailnet.goldragon.cluster-lan"
+    );
+    assert_eq!(
+        horizon.node.criome_domain_name.as_str(),
+        "ouranos.goldragon.cluster-lan"
+    );
+    assert_eq!(user.email_address, "li@goldragon.criome.net");
+    assert_eq!(user.matrix_id, "@li:goldragon.criome.net");
+    assert_eq!(
+        horizon.cluster.domain_configuration.public_cluster_domains[0].as_str(),
+        "goldragon.criome.net"
     );
 }
 

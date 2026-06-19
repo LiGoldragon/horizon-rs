@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::address::{Interface, LinkLocalIp, NodeIp, TapSubnet};
 use crate::address::{YggAddress, YggSubnet};
+use crate::domain::DomainConfiguration;
 use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::Magnitude;
@@ -31,6 +32,12 @@ pub struct ClusterProposal {
     #[serde(default)]
     pub domains: BTreeMap<DomainName, DomainProposal>,
     pub trust: ClusterTrust,
+    /// Cluster-wide domain settings. Appended at the positional tail so
+    /// existing proposal records keep parsing with the default
+    /// `.criome` internal suffix and `<cluster>.criome.net` public
+    /// domain.
+    #[serde(default)]
+    pub domain_configuration: DomainConfiguration,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]

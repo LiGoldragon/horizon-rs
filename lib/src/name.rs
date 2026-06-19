@@ -77,6 +77,9 @@ string_newtype!(SecretName, "secret name");
 string_newtype!(WirelessNetworkName, "wireless network name");
 
 impl DomainName {
+    /// Default tailnet domain for clusters that use the built-in
+    /// internal suffix. Projection code uses `DomainConfiguration`
+    /// so configured clusters do not pass through this helper.
     pub fn for_tailnet(cluster: &ClusterName) -> Self {
         Self(format!("tailnet.{cluster}.criome"))
     }
@@ -104,6 +107,26 @@ impl ModelName {
 pub struct CriomeDomainName(pub(crate) String);
 
 impl CriomeDomainName {
+    pub fn try_new(s: impl Into<String>) -> HorizonResult<Self> {
+        let s = s.into();
+        if s.is_empty() {
+            Err(Error::EmptyName {
+                kind: "criome domain name",
+            })
+        } else if s.contains('"') {
+            Err(Error::QuotationMarkInName {
+                kind: "criome domain name",
+                got: s,
+            })
+        } else {
+            Ok(Self(s))
+        }
+    }
+
+    /// Default internal node domain for clusters that use the
+    /// built-in `criome` suffix. Projection code uses
+    /// `DomainConfiguration` so configured clusters do not pass
+    /// through this helper.
     pub fn for_node(node: &NodeName, cluster: &ClusterName) -> Self {
         Self(format!("{node}.{cluster}.criome"))
     }

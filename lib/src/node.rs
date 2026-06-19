@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::address::{LinkLocalAddress, NodeIp, YggAddress, YggSubnet};
+use crate::domain::{DomainConfiguration, NodeDomainContext};
 use crate::error::{Error, Result};
 use crate::io::Io;
 use crate::machine::Machine;
@@ -355,6 +356,7 @@ impl BuilderConfig {
 pub struct NodeProjection<'a> {
     pub name: NodeName,
     pub cluster: &'a ClusterName,
+    pub domain_configuration: &'a DomainConfiguration,
     pub trust: Magnitude,
     pub resolved_arch: Arch,
 }
@@ -364,7 +366,12 @@ impl NodeProposal {
     /// are left as `None`; call `Node::fill_viewpoint` afterwards on
     /// the viewpoint node to populate them.
     pub fn project(&self, ctx: NodeProjection<'_>) -> Node {
-        let criome_domain_name = CriomeDomainName::for_node(&ctx.name, ctx.cluster);
+        let criome_domain_name = ctx
+            .domain_configuration
+            .criome_domain_name(NodeDomainContext {
+                node: &ctx.name,
+                cluster: ctx.cluster,
+            });
 
         let nix_pub_key = self.pub_keys.nix.clone();
         let ygg_entry = self.pub_keys.yggdrasil.as_ref();
