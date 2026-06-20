@@ -26,30 +26,47 @@ pub struct Machine {
     /// Lake Xe2). Gates the modern Intel media stack: `>= 12` enables
     /// `vpl-gpu-rt` for AV1/HEVC HW decode. None for non-Intel or
     /// unknown — modules fall back to the safe default driver.
-    /// MUST stay near the end of the struct so positional nota records
-    /// keep parsing with implicit None defaults.
+    ///
+    /// `#[serde(default)]` applies to serde/JSON decoding only. The
+    /// `NotaDecode` derive on `Machine` is positional and count-strict
+    /// — it hard-equality-checks the root field count and raises
+    /// `NotaDecodeError::ExpectedRootCount` on any mismatch — so it does
+    /// NOT fill an absent NOTA field with `None`. Position in the struct
+    /// does not make a field append-safe: adding or removing ANY field
+    /// is a breaking datom-schema change, and every `Machine` datom plus
+    /// every daemon's horizon pin must move together.
     #[serde(default)]
     pub chip_gen: Option<u32>,
     /// Total system RAM in gibibytes (rounded). Gates downstream
     /// resource policies: `nix.settings.maxJobs` thresholds,
     /// llama.cpp model size, language-server heap. Optional — None
     /// means the operator hasn't filled it in yet.
+    ///
+    /// `#[serde(default)]` is serde/JSON-only; `NotaDecode` is
+    /// positional and count-strict (see `chip_gen`), so an absent NOTA
+    /// field is an `ExpectedRootCount` error, never a default-fill.
     #[serde(default)]
     pub ram_gb: Option<u32>,
     /// Virtual disk size in gibibytes for a Pod (VM) node. None for a
     /// Metal node (disk comes from the partition layout in `Io`) or a
     /// Pod whose host pre-provisions the disk. Cluster-authored: a VM's
     /// root disk is allocated at create time and is not derivable from
-    /// anything else. MUST stay near the end of the struct so positional
-    /// nota records keep parsing with implicit None defaults.
+    /// anything else.
+    ///
+    /// `#[serde(default)]` is serde/JSON-only; `NotaDecode` is
+    /// positional and count-strict (see `chip_gen`), so an absent NOTA
+    /// field is an `ExpectedRootCount` error, never a default-fill.
     #[serde(default)]
     pub disk_gb: Option<u32>,
     /// Physical placement of this machine — a free site/datacenter/rack
     /// label (e.g. `home-lab`, `hetzner-fsn1`). Cluster-authored,
     /// variable, and non-derivable. Optional; None means unspecified.
     /// For a Pod this MAY later resolve to the host's location at
-    /// projection time. MUST stay near the end so positional nota
-    /// records keep parsing with implicit None defaults.
+    /// projection time.
+    ///
+    /// `#[serde(default)]` is serde/JSON-only; `NotaDecode` is
+    /// positional and count-strict (see `chip_gen`), so an absent NOTA
+    /// field is an `ExpectedRootCount` error, never a default-fill.
     #[serde(default)]
     pub location: Option<Location>,
     /// Additional hosts permitted to hold and exchange this Pod's image,
@@ -59,9 +76,14 @@ pub struct Machine {
     /// trust boundary to `{super_node} ∪ super_nodes`. Pod-only;
     /// cluster-authored; FIXED in the declaration. `super_node` stays the
     /// primary/canonical host (arch resolution, the guest-fold discovery
-    /// predicate, the single-host majority all read it). MUST stay at the
-    /// positional tail so single-host nota records keep parsing with an
-    /// implicit empty default and project byte-identically.
+    /// predicate, the single-host majority all read it).
+    ///
+    /// `#[serde(default)]` is serde/JSON-only; `NotaDecode` is
+    /// positional and count-strict (see `chip_gen`), so a NOTA `Machine`
+    /// record missing this field is an `ExpectedRootCount` error, not a
+    /// silent empty-`Vec` fill. Its tail position does not make it
+    /// append-safe — adding it was a breaking datom-schema change that
+    /// moved every `Machine` datom and daemon horizon pin in lockstep.
     #[serde(default)]
     pub super_nodes: Vec<NodeName>,
 }

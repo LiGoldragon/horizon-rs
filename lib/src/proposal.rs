@@ -32,10 +32,19 @@ pub struct ClusterProposal {
     #[serde(default)]
     pub domains: BTreeMap<DomainName, DomainProposal>,
     pub trust: ClusterTrust,
-    /// Cluster-wide domain settings. Appended at the positional tail so
-    /// existing proposal records keep parsing with the default
-    /// `.criome` internal suffix and `<cluster>.criome.net` public
-    /// domain.
+    /// Cluster-wide domain settings, defaulting to the `.criome`
+    /// internal suffix and `<cluster>.criome.net` public domain.
+    ///
+    /// The `#[serde(default)]` applies ONLY to serde/JSON decoding
+    /// (e.g. `horizon.json`); it does NOT make this field optional for
+    /// NOTA datom decoding. The `NotaDecode` derive is strictly
+    /// positional and count-strict: it hard-equality-checks the root
+    /// field count (see the derive's `objects.len() != field_count`
+    /// guard, surfaced as `NotaDecodeError::ExpectedRootCount`), so a
+    /// NOTA record that is one field short or long is a HARD decode
+    /// error, never a silent default-fill. Adding a tail field is
+    /// therefore a BREAKING datom-schema change: every datom AND every
+    /// daemon's horizon pin must move together.
     #[serde(default)]
     pub domain_configuration: DomainConfiguration,
 }
@@ -64,8 +73,17 @@ pub struct NodeProposal {
     #[serde(default)]
     pub wireguard_untrusted_proxies: Vec<WireguardProxy>,
     /// Operator opt-in for the printer driver bundle (hplip, samsung,
-    /// epson, gutenprint). Default false. Must stay near the end of
-    /// this struct so existing positional nota files still parse.
+    /// epson, gutenprint). Default false.
+    ///
+    /// `#[serde(default)]` covers serde/JSON only. `NotaDecode` is
+    /// positional and count-strict (it hard-checks the root field
+    /// count, see `ClusterProposal::domain_configuration`), so a NOTA
+    /// `NodeProposal` record short or long by one field is an
+    /// `ExpectedRootCount` error, not a silent default. Adding or
+    /// removing ANY field here — tail or not — is a breaking
+    /// datom-schema change requiring every datom and daemon horizon pin
+    /// to move in lockstep; position within the struct does not make a
+    /// field append-safe for NOTA.
     #[serde(default)]
     pub wants_printing: bool,
     /// Operator opt-in for hardware-accelerated video decode (browser
