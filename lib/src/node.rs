@@ -101,9 +101,11 @@ pub struct Node {
     /// `http://<nix_cache_domain>` when `is_nix_cache`.
     pub nix_url: Option<String>,
 
-    // grouped flags
+    // grouped derived facets — the cross-repo (CriomOS) gating contract.
+    // Nix reads these named facets, never the raw species; the role facets
+    // are unions over several species, so they are not a one-hot of the
+    // species enum.
     pub behaves_as: BehavesAs,
-    pub type_is: TypeIs,
 
     // viewpoint-only fields
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -175,64 +177,36 @@ pub struct BehavesAs {
     pub cloud_node: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TypeIs {
-    pub center: bool,
-    pub edge: bool,
-    pub edge_testing: bool,
-    pub hybrid: bool,
-    pub large_ai: bool,
-    pub large_ai_router: bool,
-    pub media_broadcast: bool,
-    pub router: bool,
-    pub router_testing: bool,
-    pub test_vm: bool,
-    pub cloud_node: bool,
-}
-
-impl TypeIs {
-    fn from_species(s: NodeSpecies) -> Self {
-        TypeIs {
-            center: matches!(s, NodeSpecies::Center),
-            edge: matches!(s, NodeSpecies::Edge),
-            edge_testing: matches!(s, NodeSpecies::EdgeTesting),
-            hybrid: matches!(s, NodeSpecies::Hybrid),
-            large_ai: matches!(s, NodeSpecies::LargeAi),
-            large_ai_router: matches!(s, NodeSpecies::LargeAiRouter),
-            media_broadcast: matches!(s, NodeSpecies::MediaBroadcast),
-            router: matches!(s, NodeSpecies::Router),
-            router_testing: matches!(s, NodeSpecies::RouterTesting),
-            test_vm: matches!(s, NodeSpecies::TestVm),
-            cloud_node: matches!(s, NodeSpecies::CloudNode),
-        }
-    }
-}
-
 impl BehavesAs {
-    fn derive(type_is: &TypeIs, machine: &Machine, io_disks_empty: bool) -> Self {
-        let large_ai = type_is.large_ai || type_is.large_ai_router;
-        let router = type_is.hybrid || type_is.router || type_is.large_ai_router;
-        let edge = type_is.edge || type_is.hybrid || type_is.edge_testing;
-        let center = type_is.center || large_ai;
-        let next_gen = type_is.edge_testing || type_is.hybrid;
-        let low_power = type_is.edge || type_is.edge_testing;
+    /// Derive the facet set directly from the node's `NodeSpecies` and its
+    /// `MachineSpecies` substrate. The role facets (`center`/`router`/`edge`
+    /// /`next_gen`/`low_power`/`large_ai`) are UNIONS over several species —
+    /// a `Hybrid` behaves as both edge and router — so they are not a one-to-
+    /// one image of the species enum, and that union is the whole reason
+    /// `BehavesAs` exists as the named cross-repo (CriomOS) gating contract
+    /// rather than the consumer matching on the raw species. `bare_metal`
+    /// /`virtual_machine` read the typed `MachineSpecies` substrate;
+    /// `test_vm`/`cloud_node` are the lean-profile gates (one-to-one with
+    /// their species, but exposed as named facets the CriomOS image and
+    /// test-VM modules gate on).
+    fn derive(species: NodeSpecies, machine: &Machine, io_disks_empty: bool) -> Self {
+        let large_ai = matches!(species, NodeSpecies::LargeAi | NodeSpecies::LargeAiRouter);
+        let router = matches!(
+            species,
+            NodeSpecies::Hybrid | NodeSpecies::Router | NodeSpecies::LargeAiRouter
+        );
+        let edge = matches!(
+            species,
+            NodeSpecies::Edge | NodeSpecies::Hybrid | NodeSpecies::EdgeTesting
+        );
+        let center = matches!(species, NodeSpecies::Center) || large_ai;
+        let next_gen = matches!(species, NodeSpecies::EdgeTesting | NodeSpecies::Hybrid);
+        let low_power = matches!(species, NodeSpecies::Edge | NodeSpecies::EdgeTesting);
         let bare_metal = matches!(machine.species, crate::species::MachineSpecies::Metal);
         let virtual_machine = matches!(machine.species, crate::species::MachineSpecies::Pod);
         let iso = !virtual_machine && io_disks_empty;
-        // A TestVm derives a deliberately lean profile: it carries
-        // `test_vm` plus the `virtual_machine` it already gets from its
-        // Pod substrate, and nothing else. It is NOT edge/center/router
-        // — those facets stay false purely because `NodeSpecies::TestVm`
-        // sets none of the `type_is` flags they read from, keeping the
-        // guest config minimal.
-        let test_vm = type_is.test_vm;
-        // A CloudNode derives the same lean shape as TestVm — it carries
-        // `cloud_node` and nothing else, leaving edge/center/router/large_ai
-        // false because `NodeSpecies::CloudNode` sets none of their `type_is`
-        // flags. It is NOT a Pod, so `virtual_machine` stays false: it is the
-        // bare machine it boots on.
-        let cloud_node = type_is.cloud_node;
+        let test_vm = matches!(species, NodeSpecies::TestVm);
+        let cloud_node = matches!(species, NodeSpecies::CloudNode);
         BehavesAs {
             center,
             router,
@@ -352,7 +326,7 @@ impl BuilderConfig {
             // 600 root-owned. The builder authorizes the dispatcher's host
             // *pub*key as if it were a user key in `nix.sshServe.keys`.
             ssh_key: "/etc/ssh/ssh_host_ed25519_key".to_string(),
-            supported_features: if node.type_is.edge {
+            supported_features: if node.behaves_as.edge {
                 Vec::new()
             } else {
                 // `big-parallel`: required by LLVM, kernels, chromium, etc.
@@ -406,9 +380,8 @@ impl NodeProposal {
         let is_fully_trusted = matches!(ctx.trust, Magnitude::Max);
         let sized_at_least = self.size.ladder();
 
-        let type_is = TypeIs::from_species(self.species);
         let io_disks_empty = self.io.disks.is_empty();
-        let behaves_as = BehavesAs::derive(&type_is, &self.machine, io_disks_empty);
+        let behaves_as = BehavesAs::derive(self.species, &self.machine, io_disks_empty);
 
         let online = self.online.unwrap_or(true);
         let is_remote_nix_builder = self.has_service(NodeServiceKind::NixBuilder)
@@ -507,7 +480,6 @@ impl NodeProposal {
             nix_url,
 
             behaves_as,
-            type_is,
 
             handle_lid_switch: lid_policy.on_battery,
             handle_lid_switch_external_power: lid_policy.on_external_power,

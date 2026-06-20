@@ -33,8 +33,9 @@ pub enum NodeSpecies {
     /// role whose CriomOS config renders a NEW minimal, content-sized cloud
     /// image built declaratively from the projection, NOT a snapshot of a
     /// converted droplet. Like `TestVm` it derives a deliberately lean
-    /// profile: it sets `cloud_node` and NONE of the heavy `type_is` role
-    /// flags, so edge/center/router/large_ai all stay false. Unlike `TestVm`
+    /// profile: it derives the `behaves_as.cloud_node` facet and none of the
+    /// role facets, so edge/center/router/large_ai all stay false because
+    /// none of those facets' species-unions include `CloudNode`. Unlike `TestVm`
     /// it is NOT a `Pod` guest — it is the bare machine it boots on
     /// (`MachineSpecies::Metal`), has no `super_node`, and so derives
     /// `virtual_machine` false. The cloud image's bootloader follows

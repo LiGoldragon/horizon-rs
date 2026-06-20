@@ -69,7 +69,7 @@ lib/src/
 ├── proposal.rs   # ClusterProposal + child types (input)
 ├── horizon.rs    # Horizon + projection entry-point
 ├── cluster.rs    # Cluster
-├── node.rs       # Node + BehavesAs + TypeIs + ComputerIs +
+├── node.rs       # Node + BehavesAs + ComputerIs +
 │                 # BuilderConfig + WireguardProxy
 └── user.rs       # User
 ```
@@ -371,9 +371,9 @@ pub struct Node {
     pub nix_cache_domain:    Option<CriomeDomainName>,   // Some only when is_nix_cache
     pub nix_url:             Option<String>,             // Some only when is_nix_cache
 
-    // grouped flags
+    // grouped derived facets (the CriomOS gating contract; role facets are
+    // unions over NodeSpecies, derived directly — there is no one-hot TypeIs)
     pub behaves_as:          BehavesAs,
-    pub type_is:             TypeIs,
 
     // viewpoint-only fields: Some on horizon.node, None on horizon.ex_nodes.<name>.
     pub io:                  Option<Io>,
@@ -399,18 +399,6 @@ pub struct BehavesAs {
     pub virtual_machine: bool,
     pub iso:             bool,
     pub large_ai:        bool,
-}
-
-pub struct TypeIs {
-    pub center:           bool,
-    pub edge:             bool,
-    pub edge_testing:     bool,
-    pub hybrid:           bool,
-    pub large_ai:         bool,
-    pub large_ai_router:  bool,
-    pub media_broadcast:  bool,
-    pub router:           bool,
-    pub router_testing:   bool,
 }
 
 pub struct ComputerIs {

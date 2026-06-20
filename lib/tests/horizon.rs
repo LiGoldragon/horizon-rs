@@ -528,12 +528,11 @@ fn project_cloud_node_metal_derives_lean_profile() {
     assert!(!doris.behaves_as.large_ai);
     assert!(!doris.behaves_as.next_gen);
 
-    // type_is reflects only the CloudNode role.
-    assert!(doris.type_is.cloud_node);
-    assert!(!doris.type_is.test_vm);
-    assert!(!doris.type_is.edge);
-    assert!(!doris.type_is.center);
-    assert!(!doris.type_is.router);
+    // The lean CloudNode profile: the cloud_node facet, no test_vm.
+    // (edge/center/router already asserted false above.)
+    assert_eq!(doris.species, NodeSpecies::CloudNode);
+    assert!(doris.behaves_as.cloud_node);
+    assert!(!doris.behaves_as.test_vm);
 }
 
 fn test_vm_pod() -> NodeProposal {
@@ -626,12 +625,13 @@ fn project_test_vm_pod_derives_lean_profile_and_carries_host_location_disk() {
     // A Pod with a real root disk is not an installer image.
     assert!(!mercury.behaves_as.iso);
 
-    // type_is reflects only the TestVm role.
-    assert!(mercury.type_is.test_vm);
-    assert!(!mercury.type_is.edge);
-    assert!(!mercury.type_is.edge_testing);
-    assert!(!mercury.type_is.center);
-    assert!(!mercury.type_is.router);
+    // The lean TestVm profile: the test_vm facet, no role facets.
+    // (species == TestVm covers the not-EdgeTesting case the old one-hot spelled.)
+    assert_eq!(mercury.species, NodeSpecies::TestVm);
+    assert!(mercury.behaves_as.test_vm);
+    assert!(!mercury.behaves_as.edge);
+    assert!(!mercury.behaves_as.center);
+    assert!(!mercury.behaves_as.router);
 
     // Machine facts survive projection unchanged: the host
     // (`super_node`), the declared virtual-disk size, and the location.
