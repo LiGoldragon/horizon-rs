@@ -166,6 +166,13 @@ pub struct BehavesAs {
     /// config on this facet; it is orthogonal to `virtual_machine`
     /// (which flags "runs on a host" for the host's substrate wiring).
     pub test_vm: bool,
+    /// The cloud-node lean image-profile gate. True only for a
+    /// `NodeSpecies::CloudNode` node. CriomOS gates the minimal cloud-image
+    /// module (cloud-init + growpart + image-format build) on this facet. A
+    /// sibling of `test_vm` — both are lean-profile gates orthogonal to the
+    /// role facets — but unlike `test_vm` it does NOT imply `virtual_machine`:
+    /// a cloud node is `Metal` from CriomOS's view, not a Pod guest.
+    pub cloud_node: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -181,6 +188,7 @@ pub struct TypeIs {
     pub router: bool,
     pub router_testing: bool,
     pub test_vm: bool,
+    pub cloud_node: bool,
 }
 
 impl TypeIs {
@@ -196,6 +204,7 @@ impl TypeIs {
             router: matches!(s, NodeSpecies::Router),
             router_testing: matches!(s, NodeSpecies::RouterTesting),
             test_vm: matches!(s, NodeSpecies::TestVm),
+            cloud_node: matches!(s, NodeSpecies::CloudNode),
         }
     }
 }
@@ -218,6 +227,12 @@ impl BehavesAs {
         // sets none of the `type_is` flags they read from, keeping the
         // guest config minimal.
         let test_vm = type_is.test_vm;
+        // A CloudNode derives the same lean shape as TestVm — it carries
+        // `cloud_node` and nothing else, leaving edge/center/router/large_ai
+        // false because `NodeSpecies::CloudNode` sets none of their `type_is`
+        // flags. It is NOT a Pod, so `virtual_machine` stays false: it is the
+        // bare machine it boots on.
+        let cloud_node = type_is.cloud_node;
         BehavesAs {
             center,
             router,
@@ -229,6 +244,7 @@ impl BehavesAs {
             iso,
             large_ai,
             test_vm,
+            cloud_node,
         }
     }
 

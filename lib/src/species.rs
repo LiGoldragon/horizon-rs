@@ -28,6 +28,20 @@ pub enum NodeSpecies {
     /// `Machine::super_node`; the guest is launched to run a test and
     /// stopped after.
     TestVm,
+
+    /// A cloud provider node (DigitalOcean, etc.) — a first-class cluster
+    /// role whose CriomOS config renders a NEW minimal, content-sized cloud
+    /// image built declaratively from the projection, NOT a snapshot of a
+    /// converted droplet. Like `TestVm` it derives a deliberately lean
+    /// profile: it sets `cloud_node` and NONE of the heavy `type_is` role
+    /// flags, so edge/center/router/large_ai all stay false. Unlike `TestVm`
+    /// it is NOT a `Pod` guest — it is the bare machine it boots on
+    /// (`MachineSpecies::Metal`), has no `super_node`, and so derives
+    /// `virtual_machine` false. The cloud image's bootloader follows
+    /// `io.bootloader` (`Bootloader::Mbr` for DigitalOcean BIOS/GRUB);
+    /// cloud-init network/ssh injection and growpart are emitted by the
+    /// CriomOS cloud-image module gated on `behaves_as.cloud_node`.
+    CloudNode,
 }
 
 #[derive(
