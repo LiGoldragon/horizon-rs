@@ -14,9 +14,10 @@ use horizon_lib::machine::Machine;
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName, WirelessNetworkName};
 use horizon_lib::proposal::{
-    BackupWireless, ClusterProposal, ClusterTrust, KvmAvailability, MaximumGuests, NodeProposal,
-    NodePubKeys, NodeService, PersonaDevelopmentCapability, RouterInterfaces, SecretReference,
-    UserProposal, WlanBand, WlanStandard, YggPubKeyEntry,
+    BackupWireless, ClusterProposal, ClusterTrust, HostedSite, KvmAvailability, MaximumGuests,
+    NodeProposal, NodePubKeys, NodeService, PersonaDevelopmentCapability, RouterInterfaces,
+    SecretReference, ServedDomain, SiteRenderer, SiteSource, UserProposal, WlanBand, WlanStandard,
+    YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
@@ -283,6 +284,45 @@ fn vm_host_decodes_typed_subnet_kvm_and_capacity_then_round_trips() {
     assert!(!reencoded.contains('"'));
     let round_tripped = decode::<Vec<NodeService>>(&reencoded).unwrap();
     assert_eq!(round_tripped, services);
+}
+
+#[test]
+fn web_host_encodes_typed_sites_then_round_trips() {
+    // A node's hosted sites as cluster data: each site a public domain, a
+    // pinned source reference, and a typed renderer — the renderer rides as
+    // a closed-taxonomy variant, never a quoted string or a bool flag.
+    let services = vec![NodeService::WebHost {
+        sites: vec![
+            HostedSite {
+                domain: ServedDomain::new("criome.org"),
+                source: SiteSource::new("github:LiGoldragon/criome-site/main"),
+                renderer: SiteRenderer::MarkdownStatic,
+            },
+            HostedSite {
+                domain: ServedDomain::new("blog.criome.org"),
+                source: SiteSource::new("github:LiGoldragon/criome-blog/main"),
+                renderer: SiteRenderer::default(),
+            },
+        ],
+    }];
+
+    // The encoder emits NOTA with no quotation marks; the typed values ride
+    // bare, including the renderer variant name.
+    let encoded = services.to_nota();
+    assert!(
+        !encoded.contains('"'),
+        "NOTA never emits quotation marks: {encoded}"
+    );
+    assert!(encoded.contains("WebHost"));
+    assert!(encoded.contains("MarkdownStatic"));
+    assert!(encoded.contains("criome.org"));
+
+    // Decoding the projected wire shape yields the identical typed value.
+    let round_tripped = decode::<Vec<NodeService>>(&encoded).unwrap();
+    assert_eq!(round_tripped, services);
+
+    // The standard default renderer is the markdown static site (Spirit 878r).
+    assert_eq!(SiteRenderer::default(), SiteRenderer::MarkdownStatic);
 }
 
 #[test]

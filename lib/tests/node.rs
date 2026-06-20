@@ -11,7 +11,8 @@ use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::node::{LidSwitchAction, NodeProjection};
 use horizon_lib::proposal::{
-    NodeProposal, NodePubKeys, NodeService, PersonaDevelopmentCapability, YggPubKeyEntry,
+    HostedSite, NodeProposal, NodePubKeys, NodeService, PersonaDevelopmentCapability, ServedDomain,
+    SiteRenderer, SiteSource, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
@@ -256,6 +257,25 @@ fn nix_builder_capacity_projects_from_service_variant() {
     assert!(node.is_remote_nix_builder);
     assert_eq!(node.max_jobs, 6);
     assert_eq!(node.build_cores, 6);
+}
+
+#[test]
+fn web_host_sites_project_from_service_variant() {
+    let mut prop = proposal(NodeSpecies::CloudNode, Magnitude::Min, true);
+    let site = HostedSite {
+        domain: ServedDomain::new("criome.org"),
+        source: SiteSource::new("github:LiGoldragon/criome-site/main"),
+        renderer: SiteRenderer::MarkdownStatic,
+    };
+    prop.services.push(NodeService::WebHost {
+        sites: vec![site.clone()],
+    });
+
+    let node = prop.project(ctx_for("doris", Magnitude::Min));
+
+    // The web-host generator reads the cluster-authored sites off the
+    // projection, exactly as the VM-test generator reads `VmHost`.
+    assert_eq!(node.web_host_sites(), Some([site].as_slice()));
 }
 
 #[test]

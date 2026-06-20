@@ -165,6 +165,16 @@ pub enum NodeService {
         #[serde(default)]
         maximum_guests: Option<MaximumGuests>,
     },
+    /// Serve one or more websites from this node. Each `HostedSite` names a
+    /// public domain, the pinned source its content is fetched from, and the
+    /// renderer that turns that source into served HTML. Sibling to
+    /// `VmHost`/`NixBuilder` — an opt-in, cluster-authored capability. The
+    /// CriomOS module reads this payload off `horizon.node.services` (via
+    /// `node-services.nix`) exactly as the VM-test generator reads `VmHost`.
+    /// The reliable-and-secure default renders each site at build time in the
+    /// Nix sandbox into an immutable artifact, leaving the node to serve
+    /// static files only (Spirit `878r`).
+    WebHost { sites: Vec<HostedSite> },
 }
 
 /// Whether a VM host offers hardware acceleration (`/dev/kvm`). A
@@ -216,6 +226,69 @@ pub struct VmHostCapability<'a> {
     pub maximum_guests: Option<MaximumGuests>,
 }
 
+/// One website served by a `WebHost` node: a public domain, the pinned
+/// source its content is fetched from, and the renderer that turns that
+/// source into served HTML. Three distinct roles, three distinct types — no
+/// two fields share a type (`skills/abstractions.md`, newtype-per-role).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct HostedSite {
+    pub domain: ServedDomain,
+    pub source: SiteSource,
+    pub renderer: SiteRenderer,
+}
+
+/// The public hostname a site is served at — the ACME-managed TLS name. A
+/// named domain value, not a bare `String`, so it cannot be confused with a
+/// node name, a path, or a source reference.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[serde(transparent)]
+pub struct ServedDomain(pub(crate) String);
+
+impl ServedDomain {
+    pub fn new(domain: impl Into<String>) -> Self {
+        Self(domain.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// A pinned reference to the content a site is rendered from, in the github
+/// flake / git form the workspace uses for every reproducible source (Spirit
+/// `6x2k`). Pinning the source is what makes the rendered site reproducible
+/// and the deploy rollback-able. A named source value, never a bare `String`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[serde(transparent)]
+pub struct SiteSource(pub(crate) String);
+
+impl SiteSource {
+    pub fn new(reference: impl Into<String>) -> Self {
+        Self(reference.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Which renderer turns a site's source into served HTML. A closed taxonomy
+/// rather than a string key (`skills/abstractions.md`): the CriomOS module
+/// switches the build-time render derivation on this variant.
+/// `MarkdownStatic` is the standard default — a markdown, Jekyll-style static
+/// site (Spirit `878r`).
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, NotaDecode, NotaEncode,
+)]
+pub enum SiteRenderer {
+    /// A markdown-sourced static site (Jekyll style). The default variant;
+    /// CriomOS renders it with the cluster's chosen static-site generator at
+    /// build time and serves the immutable output statically.
+    #[default]
+    MarkdownStatic,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all_fields = "camelCase")]
 pub enum PersonaDevelopmentCapability {
@@ -232,6 +305,7 @@ pub enum NodeServiceKind {
     NixCache,
     PersonaDevelopment,
     VmHost,
+    WebHost,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -248,6 +322,7 @@ impl NodeService {
             Self::NixCache {} => NodeServiceKind::NixCache,
             Self::PersonaDevelopment { .. } => NodeServiceKind::PersonaDevelopment,
             Self::VmHost { .. } => NodeServiceKind::VmHost,
+            Self::WebHost { .. } => NodeServiceKind::WebHost,
         }
     }
 
@@ -276,6 +351,17 @@ impl NodeService {
                 kvm: *kvm,
                 maximum_guests: *maximum_guests,
             }),
+            _ => None,
+        }
+    }
+
+    /// The cluster-authored sites this service hosts, if it is a `WebHost`.
+    /// The CriomOS web-host generator reads each site's domain, pinned
+    /// source, and renderer through this, exactly as `vm_host` exposes a
+    /// host's VM capability.
+    pub fn hosted_sites(&self) -> Option<&[HostedSite]> {
+        match self {
+            Self::WebHost { sites } => Some(sites),
             _ => None,
         }
     }
@@ -318,6 +404,9 @@ impl NotaEncode for NodeService {
                 kvm.to_nota(),
                 maximum_guests.to_nota(),
             ]),
+            NodeService::WebHost { sites } => {
+                Delimiter::Parenthesis.wrap(["WebHost".to_owned(), sites.to_nota()])
+            }
         }
     }
 }
@@ -364,6 +453,12 @@ impl NotaDecode for NodeService {
                     maximum_guests: Option::<MaximumGuests>::from_nota_block(&fields[3])?,
                 }
             }
+            "WebHost" => {
+                Self::expect_service_arity(fields, variant, 2)?;
+                NodeService::WebHost {
+                    sites: Vec::<HostedSite>::from_nota_block(&fields[1])?,
+                }
+            }
             other => {
                 return Err(NotaDecodeError::UnknownVariant {
                     enum_name: "NodeService",
@@ -390,6 +485,7 @@ impl NodeService {
                     "NixCache" => "NixCache",
                     "PersonaDevelopment" => "PersonaDevelopment",
                     "VmHost" => "VmHost",
+                    "WebHost" => "WebHost",
                     _ => "NodeService",
                 },
                 expected,

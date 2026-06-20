@@ -17,7 +17,8 @@ use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName, UserName};
 use crate::proposal::{
-    NodeProposal, NodeService, NodeServiceKind, RouterInterfaces, VmHostCapability, WireguardProxy,
+    HostedSite, NodeProposal, NodeService, NodeServiceKind, RouterInterfaces, VmHostCapability,
+    WireguardProxy,
 };
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
@@ -595,6 +596,15 @@ impl Node {
     /// facts off `horizon.ex_nodes`.
     pub fn vm_host_capability(&self) -> Option<VmHostCapability<'_>> {
         self.services.iter().find_map(NodeService::vm_host)
+    }
+
+    /// The sites this node hosts, if it declares a `WebHost` service.
+    /// Exposes each site's domain, pinned source, and renderer on the
+    /// projection so the CriomOS web-host generator reads them off
+    /// `horizon.node.services` exactly as the VM-test generator reads
+    /// `VmHost`.
+    pub fn web_host_sites(&self) -> Option<&[HostedSite]> {
+        self.services.iter().find_map(NodeService::hosted_sites)
     }
 }
 
