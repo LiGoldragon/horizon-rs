@@ -443,6 +443,98 @@ fn project_preserves_router_wifi_secret_reference() {
 /// horizon-rs's own test fixture (host `prometheus`, cluster
 /// `goldragon`); it does NOT mirror the `mercury` declaration in
 /// `CriomOS-test-cluster/clusters/fieldlab.nota`.
+fn cloud_node_metal() -> NodeProposal {
+    let mut disks = BTreeMap::new();
+    disks.insert(
+        MountPath::new("/"),
+        Disk {
+            device: DevicePath::new("/dev/vda"),
+            fs_type: FsType::Ext4,
+            options: Vec::new(),
+        },
+    );
+    let grub_disk_io = Io {
+        keyboard: Keyboard::Qwerty,
+        bootloader: Bootloader::Mbr,
+        disks,
+        swap_devices: Vec::new(),
+        compressed_swap: None,
+    };
+
+    NodeProposal {
+        species: NodeSpecies::CloudNode,
+        size: Magnitude::Min,
+        trust: Magnitude::Max,
+        machine: Machine {
+            species: MachineSpecies::Metal,
+            arch: Some(Arch::X86_64),
+            cores: 1,
+            model: None,
+            mother_board: None,
+            super_node: None,
+            super_user: None,
+            chip_gen: None,
+            ram_gb: Some(2),
+            disk_gb: Some(25),
+            location: Some(Location::new("digitalocean-nyc3")),
+            super_nodes: Vec::new(),
+        },
+        io: grub_disk_io,
+        pub_keys: pub_keys(true, true),
+        link_local_ips: Vec::new(),
+        node_ip: None,
+        wireguard_pub_key: None,
+        nordvpn: false,
+        wifi_cert: false,
+        wireguard_untrusted_proxies: Vec::new(),
+        wants_printing: false,
+        wants_hw_video_accel: false,
+        router_interfaces: None,
+        online: None,
+        services: vec![NodeService::TailnetClient {}],
+    }
+}
+
+/// A `CloudNode` on a `Metal` substrate — a DigitalOcean droplet IS the bare
+/// machine it boots on — derives the lean cloud-image profile: only
+/// `cloud_node` is set, `virtual_machine` is false (it is not a Pod guest),
+/// and no role facet derives onto it. Mirrors the `TestVm` lean-profile test.
+#[test]
+fn project_cloud_node_metal_derives_lean_profile() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    proposal
+        .nodes
+        .insert(NodeName::try_new("doris").unwrap(), cloud_node_metal());
+    proposal
+        .trust
+        .nodes
+        .insert(NodeName::try_new("doris").unwrap(), Magnitude::Max);
+
+    let horizon = proposal.project(&viewpoint("doris")).unwrap();
+    let doris = &horizon.node;
+
+    assert!(matches!(doris.species, NodeSpecies::CloudNode));
+    assert!(doris.behaves_as.cloud_node);
+    // A cloud node is Metal, not a Pod guest, so virtual_machine stays false
+    // and bare_metal is true: it is the bare machine it boots on.
+    assert!(!doris.behaves_as.virtual_machine);
+    assert!(doris.behaves_as.bare_metal);
+    // A Metal node with a real root disk is not an installer image.
+    assert!(!doris.behaves_as.iso);
+    // No heavy role facet derives onto a lean cloud node.
+    assert!(!doris.behaves_as.edge);
+    assert!(!doris.behaves_as.center);
+    assert!(!doris.behaves_as.router);
+    assert!(!doris.behaves_as.large_ai);
+    assert!(!doris.behaves_as.next_gen);
+
+    // The lean CloudNode profile: the cloud_node facet, no test_vm.
+    // (edge/center/router already asserted false above.)
+    assert_eq!(doris.species, NodeSpecies::CloudNode);
+    assert!(doris.behaves_as.cloud_node);
+    assert!(!doris.behaves_as.test_vm);
+}
+
 fn test_vm_pod() -> NodeProposal {
     let mut disks = BTreeMap::new();
     disks.insert(
@@ -533,12 +625,13 @@ fn project_test_vm_pod_derives_lean_profile_and_carries_host_location_disk() {
     // A Pod with a real root disk is not an installer image.
     assert!(!mercury.behaves_as.iso);
 
-    // type_is reflects only the TestVm role.
-    assert!(mercury.type_is.test_vm);
-    assert!(!mercury.type_is.edge);
-    assert!(!mercury.type_is.edge_testing);
-    assert!(!mercury.type_is.center);
-    assert!(!mercury.type_is.router);
+    // The lean TestVm profile: the test_vm facet, no role facets.
+    // (species == TestVm covers the not-EdgeTesting case the old one-hot spelled.)
+    assert_eq!(mercury.species, NodeSpecies::TestVm);
+    assert!(mercury.behaves_as.test_vm);
+    assert!(!mercury.behaves_as.edge);
+    assert!(!mercury.behaves_as.center);
+    assert!(!mercury.behaves_as.router);
 
     // Machine facts survive projection unchanged: the host
     // (`super_node`), the declared virtual-disk size, and the location.

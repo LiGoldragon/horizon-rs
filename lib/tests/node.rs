@@ -116,7 +116,7 @@ fn center_node_with_full_keys_is_nix_cache_and_dispatcher() {
     assert!(node.is_fully_trusted);
     assert!(node.has_base_pub_keys);
     assert!(node.behaves_as.center);
-    assert!(node.type_is.center);
+    assert_eq!(node.species, NodeSpecies::Center);
 }
 
 #[test]
