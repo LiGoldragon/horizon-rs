@@ -438,11 +438,12 @@ fn project_preserves_router_wifi_secret_reference() {
     assert_eq!(horizon.node.router_interfaces, Some(router_interfaces));
 }
 
-/// A test-VM Pod hosted on `prometheus` with a real root disk (NOT
-/// tmpfs), declaring its own disk size and physical location. This is
-/// horizon-rs's own test fixture (host `prometheus`, cluster
-/// `goldragon`); it does NOT mirror the `mercury` declaration in
-/// `CriomOS-test-cluster/clusters/fieldlab.nota`.
+/// A `CloudNode` on a `Metal` substrate — a DigitalOcean droplet modeled as
+/// the bare machine it boots on: x86_64, one core, an `Mbr`/grub root on
+/// `/dev/vda`, located `digitalocean-nyc3`, carrying only `TailnetClient`.
+/// horizon-rs's own projection fixture, inserted under the node name
+/// `doris`; its `trust = Max` exercises the projection path and is not a
+/// trust-policy statement (the real doris is low trust, Spirit `5pf6`).
 fn cloud_node_metal() -> NodeProposal {
     let mut disks = BTreeMap::new();
     disks.insert(
