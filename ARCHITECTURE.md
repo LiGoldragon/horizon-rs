@@ -90,6 +90,44 @@ The full audit driving this rule lives in primary's
 the brainstorm for the pan-horizon authored config is in
 `reports/designer/208-pan-horizon-configuration-brainstorm-2026-05-17.md`.
 
+## Node I/O policy is cluster-authored
+
+Node I/O policy is cluster-authored when it is hardware/safety inventory.
+Filesystems, swap devices, swapfile sizing, and compressed-swap sizing are
+projected through Horizon so CriomOS can render them — into NixOS swap/zram
+options — without node-name predicates. The cluster owner authors the
+hardware/safety facts; CriomOS renders them.
+
+## VM hosting is cluster-data-generated
+
+The test-VM host carries an explicit `NodeService::VmHost` role — VM testing
+is cluster-data-generated, not cluster-specific. A host that runs test VMs
+declares a `VmHost` service (sibling to `NixBuilder`) carrying the
+cluster-authored host data the VM-test generator reads: the guest tap subnet
+(one sliced `TapSubnet` CIDR), KVM availability, and a maximum-guests ceiling.
+This replaces the bespoke hardcoded `169.254.100+index.1` subnet and `inputs ?
+microvm` probe invented in the Nix layer, giving the predictable interface a
+readable OS/home-profile test suite is built on. The host→guest graph is
+total: a `Pod` substrate must name a `super_node` that exists in the cluster
+(`Error::MissingSuperNode`). This follows the recorded principle in primary's
+`reports/cloud-designer/50-general-vm-testing-interface/intent-capture.md`.
+
+A test-VM node may declare **multiple** vmhosts; the declared host-set is the
+scoped image-exchange trust boundary. Beyond the primary `super_node`, a Pod
+may carry an additive `super_nodes` tail — `Machine::host_set()` = `{super_node}
+∪ super_nodes`, deduped, primary first; an empty `super_nodes` is the
+single-host majority, unchanged. The host→guest existence invariant extends to
+every host in the set, and a single-arch invariant requires every host to share
+one architecture (a guest image is one closure; `Error::HostSetArchMismatch`).
+The co-hosting hosts — and only they — trust each other's Nix signing keys for
+that node's image: the projection derives a scoped `image_exchange_pub_keys` on
+the output `Node` from the host-set, tighter than the cluster-wide
+`Cluster.trusted_build_pub_keys` pool. A non-co-host node's key is absent.
+CriomOS emits these as scoped `extra-trusted-public-keys` in a later unit. This
+follows primary's report 54
+(`reports/cloud-designer/54-lojix-test-op/4-proposal.md`, psyche decisions A
+additive + B scoped).
+
 ## Boundaries
 
 Owns:
