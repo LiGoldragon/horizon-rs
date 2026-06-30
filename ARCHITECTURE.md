@@ -14,6 +14,57 @@ boundary.
 Detailed design lives in [`docs/DESIGN.md`](docs/DESIGN.md) and
 [`docs/BUILD_CORES.md`](docs/BUILD_CORES.md).
 
+## Minimal on two axes
+
+Horizon and its cluster-data stay minimal on two independent axes.
+
+1. **Semantic axis — WHAT, never HOW.** At its input boundary horizon
+   expresses only what the psyche-as-cluster-owner wants, as simple
+   typed facts. It never expresses how those facts are realised: Nix
+   (and eventually forge) consumes the facts and owns all composition
+   and decision-complexity downstream. The `ClusterProposal` rule and
+   the service-role variants below are both instances of this axis.
+2. **Type-count axis — reuse the input type as the output type.**
+   Where a projection's output is the same shape as its input, reuse
+   the one type rather than maintaining parallel input/output types.
+   This keeps the projected node model a thin derivation over the
+   authored facts instead of a second, drifting vocabulary.
+
+These are the upstream principles the horizon rewrite is held to.
+
+## Typed all the way through
+
+Horizon is type-end-to-end: never string-keyed. Extending the model
+means extending the typed source first — add the real enum variant
+(with its `NotaEncode`/`NotaDecode`) — then author the fact, project
+typed, and consume typed. No stage reaches for a string where a
+variant belongs.
+
+The node model derives its facets directly from typed source enums
+rather than from parallel boolean flags:
+
+- **`NodeSpecies`** carries the cluster role. The `BehavesAs` role
+  facets — unions over several species that form the cross-repo
+  CriomOS gating contract — are read from this typed value, not from a
+  one-hot bool struct. Adding a node species adds a variant, never a
+  parallel boolean field.
+- **`MachineSpecies`** (`Metal` or `Pod`) carries the substrate. A
+  node's substrate is the already-typed `machine.species`, a
+  first-class typed value, so no separate substrate enum is needed.
+
+The typed-record vocabulary is trees of **branches** (variable-size,
+data-carrying: vectors, data-carrying enum variants, structs with
+variable members) and **leaves** (fixed-size terminals such as
+unit-variant enums). A `SymbolPath` is a flat vector of `Name`
+segments that recovers role from schema position rather than from
+string keys.
+
+Horizon is a pure-projection library — no runtime triad — so it needs
+a types-only schema-module variant: its datatypes generate without
+being forced into an `Input`/`Output` signal plane. Workspace-universal
+core types live in `SignalCore`'s partition of the 64-bit namespace;
+each component contributes its own zone.
+
 ## What goes in a `ClusterProposal`
 
 A value belongs in `ClusterProposal` (or any record reachable from
@@ -31,10 +82,24 @@ A "no" on any of these means the value lives somewhere else:
 
 | Bucket | Lives in | Examples |
 |---|---|---|
-| **Cluster fact** | `ClusterProposal` / `NodeProposal` | Node names, trust, hardware, router interface roles, secret references, provider *selections*, regulatory country. |
-| **Horizon constant** | pan-horizon authored config or `lib/src/` constants | Internal DNS suffix (`criome`), public DNS suffix (`criome.net`), LAN address pool, reserved subdomain labels. |
+| **Cluster fact** | `ClusterProposal` / `NodeProposal` | Node names, trust, hardware, router interface roles, secret references, provider *selections*, regulatory country, per-user preferences (e.g. preferred editor). |
+| **Horizon constant** | pan-horizon authored config or `lib/src/` constants | Internal DNS suffix (`criome`), public DNS suffix (`criome.net`), per-cluster public-domain mapping, LAN address pool, reserved subdomain labels. |
 | **Horizon derivation** | `lib/src/view/` projection code | Node domain, tailnet base domain, LAN CIDR / gateway / DHCP pool, router SSID, resolver listen addresses. |
 | **CriomOS-side** | `CriomOS-lib` constants, CriomOS Nix module defaults, or catalog packages | Service ports, DNS upstream choice, AI runtime config, AI model catalog, NordVPN server catalog, DHCP lease TTL. |
+
+**Per-user preference is data, not a hardcoded downstream choice.**
+Selections like a user's preferred editor are typed per-user
+preference facts the proposal carries; Home/profile configuration
+consumes the typed preference instead of hardcoding the choice
+downstream. The concrete value (which editor) is authored in code or
+cluster data, not fixed in this architecture prose.
+
+**Public-domain mapping is cluster data.** The public-domain mapping
+for ordinary DNS fallback is authored per cluster rather than
+hardcoded downstream: a public suffix is assigned per cluster, and a
+cluster owner owns its subdomain under it. The exact NOTA shape is
+open; what is fixed is that the mapping lives in cluster config and
+horizon derives node domains from it.
 
 ## Service Roles Are Variants
 
@@ -127,6 +192,36 @@ CriomOS emits these as scoped `extra-trusted-public-keys` in a later unit. This
 follows primary's report 54
 (`reports/cloud-designer/54-lojix-test-op/4-proposal.md`, psyche decisions A
 additive + B scoped).
+
+The `VmHost` variant carries typed resource limits in its variant data — RAM,
+disk, and CPU amounts — beyond the existing maximum-guests ceiling, so a host
+advertises its full capacity budget rather than only a guest count. Horizon
+projects these as typed capacity facts; enforcing them at runtime against live
+guests is the job of the service that provisions and reaps on-demand guests
+(lojix, the indicated holder of the runtime capacity ledger, pending
+confirmation), not horizon. The static fit-check stays at projection time; the
+running ledger is cross-repo and not owned here.
+
+## RAW and PRETTY split (horizon-next)
+
+In the new lojix/horizon-next stack, horizon splits into two layers:
+
+- **RAW horizon** — the core typed cluster-data model: the
+  `NodeService` enum, typed facts, architecture resolution, name and
+  key-line newtypes, cross-node fan-in, typed validation, and
+  secret-binding resolution. RAW stays clean and minimal so it can
+  later be promoted into a real component.
+- **PRETTY horizon** — the typed derive layer, computing pre-derived
+  variables in typed Rust rather than in Nix: behaves-as / gating
+  booleans, resolved magnitudes, lid-switch policy, and trust-gated
+  extra-groups. Nix consumes only already-derived variables.
+
+The split is also the forward-integration seam between the two
+layers. It applies **only** to the new lojix/horizon-next stack;
+production Stack A horizon stays as-is until cutover. The reasoning is
+to spend the cleanliness budget on the durable layer that outlives the
+bootstrap substrate — Nix, eventually replaced by forge — while
+unavoidable glue ugliness stays confined to that throwaway substrate.
 
 ## Boundaries
 
