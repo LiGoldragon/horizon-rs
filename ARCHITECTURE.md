@@ -166,7 +166,14 @@ hardware/safety facts; CriomOS renders them.
 ## VM hosting is cluster-data-generated
 
 The test-VM host carries an explicit `NodeService::VmHost` role — VM testing
-is cluster-data-generated, not cluster-specific. A host that runs test VMs
+is cluster-data-generated, not cluster-specific. The VM infrastructure targets
+real display/GPU/DRM-capable VMs — not headless wlroots, which lacks
+wlr-gamma-control — so CriomOS and visual/UI/GPU components (chroma is the
+first target) can be tested end-to-end: launch the real app, run the component,
+observe the actual visual effect (theme, warmth, brightness) while watching for
+freezes and errors. The stack is Nix-native and CI-automatable while remaining
+interactively viewable; sandboxes can run via systemd on a capable node such as
+Prometheus (Spirit `y1v5`). A host that runs test VMs
 declares a `VmHost` service (sibling to `NixBuilder`) carrying the
 cluster-authored host data the VM-test generator reads: the guest tap subnet
 (one sliced `TapSubnet` CIDR), KVM availability, and a maximum-guests ceiling.
