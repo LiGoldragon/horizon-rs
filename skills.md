@@ -69,8 +69,8 @@ The same Rust definition serves three audiences:
 Reordering, renaming, or retypifying any field on a public
 record is **a coordinated upstream-and-downstream change**:
 goldragon's `datom.nota` files must update; CriomOS Nix
-modules that read the JSON field must update; lojix-cli's
-pinned `horizon-rs` rev must bump in lockstep.
+modules that read the JSON field must update; Lojix's pinned
+`horizon-rs` rev must bump in lockstep.
 
 ---
 
@@ -227,11 +227,8 @@ silently defaulting.
 
 `horizon-cli --cluster <C> --node <N> < proposal.nota` is a
 debugging tool — it reads stdin, projects, prints JSON or
-nota. The real consumer is `lojix-cli`, which links
-`horizon-lib` in-process and feeds the projected horizon
-into the Nix flake-input pipeline (per
-[lojix-cli](https://github.com/LiGoldragon/lojix-cli)'s
-`ARCHITECTURE.md`).
+nota. The real consumer is Lojix, which uses the projected
+horizon as the per-node Nix flake-input payload for deploys.
 
 The Nota output mode is currently a stub
 (`Format::Nota` → "not implemented"); JSON is the
@@ -263,8 +260,7 @@ production output format.
 - `docs/DESIGN.md` — the projection spec.
 - `docs/BUILD_CORES.md` — the build-cores derivation
   rationale.
-- [lojix-cli](https://github.com/LiGoldragon/lojix-cli)'s
-  `skills.md` — the consumer of this projection.
+- Lojix's `skills.md` — the consumer of this projection.
 - primary's `skills/rust-discipline.md` — the Rust
   discipline this repo follows.
 - primary's `skills/system-specialist.md` — the role that

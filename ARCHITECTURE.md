@@ -1,8 +1,7 @@
 # ARCHITECTURE — horizon-rs
 
 The horizon projection library. Rust types and source files for
-nixos modules; linked in-process by
-[lojix-cli](https://github.com/LiGoldragon/lojix-cli)'s deploy path.
+nixos modules; consumed by Lojix's deploy projection path.
 
 ## Role
 
@@ -239,8 +238,7 @@ Owns:
 
 Does not own:
 
-- The deploy pipeline — that's
-  [lojix-cli](https://github.com/LiGoldragon/lojix-cli).
+- The deploy pipeline — that's Lojix.
 - The nixos-rebuild driver — also forge.
 - Sema records — though horizon-rs's role may eventually be
   absorbed into a records-authored projection over sema.
