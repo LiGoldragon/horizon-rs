@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use nota_next::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use nota::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::address::{Interface, LinkLocalIp, NodeIp, TapSubnet};

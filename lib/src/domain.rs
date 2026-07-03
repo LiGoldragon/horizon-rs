@@ -1,6 +1,6 @@
 //! Cluster domain configuration and derived domain names.
 
-use nota_next::{NotaDecode, NotaEncode};
+use nota::{NotaDecode, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::name::{ClusterName, CriomeDomainName, DomainName, NodeName, UserName};

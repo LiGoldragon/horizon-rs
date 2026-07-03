@@ -7,7 +7,7 @@ use std::process::ExitCode;
 use clap::Parser;
 use horizon_lib::name::{ClusterName, NodeName};
 use horizon_lib::{ClusterProposal, Viewpoint};
-use nota_next::NotaSource;
+use nota::NotaSource;
 
 #[derive(Parser)]
 #[command(

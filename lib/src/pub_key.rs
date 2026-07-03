@@ -9,7 +9,7 @@
 //! Derived line types (`SshPubKeyLine`, `NixPubKeyLine`) carry the
 //! pre-rendered string form used by downstream consumers.
 
-use nota_next::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};

@@ -1,7 +1,7 @@
 //! Typed name newtypes. Each kind of name is a distinct type so a
 //! `NodeName` cannot be confused with a `UserName` or a `ClusterName`.
 
-use nota_next::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};

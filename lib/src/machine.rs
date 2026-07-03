@@ -1,6 +1,6 @@
 //! Hardware description.
 
-use nota_next::{NotaDecode, NotaEncode};
+use nota::{NotaDecode, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::name::{ModelName, NodeName, UserName};

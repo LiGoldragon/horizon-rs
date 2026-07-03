@@ -9,7 +9,7 @@
 //! tells them whether a magnitude meets each threshold. This is the
 //! only public shape of magnitude-valued fields on `Node` / `User`.
 
-use nota_next::{NotaDecode, NotaEncode};
+use nota::{NotaDecode, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 #[derive(

@@ -997,7 +997,7 @@ fn project_rejects_multi_host_node_spanning_two_arches() {
 /// wire as a positional `[NodeName]` tail.
 #[test]
 fn machine_super_nodes_round_trips_through_nota_without_quotes() {
-    use nota_next::{NotaEncode, NotaSource};
+    use nota::{NotaEncode, NotaSource};
 
     let machine = Machine {
         species: MachineSpecies::Pod,

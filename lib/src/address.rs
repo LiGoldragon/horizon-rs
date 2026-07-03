@@ -4,7 +4,7 @@
 use std::net::Ipv6Addr;
 
 use ipnet::{IpNet, Ipv4Net};
-use nota_next::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};

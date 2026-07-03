@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 serde      = { workspace = true }
-nota-next  = { workspace = true }
+nota  = { workspace = true }
 thiserror  = { workspace = true }
 ipnet      = { workspace = true }

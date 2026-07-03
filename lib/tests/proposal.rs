@@ -23,7 +23,7 @@ use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
     Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies,
 };
-use nota_next::{NotaDecode, NotaEncode, NotaSource};
+use nota::{NotaDecode, NotaEncode, NotaSource};
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -108,7 +108,7 @@ fn cluster_proposal() -> ClusterProposal {
     }
 }
 
-fn decode<Value>(text: &str) -> Result<Value, nota_next::NotaDecodeError>
+fn decode<Value>(text: &str) -> Result<Value, nota::NotaDecodeError>
 where
     Value: NotaDecode,
 {
