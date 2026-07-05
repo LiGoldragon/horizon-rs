@@ -20,7 +20,7 @@ It does not:
 ## Wire format: NOTA in, JSON out
 
 The input is a cluster proposal in NOTA and decodes through
-`nota_next::{NotaDecode, NotaEncode}`. The output is enriched horizon
+`nota::{NotaDecode, NotaEncode}`. The output is enriched horizon
 JSON through serde/serde_json because Nix has `builtins.fromJSON` and
 does not have a NOTA reader. The same Rust types own both the typed
 proposal boundary and the JSON projection.
@@ -524,7 +524,7 @@ pub enum Error {
     MissingField(&'static str),
 
     #[error("nota: {0}")]
-    Nota(#[from] nota_next::NotaDecodeError),
+    Nota(#[from] nota::NotaDecodeError),
 }
 ```
 
@@ -552,7 +552,7 @@ None. horizon-cli is a one-shot pure function.
 
 ## Dependencies
 
-- `nota-next` — NOTA input value codec and derive macros.
+- `nota` — NOTA input value codec and derive macros.
 - `serde` (derive) + `serde_json` — JSON output mode (Nix consumption path).
 - `thiserror` — Error enum derive.
 - `clap` (derive) — CLI parsing.

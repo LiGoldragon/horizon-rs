@@ -1,7 +1,7 @@
 //! Tests for `proposal` — the input shapes goldragon emits as
 //! cluster-proposal nota.
 //!
-//! Round-trips a minimal proposal through `nota-next` and asserts
+//! Round-trips a minimal proposal through `nota` and asserts
 //! the typed fields decode at the right positions. Per the
 //! all-fields-explicit rule, every Optional position needs a token.
 
