@@ -160,7 +160,7 @@ fn user_proposal_rejects_quote_delimited_string() {
 
 #[test]
 fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
-    let text = "(Max {} {} {bird Medium li Max})";
+    let text = "(Max {} {} {bird.Medium li.Max})";
     let trust = decode::<ClusterTrust>(text).unwrap();
     assert!(matches!(trust.cluster, Magnitude::Max));
     let bird = UserName::try_new("bird").unwrap();
