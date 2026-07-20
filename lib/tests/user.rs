@@ -51,6 +51,7 @@ fn ctx(
         trust,
         viewpoint_behaves_as_center,
         viewpoint_node_size,
+        agent_intercom_gateway: None,
     }
 }
 

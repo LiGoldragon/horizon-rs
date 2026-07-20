@@ -37,7 +37,7 @@ impl ClusterProposal {
 
         let cluster_trust_floor = self.trust.cluster;
         self.validate_tailnet_controller_singleton(cluster_trust_floor)?;
-        self.validate_agent_intercom_topology(cluster_trust_floor)?;
+        let agent_intercom_gateway = self.validate_agent_intercom_topology(cluster_trust_floor)?;
         let domain_configuration = self
             .domain_configuration
             .with_cluster_defaults(&viewpoint.cluster);
@@ -104,6 +104,7 @@ impl ClusterProposal {
                 trust,
                 viewpoint_behaves_as_center,
                 viewpoint_node_size,
+                agent_intercom_gateway: agent_intercom_gateway.as_ref(),
             };
             users.insert(name.clone(), proposal.project(ctx));
         }
@@ -190,7 +191,10 @@ impl ClusterProposal {
     /// Agent Intercom needs no cluster data when it is absent. When one or
     /// more peers are present, exactly one trusted gateway supplies the
     /// relationship that consumers use to derive domains and transport.
-    fn validate_agent_intercom_topology(&self, cluster_trust_floor: Magnitude) -> Result<()> {
+    fn validate_agent_intercom_topology(
+        &self,
+        cluster_trust_floor: Magnitude,
+    ) -> Result<Option<NodeName>> {
         let mut gateway: Option<NodeName> = None;
         let mut peer_without_gateway: Option<NodeName> = None;
 
@@ -222,13 +226,13 @@ impl ClusterProposal {
             }
         }
 
-        if gateway.is_none() {
-            if let Some(peer) = peer_without_gateway {
-                return Err(Error::AgentIntercomPeerWithoutGateway { peer });
-            }
+        if gateway.is_none()
+            && let Some(peer) = peer_without_gateway
+        {
+            return Err(Error::AgentIntercomPeerWithoutGateway { peer });
         }
 
-        Ok(())
+        Ok(gateway)
     }
 
     /// `min(input_trust, self.trust.nodes[name], cluster_trust)`.

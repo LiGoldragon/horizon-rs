@@ -45,6 +45,10 @@ pub struct User {
     pub ssh_pub_keys: Vec<SshPubKeyLine>,
     /// Viewpoint-node line, only when has_pub_key.
     pub ssh_pub_key: Option<SshPubKeyLine>,
+    /// The user's public key for the projected Agent Intercom gateway, when
+    /// that gateway role and identity are declared. Peer hosts use this
+    /// non-secret identity to authorize the gateway's reverse socket tunnel.
+    pub agent_intercom_gateway_ssh_pub_key: Option<SshPubKeyLine>,
 
     // derived node-contextual fields (depend on the viewpoint node role
     // as well as the user's trust level)
@@ -74,6 +78,9 @@ pub struct UserProjection<'a> {
     /// Mirrors archive behavior (mkHorizonModule.nix `lowestOf [
     /// inputUser.size node.size ]`) which was lost in the Rust port.
     pub viewpoint_node_size: Magnitude,
+    /// The unique trusted Agent Intercom gateway validated by the cluster
+    /// projection, if Agent Intercom roles are absent.
+    pub agent_intercom_gateway: Option<&'a NodeName>,
 }
 
 impl UserProposal {
@@ -87,6 +94,10 @@ impl UserProposal {
         let has_pub_key = viewpoint_entry.is_some();
         let git_signing_key = viewpoint_entry.map(|e| format!("&{}", e.keygrip));
         let ssh_pub_key = viewpoint_entry.map(|e| e.ssh.line());
+        let agent_intercom_gateway_ssh_pub_key = ctx
+            .agent_intercom_gateway
+            .and_then(|gateway| self.pub_keys.get(gateway))
+            .map(|entry| entry.ssh.line());
 
         let ssh_pub_keys: Vec<SshPubKeyLine> =
             self.pub_keys.values().map(|e| e.ssh.line()).collect();
@@ -144,6 +155,7 @@ impl UserProposal {
             text_size: self.text_size.unwrap_or_default(),
             ssh_pub_keys,
             ssh_pub_key,
+            agent_intercom_gateway_ssh_pub_key,
             extra_groups,
             enable_linger,
 

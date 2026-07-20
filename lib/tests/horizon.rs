@@ -372,6 +372,36 @@ fn project_accepts_one_gateway_and_multiple_peers() {
 }
 
 #[test]
+fn project_derives_gateway_ssh_key_for_agent_intercom_identity() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    proposal
+        .nodes
+        .get_mut(&NodeName::try_new("ouranos").unwrap())
+        .unwrap()
+        .services
+        .push(agent_intercom_gateway_service());
+    proposal
+        .nodes
+        .get_mut(&NodeName::try_new("prometheus").unwrap())
+        .unwrap()
+        .services
+        .push(agent_intercom_peer_service());
+
+    let horizon = proposal.project(&viewpoint("prometheus")).unwrap();
+    let user = horizon
+        .users
+        .get(&UserName::try_new("li").unwrap())
+        .unwrap();
+
+    assert_eq!(
+        user.agent_intercom_gateway_ssh_pub_key
+            .as_ref()
+            .map(|key| key.as_str()),
+        Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA")
+    );
+}
+
+#[test]
 fn project_rejects_multiple_agent_intercom_gateways() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     for name in ["ouranos", "prometheus"] {
