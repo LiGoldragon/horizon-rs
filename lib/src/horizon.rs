@@ -37,6 +37,7 @@ impl ClusterProposal {
 
         let cluster_trust_floor = self.trust.cluster;
         self.validate_tailnet_controller_singleton(cluster_trust_floor)?;
+        self.validate_agent_intercom_topology(cluster_trust_floor)?;
         let domain_configuration = self
             .domain_configuration
             .with_cluster_defaults(&viewpoint.cluster);
@@ -181,6 +182,50 @@ impl ClusterProposal {
             }
 
             server = Some(name.clone());
+        }
+
+        Ok(())
+    }
+
+    /// Agent Intercom needs no cluster data when it is absent. When one or
+    /// more peers are present, exactly one trusted gateway supplies the
+    /// relationship that consumers use to derive domains and transport.
+    fn validate_agent_intercom_topology(&self, cluster_trust_floor: Magnitude) -> Result<()> {
+        let mut gateway: Option<NodeName> = None;
+        let mut peer_without_gateway: Option<NodeName> = None;
+
+        for (name, proposal) in &self.nodes {
+            let trust = self.node_trust(name, proposal.trust, cluster_trust_floor);
+            if matches!(trust, Magnitude::Zero) {
+                continue;
+            }
+
+            let is_gateway = proposal.has_service(NodeServiceKind::AgentIntercomGateway);
+            let is_peer = proposal.has_service(NodeServiceKind::AgentIntercomPeer);
+
+            if is_gateway && is_peer {
+                return Err(Error::AgentIntercomConflictingRoles { node: name.clone() });
+            }
+
+            if is_gateway {
+                if let Some(first) = gateway.as_ref() {
+                    return Err(Error::MultipleAgentIntercomGateways {
+                        first: first.clone(),
+                        second: name.clone(),
+                    });
+                }
+                gateway = Some(name.clone());
+            }
+
+            if is_peer {
+                peer_without_gateway = Some(name.clone());
+            }
+        }
+
+        if gateway.is_none() {
+            if let Some(peer) = peer_without_gateway {
+                return Err(Error::AgentIntercomPeerWithoutGateway { peer });
+            }
         }
 
         Ok(())

@@ -149,6 +149,15 @@ catalog, runtime config). The selection authors per cluster; the
 implementation does not. Split composites along the bucket
 boundary.
 
+Agent Intercom uses the same rule. `AgentIntercomGateway` is the one
+cluster service role that accepts authenticated remote peers;
+`AgentIntercomPeer` is an additive role whose gateway relationship is derived
+from that singleton. The proposal does not carry hostnames, ports, socket
+paths, SSH settings, enrollment tokens, reconnect credentials, or adapter
+configuration. Projection rejects multiple gateways, a peer without a gateway,
+and a node that declares both roles. CriomOS and CriomOS-home derive domains
+and transport from the projected nodes and own the implementation.
+
 The full audit driving this rule lives in primary's
 `reports/designer/207-horizon-boundary-audit-and-lean-down-plan-2026-05-17.md`;
 the brainstorm for the pan-horizon authored config is in
