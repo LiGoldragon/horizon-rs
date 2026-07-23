@@ -149,14 +149,15 @@ catalog, runtime config). The selection authors per cluster; the
 implementation does not. Split composites along the bucket
 boundary.
 
-Agent Intercom uses the same rule. `AgentIntercomGateway` is the one
-cluster service role that accepts authenticated remote peers;
-`AgentIntercomPeer` is an additive role whose gateway relationship is derived
-from that singleton. The proposal does not carry hostnames, ports, socket
-paths, SSH settings, enrollment tokens, reconnect credentials, or adapter
-configuration. Projection rejects multiple gateways, a peer without a gateway,
-and a node that declares both roles. CriomOS and CriomOS-home derive domains
-and transport from the projected nodes and own the implementation.
+Agent Intercom uses the same rule. `AgentIntercomLocal` is required on every
+trusted node and means the node runs only its own local broker and adapters.
+`AgentIntercomGraphical` is an additive capability for nodes with a graphical
+session; it permits CriomOS and CriomOS-home to configure graphical prerequisites
+without inferring them from a node name. The proposal carries neither topology
+nor hostnames, ports, socket paths, SSH settings, identities, enrollment,
+credentials, pairing, or adapter configuration. Projection rejects a trusted
+node without the local capability and a graphical capability without local
+Agent Intercom. CriomOS and CriomOS-home own the local implementation.
 
 The full audit driving this rule lives in primary's
 `reports/designer/207-horizon-boundary-audit-and-lean-down-plan-2026-05-17.md`;

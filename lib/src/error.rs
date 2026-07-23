@@ -50,14 +50,11 @@ pub enum Error {
     #[error("multiple tailnet controller servers: {first:?} and {second:?}")]
     MultipleTailnetControllers { first: NodeName, second: NodeName },
 
-    #[error("multiple Agent Intercom gateways: {first:?} and {second:?}")]
-    MultipleAgentIntercomGateways { first: NodeName, second: NodeName },
+    #[error("trusted node {node:?} lacks the required local Agent Intercom capability")]
+    AgentIntercomLocalCapabilityMissing { node: NodeName },
 
-    #[error("Agent Intercom peer {peer:?} has no Agent Intercom gateway")]
-    AgentIntercomPeerWithoutGateway { peer: NodeName },
-
-    #[error("node {node:?} cannot be both an Agent Intercom gateway and peer")]
-    AgentIntercomConflictingRoles { node: NodeName },
+    #[error("graphical Agent Intercom capability on {node:?} requires local Agent Intercom")]
+    AgentIntercomGraphicalRequiresLocal { node: NodeName },
 
     #[error("pod node {0:?} references missing super-node {1:?}")]
     MissingSuperNode(NodeName, NodeName),

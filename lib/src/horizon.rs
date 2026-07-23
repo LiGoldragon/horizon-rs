@@ -37,7 +37,7 @@ impl ClusterProposal {
 
         let cluster_trust_floor = self.trust.cluster;
         self.validate_tailnet_controller_singleton(cluster_trust_floor)?;
-        let agent_intercom_gateway = self.validate_agent_intercom_topology(cluster_trust_floor)?;
+        self.validate_agent_intercom_capabilities(cluster_trust_floor)?;
         let domain_configuration = self
             .domain_configuration
             .with_cluster_defaults(&viewpoint.cluster);
@@ -104,7 +104,6 @@ impl ClusterProposal {
                 trust,
                 viewpoint_behaves_as_center,
                 viewpoint_node_size,
-                agent_intercom_gateway: agent_intercom_gateway.as_ref(),
             };
             users.insert(name.clone(), proposal.project(ctx));
         }
@@ -188,51 +187,27 @@ impl ClusterProposal {
         Ok(())
     }
 
-    /// Agent Intercom needs no cluster data when it is absent. When one or
-    /// more peers are present, exactly one trusted gateway supplies the
-    /// relationship that consumers use to derive domains and transport.
-    fn validate_agent_intercom_topology(
-        &self,
-        cluster_trust_floor: Magnitude,
-    ) -> Result<Option<NodeName>> {
-        let mut gateway: Option<NodeName> = None;
-        let mut peer_without_gateway: Option<NodeName> = None;
-
+    /// Agent Intercom is a host-local baseline. Every trusted node declares
+    /// the local capability; graphical capability is an additive semantic fact
+    /// and cannot exist without it. No topology, gateway, peer, identity, or
+    /// transport relationship is projected.
+    fn validate_agent_intercom_capabilities(&self, cluster_trust_floor: Magnitude) -> Result<()> {
         for (name, proposal) in &self.nodes {
             let trust = self.node_trust(name, proposal.trust, cluster_trust_floor);
             if matches!(trust, Magnitude::Zero) {
                 continue;
             }
 
-            let is_gateway = proposal.has_service(NodeServiceKind::AgentIntercomGateway);
-            let is_peer = proposal.has_service(NodeServiceKind::AgentIntercomPeer);
-
-            if is_gateway && is_peer {
-                return Err(Error::AgentIntercomConflictingRoles { node: name.clone() });
+            let is_local = proposal.has_service(NodeServiceKind::AgentIntercomLocal);
+            let is_graphical = proposal.has_service(NodeServiceKind::AgentIntercomGraphical);
+            if is_graphical && !is_local {
+                return Err(Error::AgentIntercomGraphicalRequiresLocal { node: name.clone() });
             }
-
-            if is_gateway {
-                if let Some(first) = gateway.as_ref() {
-                    return Err(Error::MultipleAgentIntercomGateways {
-                        first: first.clone(),
-                        second: name.clone(),
-                    });
-                }
-                gateway = Some(name.clone());
-            }
-
-            if is_peer {
-                peer_without_gateway = Some(name.clone());
+            if !is_local {
+                return Err(Error::AgentIntercomLocalCapabilityMissing { node: name.clone() });
             }
         }
-
-        if gateway.is_none()
-            && let Some(peer) = peer_without_gateway
-        {
-            return Err(Error::AgentIntercomPeerWithoutGateway { peer });
-        }
-
-        Ok(gateway)
+        Ok(())
     }
 
     /// `min(input_trust, self.trust.nodes[name], cluster_trust)`.

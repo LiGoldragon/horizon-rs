@@ -63,12 +63,12 @@ fn tailnet_controller_service() -> NodeService {
     NodeService::TailnetController {}
 }
 
-fn agent_intercom_gateway_service() -> NodeService {
-    NodeService::AgentIntercomGateway {}
+fn agent_intercom_local_service() -> NodeService {
+    NodeService::AgentIntercomLocal {}
 }
 
-fn agent_intercom_peer_service() -> NodeService {
-    NodeService::AgentIntercomPeer {}
+fn agent_intercom_graphical_service() -> NodeService {
+    NodeService::AgentIntercomGraphical {}
 }
 
 fn pub_keys(nix: bool, ygg: bool) -> NodePubKeys {
@@ -101,7 +101,7 @@ fn node_proposal(species: NodeSpecies, size: Magnitude, full_keys: bool) -> Node
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        services: Vec::new(),
+        services: vec![agent_intercom_local_service()],
     }
 }
 
@@ -334,153 +334,91 @@ fn project_rejects_multiple_active_tailnet_controller_servers() {
 }
 
 #[test]
-fn project_accepts_no_agent_intercom_roles() {
+fn project_accepts_local_agent_intercom_on_every_trusted_node() {
     let proposal = cluster_proposal(Magnitude::Max);
-    assert!(proposal.project(&viewpoint("ouranos")).is_ok());
+    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    assert!(
+        horizon
+            .node
+            .services
+            .contains(&agent_intercom_local_service())
+    );
+    assert!(
+        horizon.ex_nodes[&NodeName::try_new("prometheus").unwrap()]
+            .services
+            .contains(&agent_intercom_local_service())
+    );
 }
 
 #[test]
-fn project_accepts_one_gateway_and_multiple_peers() {
+fn project_preserves_graphical_agent_intercom_capability() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     proposal
         .nodes
         .get_mut(&NodeName::try_new("ouranos").unwrap())
         .unwrap()
         .services
-        .push(agent_intercom_gateway_service());
-    for name in ["prometheus", "zeus"] {
-        proposal
-            .nodes
-            .get_mut(&NodeName::try_new(name).unwrap())
-            .unwrap()
-            .services
-            .push(agent_intercom_peer_service());
-    }
+        .push(agent_intercom_graphical_service());
 
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
     assert!(
         horizon
             .node
             .services
-            .contains(&agent_intercom_gateway_service())
-    );
-    assert!(
-        horizon.ex_nodes[&NodeName::try_new("prometheus").unwrap()]
-            .services
-            .contains(&agent_intercom_peer_service())
+            .contains(&agent_intercom_graphical_service())
     );
 }
 
 #[test]
-fn project_derives_gateway_ssh_key_for_agent_intercom_identity() {
-    let mut proposal = cluster_proposal(Magnitude::Max);
-    proposal
-        .nodes
-        .get_mut(&NodeName::try_new("ouranos").unwrap())
-        .unwrap()
-        .services
-        .push(agent_intercom_gateway_service());
-    proposal
-        .nodes
-        .get_mut(&NodeName::try_new("prometheus").unwrap())
-        .unwrap()
-        .services
-        .push(agent_intercom_peer_service());
-
-    let horizon = proposal.project(&viewpoint("prometheus")).unwrap();
-    let user = horizon
-        .users
-        .get(&UserName::try_new("li").unwrap())
-        .unwrap();
-
-    assert_eq!(
-        user.agent_intercom_gateway_ssh_pub_key
-            .as_ref()
-            .map(|key| key.as_str()),
-        Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA")
-    );
-}
-
-#[test]
-fn project_rejects_multiple_agent_intercom_gateways() {
-    let mut proposal = cluster_proposal(Magnitude::Max);
-    for name in ["ouranos", "prometheus"] {
-        proposal
-            .nodes
-            .get_mut(&NodeName::try_new(name).unwrap())
-            .unwrap()
-            .services
-            .push(agent_intercom_gateway_service());
-    }
-
-    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
-    assert!(matches!(
-        error,
-        Error::MultipleAgentIntercomGateways { first, second }
-            if first.as_str() == "ouranos" && second.as_str() == "prometheus"
-    ));
-}
-
-#[test]
-fn project_rejects_agent_intercom_peer_without_gateway() {
+fn project_rejects_trusted_node_without_local_agent_intercom() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     proposal
         .nodes
         .get_mut(&NodeName::try_new("prometheus").unwrap())
         .unwrap()
         .services
-        .push(agent_intercom_peer_service());
+        .clear();
 
     let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
     assert!(matches!(
         error,
-        Error::AgentIntercomPeerWithoutGateway { peer } if peer.as_str() == "prometheus"
+        Error::AgentIntercomLocalCapabilityMissing { node } if node.as_str() == "prometheus"
     ));
 }
 
 #[test]
-fn project_rejects_agent_intercom_node_with_conflicting_roles() {
+fn project_rejects_graphical_agent_intercom_without_local_capability() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     let services = &mut proposal
         .nodes
         .get_mut(&NodeName::try_new("ouranos").unwrap())
         .unwrap()
         .services;
-    services.push(agent_intercom_gateway_service());
-    services.push(agent_intercom_peer_service());
+    services.clear();
+    services.push(agent_intercom_graphical_service());
 
     let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
     assert!(matches!(
         error,
-        Error::AgentIntercomConflictingRoles { node } if node.as_str() == "ouranos"
+        Error::AgentIntercomGraphicalRequiresLocal { node } if node.as_str() == "ouranos"
     ));
 }
 
 #[test]
-fn project_ignores_zero_trust_agent_intercom_gateway_for_peer_validation() {
+fn project_ignores_zero_trust_node_without_local_agent_intercom() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     proposal
         .nodes
-        .get_mut(&NodeName::try_new("ouranos").unwrap())
+        .get_mut(&NodeName::try_new("zeus").unwrap())
         .unwrap()
         .services
-        .push(agent_intercom_gateway_service());
-    proposal
-        .nodes
-        .get_mut(&NodeName::try_new("prometheus").unwrap())
-        .unwrap()
-        .services
-        .push(agent_intercom_peer_service());
+        .clear();
     proposal
         .trust
         .nodes
-        .insert(NodeName::try_new("ouranos").unwrap(), Magnitude::Zero);
+        .insert(NodeName::try_new("zeus").unwrap(), Magnitude::Zero);
 
-    let error = proposal.project(&viewpoint("prometheus")).unwrap_err();
-    assert!(matches!(
-        error,
-        Error::AgentIntercomPeerWithoutGateway { peer } if peer.as_str() == "prometheus"
-    ));
+    assert!(proposal.project(&viewpoint("ouranos")).is_ok());
 }
 
 #[test]
@@ -501,7 +439,10 @@ fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
 
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
 
-    assert_eq!(horizon.node.services, vec![tailnet_controller_service()]);
+    assert_eq!(
+        horizon.node.services,
+        vec![agent_intercom_local_service(), tailnet_controller_service()]
+    );
     assert!(
         !horizon
             .ex_nodes
@@ -650,7 +591,10 @@ fn cloud_node_metal() -> NodeProposal {
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        services: vec![NodeService::TailnetClient {}],
+        services: vec![
+            agent_intercom_local_service(),
+            NodeService::TailnetClient {},
+        ],
     }
 }
 
@@ -742,7 +686,10 @@ fn test_vm_pod() -> NodeProposal {
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        services: vec![NodeService::TailnetClient {}],
+        services: vec![
+            agent_intercom_local_service(),
+            NodeService::TailnetClient {},
+        ],
     }
 }
 

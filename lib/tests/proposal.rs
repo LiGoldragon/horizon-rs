@@ -233,22 +233,23 @@ fn service_vector_decodes_tailnet_controller_without_parameters() {
 }
 
 #[test]
-fn agent_intercom_roles_decode_without_transport_details_and_round_trip() {
+fn agent_intercom_capabilities_decode_without_topology_and_round_trip() {
     let services =
-        decode::<Vec<NodeService>>("[(AgentIntercomGateway) (AgentIntercomPeer)]").unwrap();
+        decode::<Vec<NodeService>>("[(AgentIntercomLocal) (AgentIntercomGraphical)]").unwrap();
 
     assert_eq!(
         services,
         vec![
-            NodeService::AgentIntercomGateway {},
-            NodeService::AgentIntercomPeer {},
+            NodeService::AgentIntercomLocal {},
+            NodeService::AgentIntercomGraphical {},
         ]
     );
 
     let encoded = services.to_nota();
-    assert_eq!(encoded, "[(AgentIntercomGateway) (AgentIntercomPeer)]");
+    assert_eq!(encoded, "[(AgentIntercomLocal) (AgentIntercomGraphical)]");
     assert!(!encoded.contains("sock"));
     assert!(!encoded.contains("ssh"));
+    assert!(!encoded.contains("gateway"));
 }
 
 #[test]
