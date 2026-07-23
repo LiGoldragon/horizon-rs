@@ -253,6 +253,17 @@ fn agent_intercom_capabilities_decode_without_topology_and_round_trip() {
 }
 
 #[test]
+fn discarded_agent_intercom_remote_roles_are_rejected() {
+    for discarded_role in ["AgentIntercomGateway", "AgentIntercomPeer"] {
+        let error = decode::<Vec<NodeService>>(&format!("[({discarded_role})]")).unwrap_err();
+        assert!(
+            error.to_string().contains(discarded_role),
+            "discarded role must be rejected by name: {error}"
+        );
+    }
+}
+
+#[test]
 fn persona_development_decodes_as_nested_capability_vector() {
     let text = "[(PersonaDevelopment [(GitoliteServer)])]";
     let services = decode::<Vec<NodeService>>(text).unwrap();
