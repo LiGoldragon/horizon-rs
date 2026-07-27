@@ -175,6 +175,8 @@ pub struct NodeProposal {
 }
 
 pub enum NodeService {
+    AgentIntercomLocal {},
+    AgentIntercomGraphical {},
     TailnetClient {},
     TailnetController {},
     NixBuilder { maximum_jobs: Option<u32> },

@@ -219,6 +219,24 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
 }
 
 #[test]
+fn agent_intercom_services_decode_without_parameters_and_round_trip() {
+    let services =
+        decode::<Vec<NodeService>>("[(AgentIntercomLocal) (AgentIntercomGraphical)]").unwrap();
+
+    assert_eq!(
+        services,
+        vec![
+            NodeService::AgentIntercomLocal {},
+            NodeService::AgentIntercomGraphical {},
+        ]
+    );
+    assert_eq!(
+        services.to_nota(),
+        "[(AgentIntercomLocal) (AgentIntercomGraphical)]"
+    );
+}
+
+#[test]
 fn service_vector_decodes_tailnet_controller_without_parameters() {
     let text = "[(TailnetClient) (TailnetController)]";
     let services = decode::<Vec<NodeService>>(text).unwrap();
