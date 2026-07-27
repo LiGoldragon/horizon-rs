@@ -121,10 +121,6 @@ pub struct NodeProposal {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all_fields = "camelCase")]
 pub enum NodeService {
-    /// Provide the local Agent Intercom command and transport surface.
-    AgentIntercomLocal {},
-    /// Provide Agent Intercom's graphical integration surface.
-    AgentIntercomGraphical {},
     /// Join the cluster tailnet. CriomOS currently renders this with
     /// Tailscale.
     TailnetClient {},
@@ -312,8 +308,6 @@ pub enum PersonaDevelopmentCapability {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeServiceKind {
-    AgentIntercomLocal,
-    AgentIntercomGraphical,
     TailnetClient,
     TailnetController,
     AgentIntercomLocal,
@@ -333,8 +327,6 @@ pub enum PersonaDevelopmentCapabilityKind {
 impl NodeService {
     pub fn kind(&self) -> NodeServiceKind {
         match self {
-            Self::AgentIntercomLocal {} => NodeServiceKind::AgentIntercomLocal,
-            Self::AgentIntercomGraphical {} => NodeServiceKind::AgentIntercomGraphical,
             Self::TailnetClient {} => NodeServiceKind::TailnetClient,
             Self::TailnetController {} => NodeServiceKind::TailnetController,
             Self::AgentIntercomLocal {} => NodeServiceKind::AgentIntercomLocal,
@@ -403,12 +395,6 @@ impl NodeService {
 impl NotaEncode for NodeService {
     fn to_nota(&self) -> String {
         match self {
-            NodeService::AgentIntercomLocal {} => {
-                Delimiter::Parenthesis.wrap(["AgentIntercomLocal".to_owned()])
-            }
-            NodeService::AgentIntercomGraphical {} => {
-                Delimiter::Parenthesis.wrap(["AgentIntercomGraphical".to_owned()])
-            }
             NodeService::TailnetClient {} => {
                 Delimiter::Parenthesis.wrap(["TailnetClient".to_owned()])
             }
@@ -454,14 +440,6 @@ impl NotaDecode for NodeService {
             },
         )?;
         let service = match variant {
-            "AgentIntercomLocal" => {
-                Self::expect_service_arity(fields, variant, 1)?;
-                NodeService::AgentIntercomLocal {}
-            }
-            "AgentIntercomGraphical" => {
-                Self::expect_service_arity(fields, variant, 1)?;
-                NodeService::AgentIntercomGraphical {}
-            }
             "TailnetClient" => {
                 Self::expect_service_arity(fields, variant, 1)?;
                 NodeService::TailnetClient {}
@@ -528,8 +506,6 @@ impl NodeService {
         if fields.len() != expected {
             return Err(NotaDecodeError::ExpectedRootCount {
                 type_name: match variant {
-                    "AgentIntercomLocal" => "AgentIntercomLocal",
-                    "AgentIntercomGraphical" => "AgentIntercomGraphical",
                     "TailnetClient" => "TailnetClient",
                     "TailnetController" => "TailnetController",
                     "AgentIntercomLocal" => "AgentIntercomLocal",
