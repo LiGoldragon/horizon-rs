@@ -50,9 +50,6 @@ pub enum Error {
     #[error("multiple tailnet controller servers: {first:?} and {second:?}")]
     MultipleTailnetControllers { first: NodeName, second: NodeName },
 
-    #[error("trusted node {node:?} lacks the required local Agent Intercom capability")]
-    AgentIntercomLocalCapabilityMissing { node: NodeName },
-
     #[error("graphical Agent Intercom capability on {node:?} requires local Agent Intercom")]
     AgentIntercomGraphicalRequiresLocal { node: NodeName },
 

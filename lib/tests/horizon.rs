@@ -370,7 +370,7 @@ fn project_preserves_graphical_agent_intercom_capability() {
 }
 
 #[test]
-fn project_rejects_trusted_node_without_local_agent_intercom() {
+fn project_allows_trusted_node_without_agent_intercom() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     proposal
         .nodes
@@ -379,11 +379,12 @@ fn project_rejects_trusted_node_without_local_agent_intercom() {
         .services
         .clear();
 
-    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
-    assert!(matches!(
-        error,
-        Error::AgentIntercomLocalCapabilityMissing { node } if node.as_str() == "prometheus"
-    ));
+    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
+    assert!(
+        !horizon.ex_nodes[&NodeName::try_new("prometheus").unwrap()]
+            .services
+            .contains(&agent_intercom_local_service())
+    );
 }
 
 #[test]
