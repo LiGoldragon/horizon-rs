@@ -1,12 +1,12 @@
 # horizon-rs — design
 
 The spec horizon-rs is built against. Integration tests against the
-goldragon `datom.nota` are pending (tracked in beads — fixture lives in
+goldragon `datom.dotos` are pending (tracked in beads — fixture lives in
 the goldragon repo, not here).
 
 ## Scope
 
-horizon-rs takes a **cluster proposal** (the goldragon nota) and a
+horizon-rs takes a **cluster proposal** (the goldragon dotos) and a
 viewpoint `(cluster, node)`, and produces an **enriched horizon**: the
 viewpoint node's view of its cluster + node + exNodes + users with
 every computed field already filled in.
@@ -17,12 +17,12 @@ It does not:
 - read any environment / filesystem state,
 - emit anything other than enriched horizon JSON.
 
-## Wire format: NOTA in, JSON out
+## Wire format: DOTOS in, JSON out
 
-The input is a cluster proposal in NOTA and decodes through
-`nota::{NotaDecode, NotaEncode}`. The output is enriched horizon
+The input is a cluster proposal in DOTOS and decodes through
+`dotos::{DotosDecode, DotosEncode}`. The output is enriched horizon
 JSON through serde/serde_json because Nix has `builtins.fromJSON` and
-does not have a NOTA reader. The same Rust types own both the typed
+does not have a DOTOS reader. The same Rust types own both the typed
 proposal boundary and the JSON projection.
 
 ## Schema rules
@@ -127,7 +127,7 @@ pub enum DomainSpecies { Cloudflare }
 ```
 
 Variants serialize as their natural Rust spelling (PascalCase) per the
-nota identifier convention. No serde rename annotations on enums.
+dotos identifier convention. No serde rename andotostions on enums.
 
 ## `Magnitude`
 
@@ -144,7 +144,7 @@ impl Magnitude {
 
 ## Input shape — `proposal::ClusterProposal`
 
-The nota schema goldragon emits.
+The dotos schema goldragon emits.
 
 ```rust
 pub struct ClusterProposal {
@@ -525,22 +525,22 @@ pub enum Error {
     #[error("missing field: {0}")]
     MissingField(&'static str),
 
-    #[error("nota: {0}")]
-    Nota(#[from] nota::NotaDecodeError),
+    #[error("dotos: {0}")]
+    Dotos(#[from] dotos::DotosDecodeError),
 }
 ```
 
 ## CLI
 
 ```
-horizon-cli --cluster <CLUSTER> --node <NODE> < proposal.nota > horizon.json
+horizon-cli --cluster <CLUSTER> --node <NODE> < proposal.dotos > horizon.json
 ```
 
-- Reads cluster proposal **nota** from stdin (always nota — that's the
+- Reads cluster proposal **dotos** from stdin (always dotos — that's the
   source-of-truth format).
 - Writes the enriched horizon JSON to stdout. JSON is the format Nix
   consumers ask for, since `builtins.fromJSON` exists in Nix and
-  `builtins.fromNota` does not.
+  `builtins.fromDotos` does not.
 - Exit codes: `0` success, `1` projection error, `2` usage error.
 - `clap` derive. `main` is the only free function in the binary.
 
@@ -554,7 +554,7 @@ None. horizon-cli is a one-shot pure function.
 
 ## Dependencies
 
-- `nota` — NOTA input value codec and derive macros.
+- `dotos` — DOTOS input value codec and derive macros.
 - `serde` (derive) + `serde_json` — JSON output mode (Nix consumption path).
 - `thiserror` — Error enum derive.
 - `clap` (derive) — CLI parsing.
@@ -565,13 +565,13 @@ None. horizon-cli is a one-shot pure function.
 ## Status
 
 Phase 1 implemented (unit tests only). End-to-end: `horizon-cli
---cluster <C> --node <N>` reads cluster proposal nota on stdin and
+--cluster <C> --node <N>` reads cluster proposal dotos on stdin and
 writes enriched horizon JSON on stdout. Integration tests against
-goldragon's `datom.nota` are pending the goldragon nota conversion.
+goldragon's `datom.dotos` are pending the goldragon dotos conversion.
 
 Next phases:
 
-- Goldragon datom in nota: convert `goldragon/datom.nix` into a nota
+- Goldragon datom in dotos: convert `goldragon/datom.nix` into a dotos
   proposal that horizon-cli can consume directly.
 - Nix consumer: wire CriomOS's `lib.mkHorizon` to invoke horizon-cli
   via an IFD derivation, replacing the pure-Nix horizon derivation.

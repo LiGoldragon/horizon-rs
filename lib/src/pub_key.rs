@@ -9,7 +9,7 @@
 //! Derived line types (`SshPubKeyLine`, `NixPubKeyLine`) carry the
 //! pre-rendered string form used by downstream consumers.
 
-use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};
@@ -77,10 +77,10 @@ impl SshPubKey {
     }
 }
 
-impl NotaDecode for SshPubKey {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let value = NotaBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+impl DotosDecode for SshPubKey {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let value = DotosBlock::new(block).parse_string()?;
+        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
             type_name: "SshPubKey",
             value,
             reason: error.to_string(),
@@ -88,9 +88,9 @@ impl NotaDecode for SshPubKey {
     }
 }
 
-impl NotaEncode for SshPubKey {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for SshPubKey {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
@@ -129,10 +129,10 @@ impl YggPubKey {
     }
 }
 
-impl NotaDecode for YggPubKey {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let value = NotaBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+impl DotosDecode for YggPubKey {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let value = DotosBlock::new(block).parse_string()?;
+        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
             type_name: "YggPubKey",
             value,
             reason: error.to_string(),
@@ -140,9 +140,9 @@ impl NotaDecode for YggPubKey {
     }
 }
 
-impl NotaEncode for YggPubKey {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for YggPubKey {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
@@ -185,10 +185,10 @@ impl NixPubKey {
     }
 }
 
-impl NotaDecode for NixPubKey {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let value = NotaBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+impl DotosDecode for NixPubKey {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let value = DotosBlock::new(block).parse_string()?;
+        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
             type_name: "NixPubKey",
             value,
             reason: error.to_string(),
@@ -196,9 +196,9 @@ impl NotaDecode for NixPubKey {
     }
 }
 
-impl NotaEncode for NixPubKey {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for NixPubKey {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
@@ -237,10 +237,10 @@ impl WireguardPubKey {
     }
 }
 
-impl NotaDecode for WireguardPubKey {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let value = NotaBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+impl DotosDecode for WireguardPubKey {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let value = DotosBlock::new(block).parse_string()?;
+        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
             type_name: "WireguardPubKey",
             value,
             reason: error.to_string(),
@@ -248,9 +248,9 @@ impl NotaDecode for WireguardPubKey {
     }
 }
 
-impl NotaEncode for WireguardPubKey {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for WireguardPubKey {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 
@@ -262,7 +262,7 @@ impl From<WireguardPubKey> for String {
 
 /// Pre-rendered SSH known-hosts / authorized_keys line:
 /// `ssh-ed25519 <pubKey>`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct SshPubKeyLine(String);
 
@@ -280,7 +280,7 @@ impl std::fmt::Display for SshPubKeyLine {
 
 /// Pre-rendered nix `trusted-public-keys` entry:
 /// `<criomeDomain>:<rawNixPubKey>`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct NixPubKeyLine(String);
 

@@ -1,4 +1,4 @@
-//! Input shape: what goldragon emits as a nota cluster proposal.
+//! Input shape: what goldragon emits as a dotos cluster proposal.
 //!
 //! `ClusterProposal::project(viewpoint)` is the single entry-point;
 //! it produces the typed `Horizon`. Proposal types carry only raw
@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use nota::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, Delimiter, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::address::{Interface, LinkLocalIp, NodeIp, TapSubnet};
@@ -22,7 +22,7 @@ use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
 
 /// The proposal a cluster owner emits.
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct ClusterProposal {
     #[serde(default)]
@@ -37,11 +37,11 @@ pub struct ClusterProposal {
     ///
     /// The `#[serde(default)]` applies ONLY to serde/JSON decoding
     /// (e.g. `horizon.json`); it does NOT make this field optional for
-    /// NOTA datom decoding. The `NotaDecode` derive is strictly
+    /// DOTOS datom decoding. The `DotosDecode` derive is strictly
     /// positional and count-strict: it hard-equality-checks the root
     /// field count (see the derive's `objects.len() != field_count`
-    /// guard, surfaced as `NotaDecodeError::ExpectedRootCount`), so a
-    /// NOTA record that is one field short or long is a HARD decode
+    /// guard, surfaced as `DotosDecodeError::ExpectedRootCount`), so a
+    /// DOTOS record that is one field short or long is a HARD decode
     /// error, never a silent default-fill. Adding a tail field is
     /// therefore a BREAKING datom-schema change: every datom AND every
     /// daemon's horizon pin must move together.
@@ -49,7 +49,7 @@ pub struct ClusterProposal {
     pub domain_configuration: DomainConfiguration,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeProposal {
     pub species: NodeSpecies,
@@ -75,15 +75,15 @@ pub struct NodeProposal {
     /// Operator opt-in for the printer driver bundle (hplip, samsung,
     /// epson, gutenprint). Default false.
     ///
-    /// `#[serde(default)]` covers serde/JSON only. `NotaDecode` is
+    /// `#[serde(default)]` covers serde/JSON only. `DotosDecode` is
     /// positional and count-strict (it hard-checks the root field
-    /// count, see `ClusterProposal::domain_configuration`), so a NOTA
+    /// count, see `ClusterProposal::domain_configuration`), so a DOTOS
     /// `NodeProposal` record short or long by one field is an
     /// `ExpectedRootCount` error, not a silent default. Adding or
     /// removing ANY field here — tail or not — is a breaking
     /// datom-schema change requiring every datom and daemon horizon pin
     /// to move in lockstep; position within the struct does not make a
-    /// field append-safe for NOTA.
+    /// field append-safe for DOTOS.
     #[serde(default)]
     pub wants_printing: bool,
     /// Operator opt-in for hardware-accelerated video decode (browser
@@ -191,7 +191,7 @@ pub enum NodeService {
 /// and the generator switch substrate on it, so it earns a name and a
 /// type the wire renders as `Available` / `Absent` instead of an
 /// anonymous boolean.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 pub enum KvmAvailability {
     /// `/dev/kvm` is present; guests boot under hardware acceleration.
     Available,
@@ -209,7 +209,7 @@ impl KvmAvailability {
 /// rather than a bare `u32` so the capacity ceiling cannot be confused
 /// with any other small integer the projection carries (cores, jobs,
 /// guest index).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct MaximumGuests(u32);
 
@@ -239,7 +239,7 @@ pub struct VmHostCapability<'a> {
 /// source its content is fetched from, and the renderer that turns that
 /// source into served HTML. Three distinct roles, three distinct types — no
 /// two fields share a type (`skills/abstractions.md`, newtype-per-role).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct HostedSite {
     pub domain: ServedDomain,
@@ -250,7 +250,7 @@ pub struct HostedSite {
 /// The public hostname a site is served at — the ACME-managed TLS name. A
 /// named domain value, not a bare `String`, so it cannot be confused with a
 /// node name, a path, or a source reference.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct ServedDomain(pub(crate) String);
 
@@ -268,7 +268,7 @@ impl ServedDomain {
 /// flake / git form the workspace uses for every reproducible source (Spirit
 /// `6x2k`). Pinning the source is what makes the rendered site reproducible
 /// and the deploy rollback-able. A named source value, never a bare `String`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct SiteSource(pub(crate) String);
 
@@ -288,7 +288,17 @@ impl SiteSource {
 /// `MarkdownStatic` is the standard default — a markdown, Jekyll-style static
 /// site (Spirit `878r`).
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    DotosDecode,
+    DotosEncode,
 )]
 pub enum SiteRenderer {
     /// A markdown-sourced static site (Jekyll style). The default variant;
@@ -392,8 +402,8 @@ impl NodeService {
     }
 }
 
-impl NotaEncode for NodeService {
-    fn to_nota(&self) -> String {
+impl DotosEncode for NodeService {
+    fn to_dotos(&self) -> String {
         match self {
             NodeService::TailnetClient {} => {
                 Delimiter::Parenthesis.wrap(["TailnetClient".to_owned()])
@@ -408,34 +418,34 @@ impl NotaEncode for NodeService {
                 Delimiter::Parenthesis.wrap(["AgentIntercomGraphical".to_owned()])
             }
             NodeService::NixBuilder { maximum_jobs } => {
-                Delimiter::Parenthesis.wrap(["NixBuilder".to_owned(), maximum_jobs.to_nota()])
+                Delimiter::Parenthesis.wrap(["NixBuilder".to_owned(), maximum_jobs.to_dotos()])
             }
             NodeService::NixCache {} => Delimiter::Parenthesis.wrap(["NixCache".to_owned()]),
             NodeService::PersonaDevelopment { capabilities } => Delimiter::Parenthesis
-                .wrap(["PersonaDevelopment".to_owned(), capabilities.to_nota()]),
+                .wrap(["PersonaDevelopment".to_owned(), capabilities.to_dotos()]),
             NodeService::VmHost {
                 guest_subnet,
                 kvm,
                 maximum_guests,
             } => Delimiter::Parenthesis.wrap([
                 "VmHost".to_owned(),
-                guest_subnet.to_nota(),
-                kvm.to_nota(),
-                maximum_guests.to_nota(),
+                guest_subnet.to_dotos(),
+                kvm.to_dotos(),
+                maximum_guests.to_dotos(),
             ]),
             NodeService::WebHost { sites } => {
-                Delimiter::Parenthesis.wrap(["WebHost".to_owned(), sites.to_nota()])
+                Delimiter::Parenthesis.wrap(["WebHost".to_owned(), sites.to_dotos()])
             }
         }
     }
 }
 
-impl NotaDecode for NodeService {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+impl DotosDecode for NodeService {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
         let fields =
-            NotaBlock::new(block).expect_delimited(Delimiter::Parenthesis, "NodeService")?;
+            DotosBlock::new(block).expect_delimited(Delimiter::Parenthesis, "NodeService")?;
         let variant = fields.first().and_then(Block::demote_to_string).ok_or(
-            NotaDecodeError::ExpectedAtom {
+            DotosDecodeError::ExpectedAtom {
                 type_name: "NodeService",
             },
         )?;
@@ -459,7 +469,7 @@ impl NotaDecode for NodeService {
             "NixBuilder" => {
                 Self::expect_service_arity(fields, variant, 2)?;
                 NodeService::NixBuilder {
-                    maximum_jobs: Option::<u32>::from_nota_block(&fields[1])?,
+                    maximum_jobs: Option::<u32>::from_dotos_block(&fields[1])?,
                 }
             }
             "NixCache" => {
@@ -469,25 +479,27 @@ impl NotaDecode for NodeService {
             "PersonaDevelopment" => {
                 Self::expect_service_arity(fields, variant, 2)?;
                 NodeService::PersonaDevelopment {
-                    capabilities: Vec::<PersonaDevelopmentCapability>::from_nota_block(&fields[1])?,
+                    capabilities: Vec::<PersonaDevelopmentCapability>::from_dotos_block(
+                        &fields[1],
+                    )?,
                 }
             }
             "VmHost" => {
                 Self::expect_service_arity(fields, variant, 4)?;
                 NodeService::VmHost {
-                    guest_subnet: TapSubnet::from_nota_block(&fields[1])?,
-                    kvm: KvmAvailability::from_nota_block(&fields[2])?,
-                    maximum_guests: Option::<MaximumGuests>::from_nota_block(&fields[3])?,
+                    guest_subnet: TapSubnet::from_dotos_block(&fields[1])?,
+                    kvm: KvmAvailability::from_dotos_block(&fields[2])?,
+                    maximum_guests: Option::<MaximumGuests>::from_dotos_block(&fields[3])?,
                 }
             }
             "WebHost" => {
                 Self::expect_service_arity(fields, variant, 2)?;
                 NodeService::WebHost {
-                    sites: Vec::<HostedSite>::from_nota_block(&fields[1])?,
+                    sites: Vec::<HostedSite>::from_dotos_block(&fields[1])?,
                 }
             }
             other => {
-                return Err(NotaDecodeError::UnknownVariant {
+                return Err(DotosDecodeError::UnknownVariant {
                     enum_name: "NodeService",
                     variant: other.to_string(),
                 });
@@ -502,9 +514,9 @@ impl NodeService {
         fields: &[Block],
         variant: &str,
         expected: usize,
-    ) -> Result<(), NotaDecodeError> {
+    ) -> Result<(), DotosDecodeError> {
         if fields.len() != expected {
-            return Err(NotaDecodeError::ExpectedRootCount {
+            return Err(DotosDecodeError::ExpectedRootCount {
                 type_name: match variant {
                     "TailnetClient" => "TailnetClient",
                     "TailnetController" => "TailnetController",
@@ -537,8 +549,8 @@ impl PersonaDevelopmentCapability {
     }
 }
 
-impl NotaEncode for PersonaDevelopmentCapability {
-    fn to_nota(&self) -> String {
+impl DotosEncode for PersonaDevelopmentCapability {
+    fn to_dotos(&self) -> String {
         match self {
             PersonaDevelopmentCapability::GitoliteServer {} => {
                 Delimiter::Parenthesis.wrap(["GitoliteServer".to_owned()])
@@ -547,12 +559,12 @@ impl NotaEncode for PersonaDevelopmentCapability {
     }
 }
 
-impl NotaDecode for PersonaDevelopmentCapability {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let fields = NotaBlock::new(block)
+impl DotosDecode for PersonaDevelopmentCapability {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let fields = DotosBlock::new(block)
             .expect_delimited(Delimiter::Parenthesis, "PersonaDevelopmentCapability")?;
         if fields.len() != 1 {
-            return Err(NotaDecodeError::ExpectedRootCount {
+            return Err(DotosDecodeError::ExpectedRootCount {
                 type_name: "PersonaDevelopmentCapability",
                 expected: 1,
                 found: fields.len(),
@@ -560,13 +572,13 @@ impl NotaDecode for PersonaDevelopmentCapability {
         }
         let variant = fields[0]
             .demote_to_string()
-            .ok_or(NotaDecodeError::ExpectedAtom {
+            .ok_or(DotosDecodeError::ExpectedAtom {
                 type_name: "PersonaDevelopmentCapability",
             })?;
         let capability = match variant {
             "GitoliteServer" => PersonaDevelopmentCapability::GitoliteServer {},
             other => {
-                return Err(NotaDecodeError::UnknownVariant {
+                return Err(DotosDecodeError::UnknownVariant {
                     enum_name: "PersonaDevelopmentCapability",
                     variant: other.to_string(),
                 });
@@ -595,7 +607,7 @@ impl NodeProposal {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct RouterInterfaces {
     pub wan: Interface,
@@ -615,7 +627,7 @@ pub struct RouterInterfaces {
     pub backup_wireless: Option<BackupWireless>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct BackupWireless {
     pub interface: Interface,
@@ -626,13 +638,13 @@ pub struct BackupWireless {
     pub password: SecretReference,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct SecretReference {
     pub name: SecretName,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 pub enum WlanBand {
     #[serde(rename = "2g")]
     TwoG,
@@ -642,7 +654,7 @@ pub enum WlanBand {
     SixG,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub enum WlanStandard {
     Wifi4,
@@ -650,7 +662,7 @@ pub enum WlanStandard {
     Wifi7,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct NodePubKeys {
     pub ssh: SshPubKey,
@@ -660,7 +672,7 @@ pub struct NodePubKeys {
     pub yggdrasil: Option<YggPubKeyEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct YggPubKeyEntry {
     pub pub_key: YggPubKey,
@@ -668,7 +680,7 @@ pub struct YggPubKeyEntry {
     pub subnet: YggSubnet,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct UserProposal {
     pub species: UserSpecies,
@@ -695,20 +707,20 @@ pub struct UserProposal {
     pub text_size: Option<TextSize>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct UserPubKeyEntry {
     pub ssh: SshPubKey,
     pub keygrip: Keygrip,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct DomainProposal {
     pub species: DomainSpecies,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct ClusterTrust {
     pub cluster: Magnitude,
@@ -723,7 +735,7 @@ pub struct ClusterTrust {
 /// An external WireGuard proxy this node tunnels through. Becomes a
 /// peer on the `wgProxies` interface; downstream nix module routes
 /// `0.0.0.0/0` through it. One per VPN connection (NordVPN, etc.).
-#[derive(Debug, Clone, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct WireguardProxy {
     pub pub_key: WireguardPubKey,

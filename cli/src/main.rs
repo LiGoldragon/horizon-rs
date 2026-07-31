@@ -1,13 +1,13 @@
-//! horizon-cli — read cluster proposal nota on stdin, write
+//! horizon-cli — read cluster proposal dotos on stdin, write
 //! enriched horizon JSON on stdout.
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
 use clap::Parser;
+use dotos::DotosSource;
 use horizon_lib::name::{ClusterName, NodeName};
 use horizon_lib::{ClusterProposal, Viewpoint};
-use nota::NotaSource;
 
 #[derive(Parser)]
 #[command(
@@ -50,7 +50,7 @@ fn main() -> ExitCode {
     }
 
     let proposal: ClusterProposal = {
-        match NotaSource::new(&buf).parse() {
+        match DotosSource::new(&buf).parse() {
             Ok(p) => p,
             Err(e) => {
                 eprintln!("error: parse cluster proposal: {e}");

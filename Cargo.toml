@@ -7,7 +7,7 @@ horizon-lib = { path = "lib" }
 
 serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
-nota  = { git = "https://github.com/LiGoldragon/nota.git", branch = "main" }
+dotos  = { git = "https://github.com/LiGoldragon/dotos.git", rev = "80c7b17f7ad3cf547d2624c6a243e5de5f85c9f3" }
 thiserror  = "2"
 clap       = { version = "4", features = ["derive"] }
 ipnet      = { version = "2", features = ["serde"] }

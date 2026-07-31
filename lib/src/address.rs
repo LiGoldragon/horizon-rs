@@ -3,8 +3,8 @@
 
 use std::net::Ipv6Addr;
 
+use dotos::{Block, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
 use ipnet::{IpNet, Ipv4Net};
-use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};
@@ -46,16 +46,16 @@ impl std::fmt::Display for YggAddress {
     }
 }
 
-impl NotaEncode for YggAddress {
-    fn to_nota(&self) -> String {
-        self.0.to_string().to_nota()
+impl DotosEncode for YggAddress {
+    fn to_dotos(&self) -> String {
+        self.0.to_string().to_dotos()
     }
 }
 
-impl NotaDecode for YggAddress {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let s = NotaBlock::new(block).parse_string()?;
-        YggAddress::try_new(s.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+impl DotosDecode for YggAddress {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let s = DotosBlock::new(block).parse_string()?;
+        YggAddress::try_new(s.clone()).map_err(|error| DotosDecodeError::InvalidValue {
             type_name: "YggAddress",
             value: s,
             reason: error.to_string(),
@@ -67,7 +67,7 @@ impl NotaDecode for YggAddress {
 /// today — not a parsed CIDR — because the legacy data carries it as
 /// the bare prefix without a prefix length. Promote to `Ipv6Net` when
 /// goldragon emits canonical CIDRs.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct YggSubnet(pub(crate) String);
 
@@ -91,16 +91,16 @@ impl YggSubnet {
 #[serde(try_from = "String", into = "String")]
 pub struct NodeIp(IpNet);
 
-impl NotaEncode for NodeIp {
-    fn to_nota(&self) -> String {
-        self.0.to_string().to_nota()
+impl DotosEncode for NodeIp {
+    fn to_dotos(&self) -> String {
+        self.0.to_string().to_dotos()
     }
 }
 
-impl NotaDecode for NodeIp {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let s = NotaBlock::new(block).parse_string()?;
-        NodeIp::try_new(s.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+impl DotosDecode for NodeIp {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let s = DotosBlock::new(block).parse_string()?;
+        NodeIp::try_new(s.clone()).map_err(|error| DotosDecodeError::InvalidValue {
             type_name: "NodeIp",
             value: s,
             reason: error.to_string(),
@@ -204,16 +204,16 @@ impl std::fmt::Display for TapSubnet {
     }
 }
 
-impl NotaEncode for TapSubnet {
-    fn to_nota(&self) -> String {
-        self.0.to_string().to_nota()
+impl DotosEncode for TapSubnet {
+    fn to_dotos(&self) -> String {
+        self.0.to_string().to_dotos()
     }
 }
 
-impl NotaDecode for TapSubnet {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let s = NotaBlock::new(block).parse_string()?;
-        TapSubnet::try_new(s.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+impl DotosDecode for TapSubnet {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let s = DotosBlock::new(block).parse_string()?;
+        TapSubnet::try_new(s.clone()).map_err(|error| DotosDecodeError::InvalidValue {
             type_name: "TapSubnet",
             value: s,
             reason: error.to_string(),
@@ -223,7 +223,7 @@ impl NotaDecode for TapSubnet {
 
 /// Network interface name (`enp0s25`, `wlp3s0`, …). Hardware-dependent;
 /// the proposal author specifies it per link-local entry.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct Interface(pub(crate) String);
 
@@ -245,7 +245,7 @@ impl std::fmt::Display for Interface {
 
 /// Raw input form of a link-local address: an interface plus a
 /// 64-bit suffix. Renders as `fe80::<suffix>%<iface>`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkLocalIp {
     pub iface: Interface,
@@ -259,7 +259,7 @@ impl LinkLocalIp {
 }
 
 /// Projected (rendered) link-local address.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct LinkLocalAddress(pub(crate) String);
 

@@ -1,7 +1,7 @@
 //! Typed name newtypes. Each kind of name is a distinct type so a
 //! `NodeName` cannot be confused with a `UserName` or a `ClusterName`.
 
-use nota::{Block, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};
@@ -10,7 +10,7 @@ use crate::species::KnownModel;
 macro_rules! string_newtype {
     ($name:ident, $kind:literal) => {
         #[derive(
-            Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, NotaEncode,
+            Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, DotosEncode,
         )]
         #[serde(transparent)]
         pub struct $name(pub(crate) String);
@@ -54,10 +54,10 @@ macro_rules! string_newtype {
             }
         }
 
-        impl NotaDecode for $name {
-            fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-                let value = NotaBlock::new(block).parse_string()?;
-                Self::try_new(value.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+        impl DotosDecode for $name {
+            fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+                let value = DotosBlock::new(block).parse_string()?;
+                Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
                     type_name: stringify!($name),
                     value,
                     reason: error.to_string(),
@@ -102,7 +102,7 @@ impl ModelName {
 }
 
 /// Derived: `<node>.<cluster>.criome` — and also `nix.<criomeDomain>` for caches.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct CriomeDomainName(pub(crate) String);
 
@@ -179,10 +179,10 @@ impl Keygrip {
     }
 }
 
-impl NotaDecode for Keygrip {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let value = NotaBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| NotaDecodeError::InvalidValue {
+impl DotosDecode for Keygrip {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let value = DotosBlock::new(block).parse_string()?;
+        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
             type_name: "Keygrip",
             value,
             reason: error.to_string(),
@@ -190,9 +190,9 @@ impl NotaDecode for Keygrip {
     }
 }
 
-impl NotaEncode for Keygrip {
-    fn to_nota(&self) -> String {
-        self.0.to_nota()
+impl DotosEncode for Keygrip {
+    fn to_dotos(&self) -> String {
+        self.0.to_dotos()
     }
 }
 

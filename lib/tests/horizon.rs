@@ -700,7 +700,7 @@ fn test_vm_pod() -> NodeProposal {
 /// the lean derived profile, the host/location/disk machine facts
 /// surviving projection, and the derived Criome domain. It does NOT
 /// mirror the `mercury` declaration in
-/// `CriomOS-test-cluster/clusters/fieldlab.nota`.
+/// `CriomOS-test-cluster/clusters/fieldlab.dotos`.
 #[test]
 fn project_test_vm_pod_derives_lean_profile_and_carries_host_location_disk() {
     let mut proposal = cluster_proposal(Magnitude::Max);
@@ -791,7 +791,7 @@ fn vm_host_service() -> NodeService {
 /// (`super_node == host && behaves_as.test_vm`) on `horizon.ex_nodes`.
 /// Driven entirely by horizon-rs's own `cluster_proposal` (host
 /// `prometheus`, guest `mercury`, cluster `goldragon`); it does NOT
-/// mirror `CriomOS-test-cluster/clusters/fieldlab.nota`.
+/// mirror `CriomOS-test-cluster/clusters/fieldlab.dotos`.
 #[test]
 fn project_host_viewpoint_exposes_vm_host_capability_and_guest_relation() {
     // A host (`prometheus`) declaring its VmHost capability, and a
@@ -894,7 +894,7 @@ fn multi_host_test_vm_pod() -> NodeProposal {
 /// trust edge is between co-hosting hosts only. Driven by horizon-rs's
 /// own `cluster_proposal` (hosts `ouranos`/`prometheus`, off-set keyed
 /// host `apollo`, guest `mercury`, cluster `goldragon`); it does NOT
-/// mirror `CriomOS-test-cluster/clusters/fieldlab.nota`.
+/// mirror `CriomOS-test-cluster/clusters/fieldlab.dotos`.
 #[test]
 fn project_multi_host_node_scopes_image_exchange_keys_to_declared_hosts() {
     let mut proposal = cluster_proposal(Magnitude::Max);
@@ -1098,12 +1098,12 @@ fn project_rejects_multi_host_node_spanning_two_arches() {
 
 /// PATTERN — codec round-trip for the additive `super_nodes` tail: a
 /// `Machine` carrying a non-empty host-set encodes and decodes through
-/// the nota codec to the identical typed value, emitting NO quotation
+/// the dotos codec to the identical typed value, emitting NO quotation
 /// marks (node names are bare atoms). Proves the new field is on the
 /// wire as a positional `[NodeName]` tail.
 #[test]
-fn machine_super_nodes_round_trips_through_nota_without_quotes() {
-    use nota::{NotaEncode, NotaSource};
+fn machine_super_nodes_round_trips_through_dotos_without_quotes() {
+    use dotos::{DotosEncode, DotosSource};
 
     let machine = Machine {
         species: MachineSpecies::Pod,
@@ -1123,12 +1123,12 @@ fn machine_super_nodes_round_trips_through_nota_without_quotes() {
         ],
     };
 
-    let encoded = machine.to_nota();
+    let encoded = machine.to_dotos();
     assert!(
         !encoded.contains('"'),
         "node names must be bare atoms, no quotes: {encoded}"
     );
-    let decoded: Machine = NotaSource::new(&encoded).parse().unwrap();
+    let decoded: Machine = DotosSource::new(&encoded).parse().unwrap();
     assert_eq!(decoded, machine);
     assert_eq!(
         decoded

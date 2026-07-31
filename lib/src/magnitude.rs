@@ -9,7 +9,7 @@
 //! tells them whether a magnitude meets each threshold. This is the
 //! only public shape of magnitude-valued fields on `Node` / `User`.
 
-use nota::{NotaDecode, NotaEncode};
+use dotos::{DotosDecode, DotosEncode};
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -23,8 +23,8 @@ use serde::{Deserialize, Serialize};
     Hash,
     Serialize,
     Deserialize,
-    NotaDecode,
-    NotaEncode,
+    DotosDecode,
+    DotosEncode,
 )]
 pub enum Magnitude {
     Zero,
@@ -56,7 +56,7 @@ impl Magnitude {
 /// then `min` is also true — so consumers can branch on the threshold
 /// they actually care about without knowing the raw `Magnitude`
 /// variant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct AtLeast {
     pub min: bool,

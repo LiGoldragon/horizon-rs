@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use nota::{Block, Delimiter, NotaBlock, NotaDecode, NotaDecodeError, NotaEncode};
+use dotos::{Block, Delimiter, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::species::{Bootloader, Keyboard};
@@ -32,8 +32,8 @@ pub struct Io {
     Hash,
     Serialize,
     Deserialize,
-    NotaDecode,
-    NotaEncode,
+    DotosDecode,
+    DotosEncode,
 )]
 #[serde(transparent)]
 pub struct MountPath(pub(crate) String);
@@ -55,7 +55,7 @@ impl std::fmt::Display for MountPath {
 }
 
 /// A device path (e.g. `/dev/disk/by-uuid/abcd-…`).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct DevicePath(pub(crate) String);
 
@@ -69,7 +69,7 @@ impl DevicePath {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct Disk {
     pub device: DevicePath,
@@ -88,41 +88,41 @@ pub struct SwapDevice {
     pub size_mebibytes: Option<u32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct CompressedSwap {
     /// Percent of physical memory made available as compressed swap.
     pub memory_percent: u32,
 }
 
-impl NotaEncode for Io {
-    fn to_nota(&self) -> String {
+impl DotosEncode for Io {
+    fn to_dotos(&self) -> String {
         Delimiter::Parenthesis.wrap([
-            self.keyboard.to_nota(),
-            self.bootloader.to_nota(),
-            self.disks.to_nota(),
-            self.swap_devices.to_nota(),
-            self.compressed_swap.to_nota(),
+            self.keyboard.to_dotos(),
+            self.bootloader.to_dotos(),
+            self.disks.to_dotos(),
+            self.swap_devices.to_dotos(),
+            self.compressed_swap.to_dotos(),
         ])
     }
 }
 
-impl NotaDecode for Io {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
-        let fields = NotaBlock::new(block).expect_delimited(Delimiter::Parenthesis, "Io")?;
+impl DotosDecode for Io {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
+        let fields = DotosBlock::new(block).expect_delimited(Delimiter::Parenthesis, "Io")?;
         if !(4..=5).contains(&fields.len()) {
-            return Err(NotaDecodeError::ExpectedRootCount {
+            return Err(DotosDecodeError::ExpectedRootCount {
                 type_name: "Io",
                 expected: 5,
                 found: fields.len(),
             });
         }
-        let keyboard = Keyboard::from_nota_block(&fields[0])?;
-        let bootloader = Bootloader::from_nota_block(&fields[1])?;
-        let disks = BTreeMap::<MountPath, Disk>::from_nota_block(&fields[2])?;
-        let swap_devices = Vec::<SwapDevice>::from_nota_block(&fields[3])?;
+        let keyboard = Keyboard::from_dotos_block(&fields[0])?;
+        let bootloader = Bootloader::from_dotos_block(&fields[1])?;
+        let disks = BTreeMap::<MountPath, Disk>::from_dotos_block(&fields[2])?;
+        let swap_devices = Vec::<SwapDevice>::from_dotos_block(&fields[3])?;
         let compressed_swap = match fields.get(4) {
-            Some(field) => Option::<CompressedSwap>::from_nota_block(field)?,
+            Some(field) => Option::<CompressedSwap>::from_dotos_block(field)?,
             None => None,
         };
 
@@ -136,26 +136,26 @@ impl NotaDecode for Io {
     }
 }
 
-impl NotaEncode for SwapDevice {
-    fn to_nota(&self) -> String {
-        Delimiter::Parenthesis.wrap([self.device.to_nota(), self.size_mebibytes.to_nota()])
+impl DotosEncode for SwapDevice {
+    fn to_dotos(&self) -> String {
+        Delimiter::Parenthesis.wrap([self.device.to_dotos(), self.size_mebibytes.to_dotos()])
     }
 }
 
-impl NotaDecode for SwapDevice {
-    fn from_nota_block(block: &Block) -> Result<Self, NotaDecodeError> {
+impl DotosDecode for SwapDevice {
+    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
         let fields =
-            NotaBlock::new(block).expect_delimited(Delimiter::Parenthesis, "SwapDevice")?;
+            DotosBlock::new(block).expect_delimited(Delimiter::Parenthesis, "SwapDevice")?;
         if !(1..=2).contains(&fields.len()) {
-            return Err(NotaDecodeError::ExpectedRootCount {
+            return Err(DotosDecodeError::ExpectedRootCount {
                 type_name: "SwapDevice",
                 expected: 2,
                 found: fields.len(),
             });
         }
-        let device = DevicePath::from_nota_block(&fields[0])?;
+        let device = DevicePath::from_dotos_block(&fields[0])?;
         let size_mebibytes = match fields.get(1) {
-            Some(field) => Option::<u32>::from_nota_block(field)?,
+            Some(field) => Option::<u32>::from_dotos_block(field)?,
             None => None,
         };
 
@@ -170,7 +170,7 @@ impl NotaDecode for SwapDevice {
 /// realistically use as a root, boot, or data filesystem. Add a
 /// variant when a new one shows up in real config.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum FsType {
     Ext2,

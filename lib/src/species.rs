@@ -2,13 +2,13 @@
 //!
 //! Mirrors `mkCrioSphere/speciesModule.nix` from the legacy archive.
 //! Variants serialize as their natural Rust spelling (PascalCase) per
-//! the nota identifier convention.
+//! the dotos identifier convention.
 
-use nota::{NotaDecode, NotaEncode};
+use dotos::{DotosDecode, DotosEncode};
 use serde::{Deserialize, Serialize};
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum NodeSpecies {
     Center,
@@ -46,7 +46,7 @@ pub enum NodeSpecies {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum UserSpecies {
     Code,
@@ -55,7 +55,7 @@ pub enum UserSpecies {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum MachineSpecies {
     Metal,
@@ -63,7 +63,7 @@ pub enum MachineSpecies {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum Keyboard {
     Qwerty,
@@ -71,7 +71,7 @@ pub enum Keyboard {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum Style {
     Vim,
@@ -84,7 +84,7 @@ pub enum Style {
 /// the projection picks `Emacs` for code developers and `Codium`
 /// otherwise.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum Editor {
     Codium,
@@ -96,7 +96,17 @@ pub enum Editor {
 /// composed with hardware DPI to compute actual pixel values.
 /// Default is `Medium`.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Serialize,
+    Deserialize,
+    DotosDecode,
+    DotosEncode,
 )]
 pub enum TextSize {
     ExtraSmall,
@@ -108,7 +118,7 @@ pub enum TextSize {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum Bootloader {
     Uefi,
@@ -117,7 +127,7 @@ pub enum Bootloader {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum Arch {
     X86_64,
@@ -126,7 +136,7 @@ pub enum Arch {
 
 /// The Nix system tuple. Derived from `Arch`.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum System {
     X86_64Linux,
@@ -147,7 +157,7 @@ impl Arch {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum MotherBoard {
     Ondyfaind,
@@ -183,7 +193,7 @@ impl KnownModel {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
 )]
 pub enum DomainSpecies {
     Cloudflare,

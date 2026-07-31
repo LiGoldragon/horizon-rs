@@ -1,12 +1,13 @@
 //! Tests for `proposal` — the input shapes goldragon emits as
-//! cluster-proposal nota.
+//! cluster-proposal dotos.
 //!
-//! Round-trips a minimal proposal through `nota` and asserts
+//! Round-trips a minimal proposal through `dotos` and asserts
 //! the typed fields decode at the right positions. Per the
 //! all-fields-explicit rule, every Optional position needs a token.
 
 use std::collections::BTreeMap;
 
+use dotos::{DotosDecode, DotosEncode, DotosSource};
 use horizon_lib::address::{Interface, YggAddress, YggSubnet};
 use horizon_lib::domain::DomainConfiguration;
 use horizon_lib::io::Io;
@@ -23,7 +24,6 @@ use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
     Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies,
 };
-use nota::{NotaDecode, NotaEncode, NotaSource};
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -108,11 +108,11 @@ fn cluster_proposal() -> ClusterProposal {
     }
 }
 
-fn decode<Value>(text: &str) -> Result<Value, nota::NotaDecodeError>
+fn decode<Value>(text: &str) -> Result<Value, dotos::DotosDecodeError>
 where
-    Value: NotaDecode,
+    Value: DotosDecode,
 {
-    NotaSource::new(text).parse()
+    DotosSource::new(text).parse()
 }
 
 #[test]
@@ -133,8 +133,8 @@ fn node_proposal_carries_all_input_fields() {
 }
 
 #[test]
-fn user_proposal_decodes_from_minimal_nota_record() {
-    let text = "(Code Max Colemak Emacs (Some LiGoldragon) None {} None None)";
+fn user_proposal_decodes_from_minimal_dotos_record() {
+    let text = "{Code Max Colemak Emacs Some.LiGoldragon None Map.() None None}";
     let user = decode::<UserProposal>(text).unwrap();
     assert!(matches!(user.species, UserSpecies::Code));
     assert!(matches!(user.size, Magnitude::Max));
@@ -149,7 +149,7 @@ fn user_proposal_decodes_from_minimal_nota_record() {
 
 #[test]
 fn user_proposal_rejects_quote_delimited_string() {
-    let text = "(Code Max Colemak Emacs (Some \"LiGoldragon\") None {} None None)";
+    let text = "{Code Max Colemak Emacs Some.\"LiGoldragon\" None Map.() None None}";
     let error = decode::<UserProposal>(text).unwrap_err();
 
     assert!(
@@ -160,7 +160,7 @@ fn user_proposal_rejects_quote_delimited_string() {
 
 #[test]
 fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
-    let text = "(Max {} {} {bird Medium li Max})";
+    let text = "{Max Map.() Map.() Map.(bird.Medium li.Max)}";
     let trust = decode::<ClusterTrust>(text).unwrap();
     assert!(matches!(trust.cluster, Magnitude::Max));
     let bird = UserName::try_new("bird").unwrap();
@@ -171,7 +171,7 @@ fn cluster_trust_decodes_per_user_magnitude_with_renamed_variants() {
 
 #[test]
 fn io_decodes_legacy_shape_with_swap_defaults() {
-    let text = "(Qwerty Uefi {} [(/dev/disk/by-uuid/swap)])";
+    let text = "(Qwerty Uefi Map.() [(/dev/disk/by-uuid/swap)])";
     let io = decode::<Io>(text).unwrap();
 
     assert!(matches!(io.keyboard, Keyboard::Qwerty));
@@ -183,7 +183,7 @@ fn io_decodes_legacy_shape_with_swap_defaults() {
 
 #[test]
 fn io_decodes_swapfile_size_and_compressed_swap() {
-    let text = "(Colemak Uefi {} [(/swapfile (Some 32768))] (Some (25)))";
+    let text = "(Colemak Uefi Map.() [(/swapfile Some.32768)] Some.{25})";
     let io = decode::<Io>(text).unwrap();
 
     assert!(matches!(io.keyboard, Keyboard::Colemak));
@@ -196,19 +196,19 @@ fn io_decodes_swapfile_size_and_compressed_swap() {
 #[test]
 fn node_proposal_size_zero_decodes_via_renamed_variant() {
     // After the audit Tier 2 rename, balboa's size token in
-    // datom.nota is `Zero` (was `None`). Verify the new variant
+    // datom.dotos is `Zero` (was `None`). Verify the new variant
     // decodes at the size position. The trailing `[]` inside the
     // Machine record is the additive `super_nodes` host-set tail —
     // empty for a Metal node, positional like every other field (the
-    // nota codec requires every positional field present; the empty
+    // dotos codec requires every positional field present; the empty
     // default is the literal `[]`, not an omitted token).
     let text = concat!(
-        "(",
+        "{",
         "Center Zero Min ",
-        "(Metal (Some Arm64) 4 None None None None None None None None []) ",
-        "(Qwerty Uboot {} []) ",
-        "(AAA= None None) ",
-        "[] None None False False [] False False None None [])",
+        "{Metal Some.Arm64 4 None None None None None None None None []} ",
+        "(Qwerty Uboot Map.() []) ",
+        "{AAA= None None} ",
+        "[] None None False False [] False False None None []}",
     );
     let node = decode::<NodeProposal>(text).unwrap();
     assert!(matches!(node.species, NodeSpecies::Center));
@@ -231,7 +231,7 @@ fn agent_intercom_services_decode_without_parameters_and_round_trip() {
         ]
     );
     assert_eq!(
-        services.to_nota(),
+        services.to_dotos(),
         "[(AgentIntercomLocal) (AgentIntercomGraphical)]"
     );
 }
@@ -263,7 +263,7 @@ fn agent_intercom_capabilities_decode_without_topology_and_round_trip() {
         ]
     );
 
-    let encoded = services.to_nota();
+    let encoded = services.to_dotos();
     assert_eq!(encoded, "[(AgentIntercomLocal) (AgentIntercomGraphical)]");
     assert!(!encoded.contains("sock"));
     assert!(!encoded.contains("ssh"));
@@ -296,7 +296,7 @@ fn persona_development_decodes_as_nested_capability_vector() {
 
 #[test]
 fn nix_builder_decodes_capacity_policy_inside_role_variant() {
-    let text = "[(NixBuilder (Some 6)) (NixCache)]";
+    let text = "[(NixBuilder Some.6) (NixCache)]";
     let services = decode::<Vec<NodeService>>(text).unwrap();
 
     assert_eq!(
@@ -312,10 +312,10 @@ fn nix_builder_decodes_capacity_policy_inside_role_variant() {
 
 #[test]
 fn vm_host_decodes_typed_subnet_kvm_and_capacity_then_round_trips() {
-    // The host's VM substrate as cluster nota: a sliced tap subnet, KVM
+    // The host's VM substrate as cluster dotos: a sliced tap subnet, KVM
     // availability, and a guest ceiling — every field a typed domain
     // value, none a bare string or bool.
-    let text = "[(VmHost 169.254.100.0/22 Available (Some 4))]";
+    let text = "[(VmHost 169.254.100.0/22 Available Some.4)]";
     let services = decode::<Vec<NodeService>>(text).unwrap();
 
     assert_eq!(
@@ -329,7 +329,7 @@ fn vm_host_decodes_typed_subnet_kvm_and_capacity_then_round_trips() {
 
     // The encoder projects the same wire shape back; decoding it again
     // yields the identical typed value (no quotation marks emitted).
-    let reencoded = services.to_nota();
+    let reencoded = services.to_dotos();
     assert!(!reencoded.contains('"'));
     let round_tripped = decode::<Vec<NodeService>>(&reencoded).unwrap();
     assert_eq!(round_tripped, services);
@@ -355,12 +355,12 @@ fn web_host_encodes_typed_sites_then_round_trips() {
         ],
     }];
 
-    // The encoder emits NOTA with no quotation marks; the typed values ride
+    // The encoder emits DOTOS with no quotation marks; the typed values ride
     // bare, including the renderer variant name.
-    let encoded = services.to_nota();
+    let encoded = services.to_dotos();
     assert!(
         !encoded.contains('"'),
-        "NOTA never emits quotation marks: {encoded}"
+        "DOTOS never emits quotation marks: {encoded}"
     );
     assert!(encoded.contains("WebHost"));
     assert!(encoded.contains("MarkdownStatic"));
@@ -376,7 +376,7 @@ fn web_host_encodes_typed_sites_then_round_trips() {
 
 #[test]
 fn router_interfaces_decode_transitional_wifi_secret_reference() {
-    let text = "(eno1 wlp195s0 TwoG 6 Wifi4 (Some (routerWifiSaePasswords)) None)";
+    let text = "{eno1 wlp195s0 TwoG 6 Wifi4 Some.{routerWifiSaePasswords} None}";
     let interfaces = decode::<RouterInterfaces>(text).unwrap();
 
     assert_eq!(interfaces.wan, Interface::new("eno1"));
@@ -395,7 +395,7 @@ fn router_interfaces_decode_transitional_wifi_secret_reference() {
 
 #[test]
 fn router_interfaces_decode_backup_wireless_access_point() {
-    let text = "(eno1 wlp195s0 TwoG 6 Wifi4 (Some (routerWifiSaePasswords)) (Some (wlp199s0f0u4 [CRIOM Backup] TwoG 11 Wifi4 (routerBackupWifiPassword))))";
+    let text = "{eno1 wlp195s0 TwoG 6 Wifi4 Some.{routerWifiSaePasswords} Some.{wlp199s0f0u4 (CRIOM Backup) TwoG 11 Wifi4 {routerBackupWifiPassword}}}";
     let interfaces = decode::<RouterInterfaces>(text).unwrap();
 
     assert_eq!(

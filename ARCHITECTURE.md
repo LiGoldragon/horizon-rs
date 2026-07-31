@@ -35,7 +35,7 @@ These are the upstream principles the horizon rewrite is held to.
 
 Horizon is type-end-to-end: never string-keyed. Extending the model
 means extending the typed source first — add the real enum variant
-(with its `NotaEncode`/`NotaDecode`) — then author the fact, project
+(with its `DotosEncode`/`DotosDecode`) — then author the fact, project
 typed, and consume typed. No stage reaches for a string where a
 variant belongs.
 
@@ -96,7 +96,7 @@ cluster data, not fixed in this architecture prose.
 **Public-domain mapping is cluster data.** The public-domain mapping
 for ordinary DNS fallback is authored per cluster rather than
 hardcoded downstream: a public suffix is assigned per cluster, and a
-cluster owner owns its subdomain under it. The exact NOTA shape is
+cluster owner owns its subdomain under it. The exact DOTOS shape is
 open; what is fixed is that the mapping lives in cluster config and
 horizon derives node domains from it.
 

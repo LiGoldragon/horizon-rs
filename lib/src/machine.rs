@@ -1,6 +1,6 @@
 //! Hardware description.
 
-use nota::{NotaDecode, NotaEncode};
+use dotos::{DotosDecode, DotosEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::name::{ModelName, NodeName, UserName};
@@ -9,7 +9,7 @@ use crate::species::{Arch, MachineSpecies, MotherBoard};
 /// Per-node hardware description. `arch` is `Option` because pod
 /// (virtual) machines defer it to their super-node; resolution into
 /// a concrete arch happens at projection time.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct Machine {
     pub species: MachineSpecies,
@@ -28,10 +28,10 @@ pub struct Machine {
     /// unknown — modules fall back to the safe default driver.
     ///
     /// `#[serde(default)]` applies to serde/JSON decoding only. The
-    /// `NotaDecode` derive on `Machine` is positional and count-strict
+    /// `DotosDecode` derive on `Machine` is positional and count-strict
     /// — it hard-equality-checks the root field count and raises
-    /// `NotaDecodeError::ExpectedRootCount` on any mismatch — so it does
-    /// NOT fill an absent NOTA field with `None`. Position in the struct
+    /// `DotosDecodeError::ExpectedRootCount` on any mismatch — so it does
+    /// NOT fill an absent DOTOS field with `None`. Position in the struct
     /// does not make a field append-safe: adding or removing ANY field
     /// is a breaking datom-schema change, and every `Machine` datom plus
     /// every daemon's horizon pin must move together.
@@ -42,8 +42,8 @@ pub struct Machine {
     /// llama.cpp model size, language-server heap. Optional — None
     /// means the operator hasn't filled it in yet.
     ///
-    /// `#[serde(default)]` is serde/JSON-only; `NotaDecode` is
-    /// positional and count-strict (see `chip_gen`), so an absent NOTA
+    /// `#[serde(default)]` is serde/JSON-only; `DotosDecode` is
+    /// positional and count-strict (see `chip_gen`), so an absent DOTOS
     /// field is an `ExpectedRootCount` error, never a default-fill.
     #[serde(default)]
     pub ram_gb: Option<u32>,
@@ -53,8 +53,8 @@ pub struct Machine {
     /// root disk is allocated at create time and is not derivable from
     /// anything else.
     ///
-    /// `#[serde(default)]` is serde/JSON-only; `NotaDecode` is
-    /// positional and count-strict (see `chip_gen`), so an absent NOTA
+    /// `#[serde(default)]` is serde/JSON-only; `DotosDecode` is
+    /// positional and count-strict (see `chip_gen`), so an absent DOTOS
     /// field is an `ExpectedRootCount` error, never a default-fill.
     #[serde(default)]
     pub disk_gb: Option<u32>,
@@ -64,8 +64,8 @@ pub struct Machine {
     /// For a Pod this MAY later resolve to the host's location at
     /// projection time.
     ///
-    /// `#[serde(default)]` is serde/JSON-only; `NotaDecode` is
-    /// positional and count-strict (see `chip_gen`), so an absent NOTA
+    /// `#[serde(default)]` is serde/JSON-only; `DotosDecode` is
+    /// positional and count-strict (see `chip_gen`), so an absent DOTOS
     /// field is an `ExpectedRootCount` error, never a default-fill.
     #[serde(default)]
     pub location: Option<Location>,
@@ -78,8 +78,8 @@ pub struct Machine {
     /// primary/canonical host (arch resolution, the guest-fold discovery
     /// predicate, the single-host majority all read it).
     ///
-    /// `#[serde(default)]` is serde/JSON-only; `NotaDecode` is
-    /// positional and count-strict (see `chip_gen`), so a NOTA `Machine`
+    /// `#[serde(default)]` is serde/JSON-only; `DotosDecode` is
+    /// positional and count-strict (see `chip_gen`), so a DOTOS `Machine`
     /// record missing this field is an `ExpectedRootCount` error, not a
     /// silent empty-`Vec` fill. Its tail position does not make it
     /// append-safe — adding it was a breaking datom-schema change that
@@ -112,7 +112,7 @@ impl Machine {
 /// over `String` so the wire form is a bare string while the type
 /// stays distinct from any other string-shaped value (mirrors
 /// `ModelName`).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct Location(pub(crate) String);
 

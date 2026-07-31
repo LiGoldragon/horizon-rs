@@ -72,8 +72,8 @@ pub enum Error {
     #[error("pod node {0:?} has no super-node and no arch of its own")]
     UnresolvableArch(NodeName),
 
-    #[error("nota: {0}")]
-    Nota(#[from] nota::NotaDecodeError),
+    #[error("dotos: {0}")]
+    Dotos(#[from] dotos::DotosDecodeError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

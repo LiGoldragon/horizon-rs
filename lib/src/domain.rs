@@ -1,6 +1,6 @@
 //! Cluster domain configuration and derived domain names.
 
-use nota::{NotaDecode, NotaEncode};
+use dotos::{DotosDecode, DotosEncode};
 use serde::{Deserialize, Serialize};
 
 use crate::name::{ClusterName, CriomeDomainName, DomainName, NodeName, UserName};
@@ -9,7 +9,9 @@ use crate::name::{ClusterName, CriomeDomainName, DomainName, NodeName, UserName}
 /// and public identities. The input proposal may leave the public list
 /// empty; projection resolves that to `<cluster>.criome.net` so the
 /// output always carries a concrete public cluster domain.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(
+    Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode,
+)]
 #[serde(rename_all = "camelCase")]
 pub struct DomainConfiguration {
     #[serde(default = "InternalDomainSuffix::default_criome")]
@@ -21,14 +23,14 @@ pub struct DomainConfiguration {
 /// Internal DNS suffix for cluster-local names. The default `criome`
 /// preserves the existing `<node>.<cluster>.criome` names while making
 /// the suffix data instead of a hardcoded projection literal.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct InternalDomainSuffix(String);
 
 /// Public DNS domain assigned to a cluster, such as
 /// `goldragon.criome.net`. User email/Matrix identities and
 /// phone-friendly public aliases derive from this value.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, NotaDecode, NotaEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
 #[serde(transparent)]
 pub struct PublicClusterDomain(String);
 
