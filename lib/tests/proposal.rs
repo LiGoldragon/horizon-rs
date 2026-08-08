@@ -395,7 +395,7 @@ fn router_interfaces_decode_transitional_wifi_secret_reference() {
 
 #[test]
 fn router_interfaces_decode_backup_wireless_access_point() {
-    let text = "{eno1 wlp195s0 TwoG 6 Wifi4 Some.{routerWifiSaePasswords} Some.{wlp199s0f0u4 (CRIOM Backup) TwoG 11 Wifi4 {routerBackupWifiPassword}}}";
+    let text = "{eno1 wlp195s0 TwoG 6 Wifi4 Some.{routerWifiSaePasswords} Some.{wlp199s0f0u4 “CRIOM Backup” TwoG 11 Wifi4 {routerBackupWifiPassword}}}";
     let interfaces = decode::<RouterInterfaces>(text).unwrap();
 
     assert_eq!(

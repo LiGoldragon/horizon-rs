@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 
+use dotos::{DotosEncode, DotosSource};
 use horizon_lib::io::{CompressedSwap, DevicePath, Disk, FsType, Io, MountPath, SwapDevice};
 use horizon_lib::species::{Bootloader, Keyboard};
 
@@ -57,6 +58,32 @@ fn io_struct_holds_keyboard_bootloader_disks_and_swap() {
     assert_eq!(io.swap_devices.len(), 1);
     assert_eq!(io.swap_devices[0].size_mebibytes, Some(32768));
     assert_eq!(io.compressed_swap.unwrap().memory_percent, 25);
+}
+
+#[test]
+fn io_round_trips_root_and_boot_mount_path_map_keys() {
+    let encoded = concat!(
+        "(Qwerty Uefi Map.(",
+        "/.{/dev/disk/by-uuid/root Btrfs [subvol=root]} ",
+        "/boot.{/dev/disk/by-uuid/boot Vfat []}",
+        ") [] None)",
+    );
+    let io = DotosSource::new(encoded)
+        .parse::<Io>()
+        .expect("mount-path map decodes");
+
+    assert!(matches!(io.disks.get(&MountPath::new("/")).unwrap().fs_type, FsType::Btrfs));
+    assert!(matches!(
+        io.disks.get(&MountPath::new("/boot")).unwrap().fs_type,
+        FsType::Vfat
+    ));
+    assert_eq!(io.to_dotos(), encoded);
+    assert_eq!(
+        DotosSource::new(&io.to_dotos())
+            .parse::<Io>()
+            .expect("encoded I/O re-decodes"),
+        io
+    );
 }
 
 #[test]
