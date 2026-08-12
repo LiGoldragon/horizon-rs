@@ -11,3 +11,9 @@ CLI: `horizon-cli --cluster <C> --node <N> < proposal.dotos > horizon.dotos`.
 Spec: `docs/DESIGN.md`. Build-cores derivation rationale: `docs/BUILD_CORES.md`.
 
 First thing: run `bd list --status open`.
+
+## Protos estate status
+
+Stack: correct-new destination
+Status: active component, current checkout legacy-wired
+This checkout is not proof of correct-new adoption.
