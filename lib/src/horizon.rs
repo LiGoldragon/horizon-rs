@@ -37,7 +37,6 @@ impl ClusterProposal {
 
         let cluster_trust_floor = self.trust.cluster;
         self.validate_tailnet_controller_singleton(cluster_trust_floor)?;
-        self.validate_agent_intercom_capabilities()?;
         let domain_configuration = self
             .domain_configuration
             .with_cluster_defaults(&viewpoint.cluster);
@@ -184,21 +183,6 @@ impl ClusterProposal {
             server = Some(name.clone());
         }
 
-        Ok(())
-    }
-
-    /// Agent Intercom capabilities are opt-in. Graphical remains an additive
-    /// semantic fact that requires the explicitly declared local capability.
-    /// No topology, gateway, peer, identity, or transport relationship is
-    /// projected.
-    fn validate_agent_intercom_capabilities(&self) -> Result<()> {
-        for (name, proposal) in &self.nodes {
-            let is_local = proposal.has_service(NodeServiceKind::AgentIntercomLocal);
-            let is_graphical = proposal.has_service(NodeServiceKind::AgentIntercomGraphical);
-            if is_graphical && !is_local {
-                return Err(Error::AgentIntercomGraphicalRequiresLocal { node: name.clone() });
-            }
-        }
         Ok(())
     }
 

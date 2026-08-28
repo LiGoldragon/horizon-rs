@@ -50,9 +50,6 @@ pub enum Error {
     #[error("multiple tailnet controller servers: {first:?} and {second:?}")]
     MultipleTailnetControllers { first: NodeName, second: NodeName },
 
-    #[error("graphical Agent Intercom capability on {node:?} requires local Agent Intercom")]
-    AgentIntercomGraphicalRequiresLocal { node: NodeName },
-
     #[error("pod node {0:?} references missing super-node {1:?}")]
     MissingSuperNode(NodeName, NodeName),
 

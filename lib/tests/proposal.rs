@@ -219,24 +219,6 @@ fn node_proposal_size_zero_decodes_via_renamed_variant() {
 }
 
 #[test]
-fn agent_intercom_services_decode_without_parameters_and_round_trip() {
-    let services =
-        decode::<Vec<NodeService>>("[(AgentIntercomLocal) (AgentIntercomGraphical)]").unwrap();
-
-    assert_eq!(
-        services,
-        vec![
-            NodeService::AgentIntercomLocal {},
-            NodeService::AgentIntercomGraphical {},
-        ]
-    );
-    assert_eq!(
-        services.to_dotos(),
-        "[(AgentIntercomLocal) (AgentIntercomGraphical)]"
-    );
-}
-
-#[test]
 fn service_vector_decodes_tailnet_controller_without_parameters() {
     let text = "[(TailnetClient) (TailnetController)]";
     let services = decode::<Vec<NodeService>>(text).unwrap();
@@ -251,23 +233,14 @@ fn service_vector_decodes_tailnet_controller_without_parameters() {
 }
 
 #[test]
-fn agent_intercom_capabilities_decode_without_topology_and_round_trip() {
-    let services =
-        decode::<Vec<NodeService>>("[(AgentIntercomLocal) (AgentIntercomGraphical)]").unwrap();
-
-    assert_eq!(
-        services,
-        vec![
-            NodeService::AgentIntercomLocal {},
-            NodeService::AgentIntercomGraphical {},
-        ]
-    );
-
-    let encoded = services.to_dotos();
-    assert_eq!(encoded, "[(AgentIntercomLocal) (AgentIntercomGraphical)]");
-    assert!(!encoded.contains("sock"));
-    assert!(!encoded.contains("ssh"));
-    assert!(!encoded.contains("gateway"));
+fn removed_agent_intercom_node_services_are_rejected() {
+    for removed_service in ["AgentIntercomLocal", "AgentIntercomGraphical"] {
+        let error = decode::<Vec<NodeService>>(&format!("[({removed_service})]")).unwrap_err();
+        assert!(matches!(
+            error,
+            dotos::DotosDecodeError::UnknownVariant { .. }
+        ));
+    }
 }
 
 #[test]

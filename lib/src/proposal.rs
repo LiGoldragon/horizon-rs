@@ -127,15 +127,6 @@ pub enum NodeService {
     /// Host the cluster tailnet controller. CriomOS derives the
     /// Headscale port and MagicDNS base domain.
     TailnetController {},
-    /// Run the local-only Agent Intercom broker and adapters on this node.
-    /// This is a node capability, never a network role: every trusted node
-    /// declares it and its broker socket remains local to that host.
-    AgentIntercomLocal {},
-    /// This local Agent Intercom node has a graphical session. CriomOS may
-    /// enable Desktop, Computer Use, Mobile Control, portal, accessibility,
-    /// and input prerequisites only for this capability. It implies
-    /// `AgentIntercomLocal` but carries no application configuration.
-    AgentIntercomGraphical {},
     /// Receive remote Nix builds. `maximum_jobs` is cluster-authored
     /// capacity policy; absent means one job at a time.
     NixBuilder {
@@ -320,8 +311,6 @@ pub enum PersonaDevelopmentCapability {
 pub enum NodeServiceKind {
     TailnetClient,
     TailnetController,
-    AgentIntercomLocal,
-    AgentIntercomGraphical,
     NixBuilder,
     NixCache,
     PersonaDevelopment,
@@ -339,8 +328,6 @@ impl NodeService {
         match self {
             Self::TailnetClient {} => NodeServiceKind::TailnetClient,
             Self::TailnetController {} => NodeServiceKind::TailnetController,
-            Self::AgentIntercomLocal {} => NodeServiceKind::AgentIntercomLocal,
-            Self::AgentIntercomGraphical {} => NodeServiceKind::AgentIntercomGraphical,
             Self::NixBuilder { .. } => NodeServiceKind::NixBuilder,
             Self::NixCache {} => NodeServiceKind::NixCache,
             Self::PersonaDevelopment { .. } => NodeServiceKind::PersonaDevelopment,
@@ -411,12 +398,6 @@ impl DotosEncode for NodeService {
             NodeService::TailnetController {} => {
                 Delimiter::Parenthesis.wrap(["TailnetController".to_owned()])
             }
-            NodeService::AgentIntercomLocal {} => {
-                Delimiter::Parenthesis.wrap(["AgentIntercomLocal".to_owned()])
-            }
-            NodeService::AgentIntercomGraphical {} => {
-                Delimiter::Parenthesis.wrap(["AgentIntercomGraphical".to_owned()])
-            }
             NodeService::NixBuilder { maximum_jobs } => {
                 Delimiter::Parenthesis.wrap(["NixBuilder".to_owned(), maximum_jobs.to_dotos()])
             }
@@ -457,14 +438,6 @@ impl DotosDecode for NodeService {
             "TailnetController" => {
                 Self::expect_service_arity(fields, variant, 1)?;
                 NodeService::TailnetController {}
-            }
-            "AgentIntercomLocal" => {
-                Self::expect_service_arity(fields, variant, 1)?;
-                NodeService::AgentIntercomLocal {}
-            }
-            "AgentIntercomGraphical" => {
-                Self::expect_service_arity(fields, variant, 1)?;
-                NodeService::AgentIntercomGraphical {}
             }
             "NixBuilder" => {
                 Self::expect_service_arity(fields, variant, 2)?;
@@ -520,8 +493,6 @@ impl NodeService {
                 type_name: match variant {
                     "TailnetClient" => "TailnetClient",
                     "TailnetController" => "TailnetController",
-                    "AgentIntercomLocal" => "AgentIntercomLocal",
-                    "AgentIntercomGraphical" => "AgentIntercomGraphical",
                     "NixBuilder" => "NixBuilder",
                     "NixCache" => "NixCache",
                     "PersonaDevelopment" => "PersonaDevelopment",

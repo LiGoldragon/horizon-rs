@@ -3,7 +3,6 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::Viewpoint;
 use horizon_lib::address::{Interface, NodeIp, TapSubnet, YggAddress, YggSubnet};
 use horizon_lib::domain::{DomainConfiguration, InternalDomainSuffix, PublicClusterDomain};
 use horizon_lib::error::Error;
@@ -20,6 +19,7 @@ use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
     Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies,
 };
+use horizon_lib::Viewpoint;
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -63,14 +63,6 @@ fn tailnet_controller_service() -> NodeService {
     NodeService::TailnetController {}
 }
 
-fn agent_intercom_local_service() -> NodeService {
-    NodeService::AgentIntercomLocal {}
-}
-
-fn agent_intercom_graphical_service() -> NodeService {
-    NodeService::AgentIntercomGraphical {}
-}
-
 fn pub_keys(nix: bool, ygg: bool) -> NodePubKeys {
     NodePubKeys {
         ssh: SshPubKey::try_new("AAA=").unwrap(),
@@ -101,7 +93,7 @@ fn node_proposal(species: NodeSpecies, size: Magnitude, full_keys: bool) -> Node
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        services: vec![agent_intercom_local_service()],
+        services: Vec::new(),
     }
 }
 
@@ -185,21 +177,15 @@ fn project_returns_horizon_with_viewpoint_node_filled_and_others_in_ex_nodes() {
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
 
     assert_eq!(horizon.node.name.as_str(), "ouranos");
-    assert!(
-        horizon
-            .ex_nodes
-            .contains_key(&NodeName::try_new("prometheus").unwrap())
-    );
-    assert!(
-        horizon
-            .ex_nodes
-            .contains_key(&NodeName::try_new("zeus").unwrap())
-    );
-    assert!(
-        !horizon
-            .ex_nodes
-            .contains_key(&NodeName::try_new("ouranos").unwrap())
-    );
+    assert!(horizon
+        .ex_nodes
+        .contains_key(&NodeName::try_new("prometheus").unwrap()));
+    assert!(horizon
+        .ex_nodes
+        .contains_key(&NodeName::try_new("zeus").unwrap()));
+    assert!(!horizon
+        .ex_nodes
+        .contains_key(&NodeName::try_new("ouranos").unwrap()));
 }
 
 #[test]
@@ -261,16 +247,12 @@ fn project_cluster_collects_nix_pub_key_lines_from_keyed_nodes() {
         .iter()
         .map(|line| line.as_str().to_string())
         .collect();
-    assert!(
-        lines
-            .iter()
-            .any(|l| l.contains("ouranos.goldragon.criome:"))
-    );
-    assert!(
-        lines
-            .iter()
-            .any(|l| l.contains("prometheus.goldragon.criome:"))
-    );
+    assert!(lines
+        .iter()
+        .any(|l| l.contains("ouranos.goldragon.criome:")));
+    assert!(lines
+        .iter()
+        .any(|l| l.contains("prometheus.goldragon.criome:")));
 }
 
 #[test]
@@ -281,17 +263,13 @@ fn project_node_with_zero_trust_is_excluded_from_horizon() {
         .nodes
         .insert(NodeName::try_new("zeus").unwrap(), Magnitude::Zero);
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
-    assert!(
-        !horizon
-            .ex_nodes
-            .contains_key(&NodeName::try_new("zeus").unwrap())
-    );
+    assert!(!horizon
+        .ex_nodes
+        .contains_key(&NodeName::try_new("zeus").unwrap()));
     // ouranos and prometheus still present.
-    assert!(
-        horizon
-            .ex_nodes
-            .contains_key(&NodeName::try_new("prometheus").unwrap())
-    );
+    assert!(horizon
+        .ex_nodes
+        .contains_key(&NodeName::try_new("prometheus").unwrap()));
 }
 
 #[test]
@@ -334,79 +312,7 @@ fn project_rejects_multiple_active_tailnet_controller_servers() {
 }
 
 #[test]
-fn project_accepts_local_agent_intercom_on_every_trusted_node() {
-    let proposal = cluster_proposal(Magnitude::Max);
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
-    assert!(
-        horizon
-            .node
-            .services
-            .contains(&agent_intercom_local_service())
-    );
-    assert!(
-        horizon.ex_nodes[&NodeName::try_new("prometheus").unwrap()]
-            .services
-            .contains(&agent_intercom_local_service())
-    );
-}
-
-#[test]
-fn project_preserves_graphical_agent_intercom_capability() {
-    let mut proposal = cluster_proposal(Magnitude::Max);
-    proposal
-        .nodes
-        .get_mut(&NodeName::try_new("ouranos").unwrap())
-        .unwrap()
-        .services
-        .push(agent_intercom_graphical_service());
-
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
-    assert!(
-        horizon
-            .node
-            .services
-            .contains(&agent_intercom_graphical_service())
-    );
-}
-
-#[test]
-fn project_allows_trusted_node_without_agent_intercom() {
-    let mut proposal = cluster_proposal(Magnitude::Max);
-    proposal
-        .nodes
-        .get_mut(&NodeName::try_new("prometheus").unwrap())
-        .unwrap()
-        .services
-        .clear();
-
-    let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
-    assert!(
-        !horizon.ex_nodes[&NodeName::try_new("prometheus").unwrap()]
-            .services
-            .contains(&agent_intercom_local_service())
-    );
-}
-
-#[test]
-fn project_rejects_graphical_agent_intercom_without_local_capability() {
-    let mut proposal = cluster_proposal(Magnitude::Max);
-    let services = &mut proposal
-        .nodes
-        .get_mut(&NodeName::try_new("ouranos").unwrap())
-        .unwrap()
-        .services;
-    services.clear();
-    services.push(agent_intercom_graphical_service());
-
-    let error = proposal.project(&viewpoint("ouranos")).unwrap_err();
-    assert!(matches!(
-        error,
-        Error::AgentIntercomGraphicalRequiresLocal { node } if node.as_str() == "ouranos"
-    ));
-}
-
-#[test]
-fn project_ignores_zero_trust_node_without_local_agent_intercom() {
+fn project_ignores_zero_trust_node_without_node_service_capability() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     proposal
         .nodes
@@ -440,15 +346,10 @@ fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
 
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
 
-    assert_eq!(
-        horizon.node.services,
-        vec![agent_intercom_local_service(), tailnet_controller_service()]
-    );
-    assert!(
-        !horizon
-            .ex_nodes
-            .contains_key(&NodeName::try_new("zeus").unwrap())
-    );
+    assert_eq!(horizon.node.services, vec![tailnet_controller_service()]);
+    assert!(!horizon
+        .ex_nodes
+        .contains_key(&NodeName::try_new("zeus").unwrap()));
 }
 
 #[test]
@@ -592,10 +493,7 @@ fn cloud_node_metal() -> NodeProposal {
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        services: vec![
-            agent_intercom_local_service(),
-            NodeService::TailnetClient {},
-        ],
+        services: vec![NodeService::TailnetClient {}],
     }
 }
 
@@ -687,10 +585,7 @@ fn test_vm_pod() -> NodeProposal {
         wants_hw_video_accel: false,
         router_interfaces: None,
         online: None,
-        services: vec![
-            agent_intercom_local_service(),
-            NodeService::TailnetClient {},
-        ],
+        services: vec![NodeService::TailnetClient {}],
     }
 }
 
@@ -1015,11 +910,9 @@ fn project_single_host_node_is_unchanged_by_empty_super_nodes() {
         .as_ref()
         .expect("viewpoint node should have image-exchange keys filled");
     assert_eq!(exchange.len(), 1);
-    assert!(
-        exchange[0]
-            .as_str()
-            .contains("prometheus.goldragon.criome:")
-    );
+    assert!(exchange[0]
+        .as_str()
+        .contains("prometheus.goldragon.criome:"));
 }
 
 /// PATTERN — the host-set existence invariant extends C1 to EVERY host:
