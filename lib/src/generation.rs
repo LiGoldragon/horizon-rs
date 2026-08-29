@@ -12,7 +12,9 @@ use std::{
 use ethos_zero::{FileLocation, FileReader, Manifest, RustEmitter};
 use quote::ToTokens;
 
-const HORIZON_ETHOS: &str = include_str!("../../ethos/horizon.ethos");
+// The authored map lives inside the published `horizon-lib` package so its
+// regeneration contract is available to Cargo/Nix vendoring as well.
+const HORIZON_ETHOS: &str = include_str!("../ethos/horizon.ethos");
 
 struct EmptyManifest;
 

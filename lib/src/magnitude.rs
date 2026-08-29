@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// The public value declaration is hand-owned for serde/projection semantics;
-/// its Datomic anatomy is emitted from `ethos/horizon.ethos` into `generated`.
+/// its Datomic anatomy is emitted from `lib/ethos/horizon.ethos` into `generated`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Magnitude {
     Zero,

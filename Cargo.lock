@@ -127,7 +127,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "horizon-cli"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "clap",
  "datomic",
@@ -138,7 +138,7 @@ dependencies = [
 
 [[package]]
 name = "horizon-lib"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "datomic",
  "ethos-zero",

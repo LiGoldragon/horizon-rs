@@ -1,5 +1,12 @@
 # Upgrades
 
+## 0.5.1 — package the authored Ethos map with `horizon-lib`
+
+`lib/ethos/horizon.ethos` now travels inside the published `horizon-lib`
+package. This fixes fresh Cargo/Nix vendoring for the map-owned regeneration
+test; no data or public type shape changes. Consumers should repin to 0.5.1
+before building from a clean source closure.
+
 ## 0.5.0 — Datomic ClusterProposal boundary
 
 Horizon no longer depends on or parses Dotos. The sole ClusterProposal input
@@ -13,9 +20,9 @@ variant API break, and emitted the new text through Horizon 0.5.0's Datomic
 anatomy. Re-run the current CLI against every proposal viewpoint before moving
 a consumer pin.
 
-`synchronizer.dotos` is not ClusterProposal data and remains owned by the
-separate SynchronizerConfig tool. It is deliberately not interpreted or
-rewritten by this Horizon release.
+`synchronizer.dotos` was not ClusterProposal data. Its separate
+SynchronizerConfig migration now owns `synchronizer.datomic`; Horizon neither
+interprets nor rewrites that configuration root.
 
 ## 0.4.0 — remove Agent Intercom node services
 
