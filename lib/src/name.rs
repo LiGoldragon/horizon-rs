@@ -1,7 +1,8 @@
 //! Typed name newtypes. Each kind of name is a distinct type so a
 //! `NodeName` cannot be confused with a `UserName` or a `ClusterName`.
 
-use dotos::{Block, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
+use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionViewing};
+use protos::Portion;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};
@@ -9,9 +10,7 @@ use crate::species::KnownModel;
 
 macro_rules! string_newtype {
     ($name:ident, $kind:literal) => {
-        #[derive(
-            Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, DotosEncode,
-        )]
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
         #[serde(transparent)]
         pub struct $name(pub(crate) String);
 
@@ -26,6 +25,10 @@ macro_rules! string_newtype {
                         got: s,
                     })
                 } else {
+                    DatomicString::try_from(s.clone()).map_err(|_| Error::UnrepresentableText {
+                        kind: $kind,
+                        got: s.clone(),
+                    })?;
                     Ok(Self(s))
                 }
             }
@@ -54,14 +57,17 @@ macro_rules! string_newtype {
             }
         }
 
-        impl DotosDecode for $name {
-            fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-                let value = DotosBlock::new(block).parse_string()?;
-                Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-                    type_name: stringify!($name),
-                    value,
-                    reason: error.to_string(),
-                })
+        impl Datomic for $name {
+            fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+                let value = DatomicString::embody(portion)?;
+                Self::try_new(value.as_ref().to_owned())
+                    .map_err(|_| portion.fault(FaultProblem::Value))
+            }
+
+            fn portion(&self) -> Portion {
+                let value = DatomicString::try_from(self.0.clone())
+                    .expect("validated name must be Datomic-representable");
+                Datomic::portion(&value)
             }
         }
     };
@@ -102,7 +108,7 @@ impl ModelName {
 }
 
 /// Derived: `<node>.<cluster>.criome` — and also `nix.<criomeDomain>` for caches.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct CriomeDomainName(pub(crate) String);
 
@@ -179,23 +185,6 @@ impl Keygrip {
     }
 }
 
-impl DotosDecode for Keygrip {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let value = DotosBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-            type_name: "Keygrip",
-            value,
-            reason: error.to_string(),
-        })
-    }
-}
-
-impl DotosEncode for Keygrip {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
-    }
-}
-
 impl From<Keygrip> for String {
     fn from(keygrip: Keygrip) -> Self {
         keygrip.0
@@ -211,5 +200,18 @@ impl AsRef<str> for Keygrip {
 impl std::fmt::Display for Keygrip {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0)
+    }
+}
+
+impl Datomic for Keygrip {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let value = DatomicString::embody(portion)?;
+        Self::try_new(value.as_ref().to_owned()).map_err(|_| portion.fault(FaultProblem::Value))
+    }
+
+    fn portion(&self) -> Portion {
+        let value = DatomicString::try_from(self.0.clone())
+            .expect("validated keygrip must be Datomic-representable");
+        Datomic::portion(&value)
     }
 }

@@ -3,6 +3,7 @@
 
 use std::collections::BTreeMap;
 
+use horizon_lib::Viewpoint;
 use horizon_lib::address::{Interface, NodeIp, TapSubnet, YggAddress, YggSubnet};
 use horizon_lib::domain::{DomainConfiguration, InternalDomainSuffix, PublicClusterDomain};
 use horizon_lib::error::Error;
@@ -19,7 +20,6 @@ use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
     Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies, Style, UserSpecies,
 };
-use horizon_lib::Viewpoint;
 
 const NIX_KEY: &str = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -177,15 +177,21 @@ fn project_returns_horizon_with_viewpoint_node_filled_and_others_in_ex_nodes() {
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
 
     assert_eq!(horizon.node.name.as_str(), "ouranos");
-    assert!(horizon
-        .ex_nodes
-        .contains_key(&NodeName::try_new("prometheus").unwrap()));
-    assert!(horizon
-        .ex_nodes
-        .contains_key(&NodeName::try_new("zeus").unwrap()));
-    assert!(!horizon
-        .ex_nodes
-        .contains_key(&NodeName::try_new("ouranos").unwrap()));
+    assert!(
+        horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("prometheus").unwrap())
+    );
+    assert!(
+        horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("zeus").unwrap())
+    );
+    assert!(
+        !horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("ouranos").unwrap())
+    );
 }
 
 #[test]
@@ -247,12 +253,16 @@ fn project_cluster_collects_nix_pub_key_lines_from_keyed_nodes() {
         .iter()
         .map(|line| line.as_str().to_string())
         .collect();
-    assert!(lines
-        .iter()
-        .any(|l| l.contains("ouranos.goldragon.criome:")));
-    assert!(lines
-        .iter()
-        .any(|l| l.contains("prometheus.goldragon.criome:")));
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("ouranos.goldragon.criome:"))
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("prometheus.goldragon.criome:"))
+    );
 }
 
 #[test]
@@ -263,13 +273,17 @@ fn project_node_with_zero_trust_is_excluded_from_horizon() {
         .nodes
         .insert(NodeName::try_new("zeus").unwrap(), Magnitude::Zero);
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
-    assert!(!horizon
-        .ex_nodes
-        .contains_key(&NodeName::try_new("zeus").unwrap()));
+    assert!(
+        !horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("zeus").unwrap())
+    );
     // ouranos and prometheus still present.
-    assert!(horizon
-        .ex_nodes
-        .contains_key(&NodeName::try_new("prometheus").unwrap()));
+    assert!(
+        horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("prometheus").unwrap())
+    );
 }
 
 #[test]
@@ -347,9 +361,11 @@ fn project_ignores_zero_trust_tailnet_controller_when_validating_singleton() {
     let horizon = proposal.project(&viewpoint("ouranos")).unwrap();
 
     assert_eq!(horizon.node.services, vec![tailnet_controller_service()]);
-    assert!(!horizon
-        .ex_nodes
-        .contains_key(&NodeName::try_new("zeus").unwrap()));
+    assert!(
+        !horizon
+            .ex_nodes
+            .contains_key(&NodeName::try_new("zeus").unwrap())
+    );
 }
 
 #[test]
@@ -595,7 +611,7 @@ fn test_vm_pod() -> NodeProposal {
 /// the lean derived profile, the host/location/disk machine facts
 /// surviving projection, and the derived Criome domain. It does NOT
 /// mirror the `mercury` declaration in
-/// `CriomOS-test-cluster/clusters/fieldlab.dotos`.
+/// `CriomOS-test-cluster/clusters/fieldlab.Datomic`.
 #[test]
 fn project_test_vm_pod_derives_lean_profile_and_carries_host_location_disk() {
     let mut proposal = cluster_proposal(Magnitude::Max);
@@ -686,7 +702,7 @@ fn vm_host_service() -> NodeService {
 /// (`super_node == host && behaves_as.test_vm`) on `horizon.ex_nodes`.
 /// Driven entirely by horizon-rs's own `cluster_proposal` (host
 /// `prometheus`, guest `mercury`, cluster `goldragon`); it does NOT
-/// mirror `CriomOS-test-cluster/clusters/fieldlab.dotos`.
+/// mirror `CriomOS-test-cluster/clusters/fieldlab.Datomic`.
 #[test]
 fn project_host_viewpoint_exposes_vm_host_capability_and_guest_relation() {
     // A host (`prometheus`) declaring its VmHost capability, and a
@@ -789,7 +805,7 @@ fn multi_host_test_vm_pod() -> NodeProposal {
 /// trust edge is between co-hosting hosts only. Driven by horizon-rs's
 /// own `cluster_proposal` (hosts `ouranos`/`prometheus`, off-set keyed
 /// host `apollo`, guest `mercury`, cluster `goldragon`); it does NOT
-/// mirror `CriomOS-test-cluster/clusters/fieldlab.dotos`.
+/// mirror `CriomOS-test-cluster/clusters/fieldlab.Datomic`.
 #[test]
 fn project_multi_host_node_scopes_image_exchange_keys_to_declared_hosts() {
     let mut proposal = cluster_proposal(Magnitude::Max);
@@ -910,9 +926,11 @@ fn project_single_host_node_is_unchanged_by_empty_super_nodes() {
         .as_ref()
         .expect("viewpoint node should have image-exchange keys filled");
     assert_eq!(exchange.len(), 1);
-    assert!(exchange[0]
-        .as_str()
-        .contains("prometheus.goldragon.criome:"));
+    assert!(
+        exchange[0]
+            .as_str()
+            .contains("prometheus.goldragon.criome:")
+    );
 }
 
 /// PATTERN — the host-set existence invariant extends C1 to EVERY host:
@@ -987,48 +1005,4 @@ fn project_rejects_multi_host_node_spanning_two_arches() {
             && second_host.as_str() == "prometheus"
             && second_arch == Arch::Arm64
     ));
-}
-
-/// PATTERN — codec round-trip for the additive `super_nodes` tail: a
-/// `Machine` carrying a non-empty host-set encodes and decodes through
-/// the dotos codec to the identical typed value, emitting NO quotation
-/// marks (node names are bare atoms). Proves the new field is on the
-/// wire as a positional `[NodeName]` tail.
-#[test]
-fn machine_super_nodes_round_trips_through_dotos_without_quotes() {
-    use dotos::{DotosEncode, DotosSource};
-
-    let machine = Machine {
-        species: MachineSpecies::Pod,
-        arch: Some(Arch::X86_64),
-        cores: 4,
-        model: None,
-        mother_board: None,
-        super_node: Some(NodeName::try_new("ouranos").unwrap()),
-        super_user: Some(UserName::try_new("li").unwrap()),
-        chip_gen: None,
-        ram_gb: Some(8),
-        disk_gb: Some(40),
-        location: Some(Location::new("home-lab")),
-        super_nodes: vec![
-            NodeName::try_new("prometheus").unwrap(),
-            NodeName::try_new("apollo").unwrap(),
-        ],
-    };
-
-    let encoded = machine.to_dotos();
-    assert!(
-        !encoded.contains('"'),
-        "node names must be bare atoms, no quotes: {encoded}"
-    );
-    let decoded: Machine = DotosSource::new(&encoded).parse().unwrap();
-    assert_eq!(decoded, machine);
-    assert_eq!(
-        decoded
-            .super_nodes
-            .iter()
-            .map(|host| host.as_str())
-            .collect::<Vec<_>>(),
-        vec!["prometheus", "apollo"]
-    );
 }

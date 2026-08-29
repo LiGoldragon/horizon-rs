@@ -2,7 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use dotos::{Block, Delimiter, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
+use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionBuilding, PortionViewing};
+use protos::{Portion, StructuralEnclosure};
 use serde::{Deserialize, Serialize};
 
 use crate::species::{Bootloader, Keyboard};
@@ -22,19 +23,7 @@ pub struct Io {
 }
 
 /// A filesystem mount point.
-#[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Serialize,
-    Deserialize,
-    DotosDecode,
-    DotosEncode,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct MountPath(pub(crate) String);
 
@@ -55,7 +44,7 @@ impl std::fmt::Display for MountPath {
 }
 
 /// A device path (e.g. `/dev/disk/by-uuid/abcd-…`).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct DevicePath(pub(crate) String);
 
@@ -69,7 +58,7 @@ impl DevicePath {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Disk {
     pub device: DevicePath,
@@ -88,90 +77,17 @@ pub struct SwapDevice {
     pub size_mebibytes: Option<u32>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompressedSwap {
     /// Percent of physical memory made available as compressed swap.
     pub memory_percent: u32,
 }
 
-impl DotosEncode for Io {
-    fn to_dotos(&self) -> String {
-        Delimiter::Parenthesis.wrap([
-            self.keyboard.to_dotos(),
-            self.bootloader.to_dotos(),
-            self.disks.to_dotos(),
-            self.swap_devices.to_dotos(),
-            self.compressed_swap.to_dotos(),
-        ])
-    }
-}
-
-impl DotosDecode for Io {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let fields = DotosBlock::new(block).expect_delimited(Delimiter::Parenthesis, "Io")?;
-        if !(4..=5).contains(&fields.len()) {
-            return Err(DotosDecodeError::ExpectedRootCount {
-                type_name: "Io",
-                expected: 5,
-                found: fields.len(),
-            });
-        }
-        let keyboard = Keyboard::from_dotos_block(&fields[0])?;
-        let bootloader = Bootloader::from_dotos_block(&fields[1])?;
-        let disks = BTreeMap::<MountPath, Disk>::from_dotos_block(&fields[2])?;
-        let swap_devices = Vec::<SwapDevice>::from_dotos_block(&fields[3])?;
-        let compressed_swap = match fields.get(4) {
-            Some(field) => Option::<CompressedSwap>::from_dotos_block(field)?,
-            None => None,
-        };
-
-        Ok(Self {
-            keyboard,
-            bootloader,
-            disks,
-            swap_devices,
-            compressed_swap,
-        })
-    }
-}
-
-impl DotosEncode for SwapDevice {
-    fn to_dotos(&self) -> String {
-        Delimiter::Parenthesis.wrap([self.device.to_dotos(), self.size_mebibytes.to_dotos()])
-    }
-}
-
-impl DotosDecode for SwapDevice {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let fields =
-            DotosBlock::new(block).expect_delimited(Delimiter::Parenthesis, "SwapDevice")?;
-        if !(1..=2).contains(&fields.len()) {
-            return Err(DotosDecodeError::ExpectedRootCount {
-                type_name: "SwapDevice",
-                expected: 2,
-                found: fields.len(),
-            });
-        }
-        let device = DevicePath::from_dotos_block(&fields[0])?;
-        let size_mebibytes = match fields.get(1) {
-            Some(field) => Option::<u32>::from_dotos_block(field)?,
-            None => None,
-        };
-
-        Ok(Self {
-            device,
-            size_mebibytes,
-        })
-    }
-}
-
 /// Filesystem type. Closed set of NixOS-supported filesystems we
 /// realistically use as a root, boot, or data filesystem. Add a
 /// variant when a new one shows up in real config.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FsType {
     Ext2,
     Ext3,
@@ -185,4 +101,170 @@ pub enum FsType {
     Exfat,
     Ntfs,
     Tmpfs,
+}
+
+impl Datomic for MountPath {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        Ok(Self(DatomicString::embody(portion)?.as_ref().to_owned()))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.0, "mount path")
+    }
+}
+
+impl Datomic for DevicePath {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        Ok(Self(DatomicString::embody(portion)?.as_ref().to_owned()))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.0, "device path")
+    }
+}
+
+impl Datomic for Disk {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [device, fs_type, options] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            device: DevicePath::embody(device)?,
+            fs_type: FsType::embody(fs_type)?,
+            options: strings_from_portion(options)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        PortionBuilding::structural(
+            "",
+            StructuralEnclosure::Braced,
+            vec![
+                self.device.portion(),
+                self.fs_type.portion(),
+                strings_portion(&self.options, "disk option"),
+            ],
+        )
+    }
+}
+
+impl Datomic for SwapDevice {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [device, size_mebibytes] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            device: DevicePath::embody(device)?,
+            size_mebibytes: optional_u32_from_portion(size_mebibytes)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        PortionBuilding::structural(
+            "",
+            StructuralEnclosure::Braced,
+            vec![
+                self.device.portion(),
+                optional_u32_portion(self.size_mebibytes),
+            ],
+        )
+    }
+}
+
+impl Datomic for CompressedSwap {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [memory_percent] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            memory_percent: u32_from_portion(memory_percent)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        PortionBuilding::structural(
+            "",
+            StructuralEnclosure::Braced,
+            vec![i64::from(self.memory_percent).portion()],
+        )
+    }
+}
+
+impl Datomic for Io {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [keyboard, bootloader, disks, swap_devices, compressed_swap] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            keyboard: Keyboard::embody(keyboard)?,
+            bootloader: Bootloader::embody(bootloader)?,
+            disks: BTreeMap::<MountPath, Disk>::embody(disks)?,
+            swap_devices: Vec::<SwapDevice>::embody(swap_devices)?,
+            compressed_swap: Option::<CompressedSwap>::embody(compressed_swap)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        PortionBuilding::structural(
+            "",
+            StructuralEnclosure::Braced,
+            vec![
+                self.keyboard.portion(),
+                self.bootloader.portion(),
+                self.disks.portion(),
+                self.swap_devices.portion(),
+                self.compressed_swap.portion(),
+            ],
+        )
+    }
+}
+
+fn u32_from_portion(portion: &Portion) -> std::result::Result<u32, Fault> {
+    u32::try_from(i64::embody(portion)?).map_err(|_| portion.fault(FaultProblem::Value))
+}
+
+fn optional_u32_from_portion(portion: &Portion) -> std::result::Result<Option<u32>, Fault> {
+    Option::<i64>::embody(portion)?
+        .map(|value| u32::try_from(value).map_err(|_| portion.fault(FaultProblem::Value)))
+        .transpose()
+}
+
+fn optional_u32_portion(value: Option<u32>) -> Portion {
+    value.map(i64::from).portion()
+}
+
+fn strings_from_portion(portion: &Portion) -> std::result::Result<Vec<String>, Fault> {
+    Ok(Vec::<DatomicString>::embody(portion)?
+        .into_iter()
+        .map(|value| value.as_ref().to_owned())
+        .collect())
+}
+
+fn strings_portion(values: &[String], kind: &str) -> Portion {
+    PortionBuilding::structural(
+        "",
+        StructuralEnclosure::Bracketed,
+        values
+            .iter()
+            .map(|value| datomic_string_portion(value, kind))
+            .collect(),
+    )
+}
+
+fn datomic_string_portion(value: &str, kind: &str) -> Portion {
+    let value = DatomicString::try_from(value.to_owned())
+        .unwrap_or_else(|_| panic!("{kind} must be Datomic-representable"));
+    Datomic::portion(&value)
 }

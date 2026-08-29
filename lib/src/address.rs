@@ -3,8 +3,9 @@
 
 use std::net::Ipv6Addr;
 
-use dotos::{Block, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
+use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionBuilding, PortionViewing};
 use ipnet::{IpNet, Ipv4Net};
+use protos::{Portion, StructuralEnclosure};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};
@@ -46,20 +47,16 @@ impl std::fmt::Display for YggAddress {
     }
 }
 
-impl DotosEncode for YggAddress {
-    fn to_dotos(&self) -> String {
-        self.0.to_string().to_dotos()
+impl Datomic for YggAddress {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let value = DatomicString::embody(portion)?;
+        Self::try_new(value.as_ref().to_owned()).map_err(|_| portion.fault(FaultProblem::Value))
     }
-}
 
-impl DotosDecode for YggAddress {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let s = DotosBlock::new(block).parse_string()?;
-        YggAddress::try_new(s.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-            type_name: "YggAddress",
-            value: s,
-            reason: error.to_string(),
-        })
+    fn portion(&self) -> Portion {
+        let value = DatomicString::try_from(self.0.to_string())
+            .expect("parsed IPv6 address must be Datomic-representable");
+        Datomic::portion(&value)
     }
 }
 
@@ -67,7 +64,7 @@ impl DotosDecode for YggAddress {
 /// today — not a parsed CIDR — because the legacy data carries it as
 /// the bare prefix without a prefix length. Promote to `Ipv6Net` when
 /// goldragon emits canonical CIDRs.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct YggSubnet(pub(crate) String);
 
@@ -86,25 +83,32 @@ impl YggSubnet {
     }
 }
 
+impl Datomic for YggSubnet {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let value = DatomicString::embody(portion)?;
+        Self::try_new(value.as_ref().to_owned()).map_err(|_| portion.fault(FaultProblem::Value))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.0, "Yggdrasil subnet")
+    }
+}
+
 /// Internal-cluster routing IP, as a CIDR.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct NodeIp(IpNet);
 
-impl DotosEncode for NodeIp {
-    fn to_dotos(&self) -> String {
-        self.0.to_string().to_dotos()
+impl Datomic for NodeIp {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let value = DatomicString::embody(portion)?;
+        Self::try_new(value.as_ref().to_owned()).map_err(|_| portion.fault(FaultProblem::Value))
     }
-}
 
-impl DotosDecode for NodeIp {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let s = DotosBlock::new(block).parse_string()?;
-        NodeIp::try_new(s.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-            type_name: "NodeIp",
-            value: s,
-            reason: error.to_string(),
-        })
+    fn portion(&self) -> Portion {
+        let value = DatomicString::try_from(self.0.to_string())
+            .expect("parsed IP network must be Datomic-representable");
+        Datomic::portion(&value)
     }
 }
 
@@ -204,26 +208,22 @@ impl std::fmt::Display for TapSubnet {
     }
 }
 
-impl DotosEncode for TapSubnet {
-    fn to_dotos(&self) -> String {
-        self.0.to_string().to_dotos()
+impl Datomic for TapSubnet {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let value = DatomicString::embody(portion)?;
+        Self::try_new(value.as_ref().to_owned()).map_err(|_| portion.fault(FaultProblem::Value))
     }
-}
 
-impl DotosDecode for TapSubnet {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let s = DotosBlock::new(block).parse_string()?;
-        TapSubnet::try_new(s.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-            type_name: "TapSubnet",
-            value: s,
-            reason: error.to_string(),
-        })
+    fn portion(&self) -> Portion {
+        let value = DatomicString::try_from(self.0.to_string())
+            .expect("parsed IPv4 network must be Datomic-representable");
+        Datomic::portion(&value)
     }
 }
 
 /// Network interface name (`enp0s25`, `wlp3s0`, …). Hardware-dependent;
 /// the proposal author specifies it per link-local entry.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Interface(pub(crate) String);
 
@@ -243,9 +243,19 @@ impl std::fmt::Display for Interface {
     }
 }
 
+impl Datomic for Interface {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        Ok(Self(DatomicString::embody(portion)?.as_ref().to_owned()))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.0, "interface")
+    }
+}
+
 /// Raw input form of a link-local address: an interface plus a
 /// 64-bit suffix. Renders as `fe80::<suffix>%<iface>`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkLocalIp {
     pub iface: Interface,
@@ -258,8 +268,34 @@ impl LinkLocalIp {
     }
 }
 
+impl Datomic for LinkLocalIp {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [iface, suffix] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            iface: Interface::embody(iface)?,
+            suffix: DatomicString::embody(suffix)?.as_ref().to_owned(),
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        PortionBuilding::structural(
+            "",
+            StructuralEnclosure::Braced,
+            vec![
+                self.iface.portion(),
+                datomic_string_portion(&self.suffix, "link-local suffix"),
+            ],
+        )
+    }
+}
+
 /// Projected (rendered) link-local address.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct LinkLocalAddress(pub(crate) String);
 
@@ -273,4 +309,20 @@ impl std::fmt::Display for LinkLocalAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0)
     }
+}
+
+impl Datomic for LinkLocalAddress {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        Ok(Self(DatomicString::embody(portion)?.as_ref().to_owned()))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.0, "link-local address")
+    }
+}
+
+fn datomic_string_portion(value: &str, kind: &str) -> Portion {
+    let value = DatomicString::try_from(value.to_owned())
+        .unwrap_or_else(|_| panic!("{kind} must be Datomic-representable"));
+    Datomic::portion(&value)
 }

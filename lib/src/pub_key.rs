@@ -9,7 +9,8 @@
 //! Derived line types (`SshPubKeyLine`, `NixPubKeyLine`) carry the
 //! pre-rendered string form used by downstream consumers.
 
-use dotos::{Block, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
+use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionViewing};
+use protos::Portion;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result as HorizonResult};
@@ -77,23 +78,6 @@ impl SshPubKey {
     }
 }
 
-impl DotosDecode for SshPubKey {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let value = DotosBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-            type_name: "SshPubKey",
-            value,
-            reason: error.to_string(),
-        })
-    }
-}
-
-impl DotosEncode for SshPubKey {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
-    }
-}
-
 impl From<SshPubKey> for String {
     fn from(key: SshPubKey) -> Self {
         key.0
@@ -126,23 +110,6 @@ impl YggPubKey {
 
     pub fn as_str(&self) -> &str {
         &self.0
-    }
-}
-
-impl DotosDecode for YggPubKey {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let value = DotosBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-            type_name: "YggPubKey",
-            value,
-            reason: error.to_string(),
-        })
-    }
-}
-
-impl DotosEncode for YggPubKey {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
     }
 }
 
@@ -185,23 +152,6 @@ impl NixPubKey {
     }
 }
 
-impl DotosDecode for NixPubKey {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let value = DotosBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-            type_name: "NixPubKey",
-            value,
-            reason: error.to_string(),
-        })
-    }
-}
-
-impl DotosEncode for NixPubKey {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
-    }
-}
-
 impl From<NixPubKey> for String {
     fn from(key: NixPubKey) -> Self {
         key.0
@@ -237,32 +187,38 @@ impl WireguardPubKey {
     }
 }
 
-impl DotosDecode for WireguardPubKey {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let value = DotosBlock::new(block).parse_string()?;
-        Self::try_new(value.clone()).map_err(|error| DotosDecodeError::InvalidValue {
-            type_name: "WireguardPubKey",
-            value,
-            reason: error.to_string(),
-        })
-    }
-}
-
-impl DotosEncode for WireguardPubKey {
-    fn to_dotos(&self) -> String {
-        self.0.to_dotos()
-    }
-}
-
 impl From<WireguardPubKey> for String {
     fn from(key: WireguardPubKey) -> Self {
         key.0
     }
 }
 
+macro_rules! validated_public_key_datomic {
+    ($key:ident) => {
+        impl Datomic for $key {
+            fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+                let value = DatomicString::embody(portion)?;
+                Self::try_new(value.as_ref().to_owned())
+                    .map_err(|_| portion.fault(FaultProblem::Value))
+            }
+
+            fn portion(&self) -> Portion {
+                let value = DatomicString::try_from(self.0.clone())
+                    .expect("validated public key must be Datomic-representable");
+                Datomic::portion(&value)
+            }
+        }
+    };
+}
+
+validated_public_key_datomic!(SshPubKey);
+validated_public_key_datomic!(YggPubKey);
+validated_public_key_datomic!(NixPubKey);
+validated_public_key_datomic!(WireguardPubKey);
+
 /// Pre-rendered SSH known-hosts / authorized_keys line:
 /// `ssh-ed25519 <pubKey>`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct SshPubKeyLine(String);
 
@@ -280,7 +236,7 @@ impl std::fmt::Display for SshPubKeyLine {
 
 /// Pre-rendered nix `trusted-public-keys` entry:
 /// `<criomeDomain>:<rawNixPubKey>`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct NixPubKeyLine(String);
 

@@ -28,7 +28,12 @@
             "rust-src"
           ];
           craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
-          src = craneLib.cleanCargoSource ./.;
+          src = pkgs.lib.cleanSourceWith {
+            src = ./.;
+            filter = path: type:
+              (craneLib.filterCargoSources path type)
+              || pkgs.lib.hasInfix "/ethos/" (toString path);
+          };
           # No `cargoVendorDir.outputHashes` — per
           # `~/primary/skills/nix-discipline.md` §"Cargo git deps in
           # crane flakes". Crane fetches git deps from `Cargo.lock`
@@ -37,7 +42,7 @@
           commonArgs = {
             inherit src;
             strictDeps = true;
-            version = "0.4.0";
+            version = "0.5.0";
           };
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in

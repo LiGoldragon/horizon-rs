@@ -1,10 +1,18 @@
 [package]
 name    = "horizon-lib"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 
 [dependencies]
 serde      = { workspace = true }
-dotos  = { workspace = true }
+protos = { workspace = true }
+datomic = { workspace = true }
+ethos-zero = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
 thiserror  = { workspace = true }
 ipnet      = { workspace = true }
+
+[[bin]]
+name = "horizon-regenerate"
+path = "tools/regenerate.rs"

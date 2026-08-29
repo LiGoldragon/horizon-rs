@@ -11,6 +11,9 @@ pub enum Error {
     #[error("invalid name: {kind} contains a quotation mark: {got:?}")]
     QuotationMarkInName { kind: &'static str, got: String },
 
+    #[error("unrepresentable Datomic text for {kind}: {got:?}")]
+    UnrepresentableText { kind: &'static str, got: String },
+
     #[error("invalid keygrip: expected 40 hex chars, got {got:?}")]
     InvalidKeygrip { got: String },
 
@@ -68,9 +71,6 @@ pub enum Error {
 
     #[error("pod node {0:?} has no super-node and no arch of its own")]
     UnresolvableArch(NodeName),
-
-    #[error("dotos: {0}")]
-    Dotos(#[from] dotos::DotosDecodeError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

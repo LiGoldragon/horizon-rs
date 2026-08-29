@@ -1,31 +1,10 @@
 //! `Magnitude` — the size and trust ladder.
-//!
-//! Five points on a single ordinal scale: `Zero` (0, absent / actively
-//! distrusted / no capacity), `Min` (1), `Medium` (2), `Large` (3),
-//! `Max` (4). Used internally for both `size` (capacity) and `trust`.
-//!
-//! Consumers don't see `Magnitude` directly — they see `AtLeast`, the
-//! monotonic boolean ladder (`min` / `medium` / `large` / `max`) that
-//! tells them whether a magnitude meets each threshold. This is the
-//! only public shape of magnitude-valued fields on `Node` / `User`.
 
-use dotos::{DotosDecode, DotosEncode};
 use serde::{Deserialize, Serialize};
 
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Serialize,
-    Deserialize,
-    DotosDecode,
-    DotosEncode,
-)]
+/// The public value declaration is hand-owned for serde/projection semantics;
+/// its Datomic anatomy is emitted from `ethos/horizon.ethos` into `generated`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Magnitude {
     Zero,
     Min,
@@ -47,16 +26,17 @@ impl Magnitude {
             max: self >= Magnitude::Max,
         }
     }
+
+    pub(crate) fn default_zero() -> Self {
+        Self::Zero
+    }
+
+    pub(crate) fn default_min() -> Self {
+        Self::Min
+    }
 }
 
-/// Monotonic ladder of at-least predicates for a `Magnitude`.
-///
-/// The four booleans are the public shape of `Node.size`, `Node.trust`,
-/// `User.size`, `User.trust`. They are monotonic — if `medium` is true
-/// then `min` is also true — so consumers can branch on the threshold
-/// they actually care about without knowing the raw `Magnitude`
-/// variant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AtLeast {
     pub min: bool,

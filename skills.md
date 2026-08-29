@@ -1,7 +1,7 @@
 # Skill — horizon-rs
 
 *The horizon schema, type-checking, and method computation for
-CriomOS. Reads a cluster proposal in dotos; projects it from one
+CriomOS. Reads a cluster proposal in Datomic; projects it from one
 viewpoint `(cluster, node)`; emits an enriched horizon that
 downstream Nix consumes verbatim.*
 
@@ -34,7 +34,7 @@ Read in this order to understand the projection surface:
 
 1. **Input — `proposal.rs`.** `NodeProposal`, `UserProposal`,
    `DomainProposal`, `ClusterTrust`. These mirror what
-   goldragon's `datom.dotos` files declare. Pass-through types,
+   goldragon's `proposal.datomic` files declare. Pass-through types,
    no derived fields.
 2. **Method computation — `node.rs`, `user.rs`,
    `horizon.rs`.** Each `*Proposal::project` consumes the input
@@ -52,14 +52,14 @@ Read in this order to understand the projection surface:
 ## The wire is the schema
 
 Every public type that participates in the proposal surface is a
-typed Rust struct or enum. Proposal input decodes from DOTOS through
-`dotos::{DotosDecode, DotosEncode}`. The projected horizon output
+typed Rust struct or enum. Proposal input decodes from Datomic through
+`Datomic::{DatomicDecode, DatomicEncode}`. The projected horizon output
 serialises through serde/serde_json because downstream Nix consumes
 JSON.
 
 The same Rust definition serves three audiences:
 
-- **goldragon's `datom.dotos`** decodes via `dotos::DotosDecode`.
+- **goldragon's `proposal.datomic`** decodes via `Datomic::DatomicDecode`.
 - **The projected horizon JSON** serialises via serde + the
   `#[serde(rename_all = "camelCase")]` attribute on output
   records.
@@ -68,7 +68,7 @@ The same Rust definition serves three audiences:
 
 Reordering, renaming, or retypifying any field on a public
 record is **a coordinated upstream-and-downstream change**:
-goldragon's `datom.dotos` files must update; CriomOS Nix
+goldragon's `proposal.datomic` files must update; CriomOS Nix
 modules that read the JSON field must update; Lojix's pinned
 `horizon-rs` rev must bump in lockstep.
 
@@ -79,14 +79,14 @@ modules that read the JSON field must update; Lojix's pinned
 When extending `NodeProposal`, `UserProposal`, or any other
 proposal record:
 
-- **New fields go at the tail.** Positional Dotos records
+- **New fields go at the tail.** Positional Datomic records
   parse by source-declaration order. Inserting a field in the
   middle is a wire break.
-- **Compatibility is explicit.** `dotos` records are positional;
-  if existing `datom.dotos` files must keep parsing without a new
+- **Compatibility is explicit.** `Datomic` records are positional;
+  if existing `proposal.datomic` files must keep parsing without a new
   positional slot, add a manual decoder for that record and tests
   proving the shorter legacy shape. `#[serde(default)]` only affects
-  serde/JSON, not DOTOS decode.
+  serde/JSON, not Datomic decode.
 - **Document the gate.** New fields that drive Nix config
   branches need a doc comment naming the consumer (e.g.
   "drives `nix.settings.maxJobs`") and the fallback when
@@ -225,13 +225,13 @@ silently defaulting.
 
 ## CLI is for ad-hoc projection only
 
-`horizon-cli --cluster <C> --node <N> < proposal.dotos` is a
+`horizon-cli --cluster <C> --node <N> < proposal.Datomic` is a
 debugging tool — it reads stdin, projects, prints JSON or
-dotos. The real consumer is Lojix, which uses the projected
+Datomic. The real consumer is Lojix, which uses the projected
 horizon as the per-node Nix flake-input payload for deploys.
 
-The Dotos output mode is currently a stub
-(`Format::Dotos` → "not implemented"); JSON is the
+The Datomic output mode is currently a stub
+(`Format::Datomic` → "not implemented"); JSON is the
 production output format.
 
 ---

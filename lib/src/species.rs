@@ -2,14 +2,12 @@
 //!
 //! Mirrors `mkCrioSphere/speciesModule.nix` from the legacy archive.
 //! Variants serialize as their natural Rust spelling (PascalCase) per
-//! the dotos identifier convention.
+//! the Datomic identifier convention. The generated D3Consumer module
+//! additionally makes each wire-facing enum a bare-symbol Datomic atom.
 
-use dotos::{DotosDecode, DotosEncode};
 use serde::{Deserialize, Serialize};
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum NodeSpecies {
     Center,
     LargeAi,
@@ -45,34 +43,26 @@ pub enum NodeSpecies {
     CloudNode,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum UserSpecies {
     Code,
     Multimedia,
     Unlimited,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MachineSpecies {
     Metal,
     Pod,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Keyboard {
     Qwerty,
     Colemak,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Style {
     Vim,
     Emacs,
@@ -83,9 +73,7 @@ pub enum Style {
 /// selected on top of either editor). When absent on a `UserProposal`,
 /// the projection picks `Emacs` for code developers and `Codium`
 /// otherwise.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Editor {
     Codium,
     Emacs,
@@ -95,19 +83,7 @@ pub enum Editor {
 /// size, editor font size, and editor UI zoom. A user setting; later
 /// composed with hardware DPI to compute actual pixel values.
 /// Default is `Medium`.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    DotosDecode,
-    DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub enum TextSize {
     ExtraSmall,
     Small,
@@ -117,27 +93,21 @@ pub enum TextSize {
     ExtraLarge,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Bootloader {
     Uefi,
     Mbr,
     Uboot,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Arch {
     X86_64,
     Arm64,
 }
 
 /// The Nix system tuple. Derived from `Arch`.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum System {
     X86_64Linux,
     Aarch64Linux,
@@ -156,9 +126,7 @@ impl Arch {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MotherBoard {
     Ondyfaind,
 }
@@ -192,9 +160,7 @@ impl KnownModel {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum DomainSpecies {
     Cloudflare,
 }

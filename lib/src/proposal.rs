@@ -1,4 +1,4 @@
-//! Input shape: what goldragon emits as a dotos cluster proposal.
+//! Input shape: what goldragon emits as a Datomic cluster proposal.
 //!
 //! `ClusterProposal::project(viewpoint)` is the single entry-point;
 //! it produces the typed `Horizon`. Proposal types carry only raw
@@ -6,7 +6,8 @@
 
 use std::collections::BTreeMap;
 
-use dotos::{Block, Delimiter, DotosBlock, DotosDecode, DotosDecodeError, DotosEncode};
+use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionBuilding, PortionViewing};
+use protos::{Portion, Separator, StructuralEnclosure};
 use serde::{Deserialize, Serialize};
 
 use crate::address::{Interface, LinkLocalIp, NodeIp, TapSubnet};
@@ -22,7 +23,7 @@ use crate::pub_key::{NixPubKey, SshPubKey, WireguardPubKey, YggPubKey};
 use crate::species::{DomainSpecies, Editor, Keyboard, NodeSpecies, Style, TextSize, UserSpecies};
 
 /// The proposal a cluster owner emits.
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClusterProposal {
     #[serde(default)]
@@ -37,11 +38,11 @@ pub struct ClusterProposal {
     ///
     /// The `#[serde(default)]` applies ONLY to serde/JSON decoding
     /// (e.g. `horizon.json`); it does NOT make this field optional for
-    /// DOTOS datom decoding. The `DotosDecode` derive is strictly
+    /// Datomic datom decoding. The `DatomicDecode` derive is strictly
     /// positional and count-strict: it hard-equality-checks the root
     /// field count (see the derive's `objects.len() != field_count`
-    /// guard, surfaced as `DotosDecodeError::ExpectedRootCount`), so a
-    /// DOTOS record that is one field short or long is a HARD decode
+    /// guard, surfaced as `DatomicDecodeError::ExpectedRootCount`), so a
+    /// Datomic record that is one field short or long is a HARD decode
     /// error, never a silent default-fill. Adding a tail field is
     /// therefore a BREAKING datom-schema change: every datom AND every
     /// daemon's horizon pin must move together.
@@ -49,7 +50,7 @@ pub struct ClusterProposal {
     pub domain_configuration: DomainConfiguration,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeProposal {
     pub species: NodeSpecies,
@@ -75,15 +76,15 @@ pub struct NodeProposal {
     /// Operator opt-in for the printer driver bundle (hplip, samsung,
     /// epson, gutenprint). Default false.
     ///
-    /// `#[serde(default)]` covers serde/JSON only. `DotosDecode` is
+    /// `#[serde(default)]` covers serde/JSON only. `DatomicDecode` is
     /// positional and count-strict (it hard-checks the root field
-    /// count, see `ClusterProposal::domain_configuration`), so a DOTOS
+    /// count, see `ClusterProposal::domain_configuration`), so a Datomic
     /// `NodeProposal` record short or long by one field is an
     /// `ExpectedRootCount` error, not a silent default. Adding or
     /// removing ANY field here — tail or not — is a breaking
     /// datom-schema change requiring every datom and daemon horizon pin
     /// to move in lockstep; position within the struct does not make a
-    /// field append-safe for DOTOS.
+    /// field append-safe for Datomic.
     #[serde(default)]
     pub wants_printing: bool,
     /// Operator opt-in for hardware-accelerated video decode (browser
@@ -182,7 +183,7 @@ pub enum NodeService {
 /// and the generator switch substrate on it, so it earns a name and a
 /// type the wire renders as `Available` / `Absent` instead of an
 /// anonymous boolean.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KvmAvailability {
     /// `/dev/kvm` is present; guests boot under hardware acceleration.
     Available,
@@ -200,7 +201,7 @@ impl KvmAvailability {
 /// rather than a bare `u32` so the capacity ceiling cannot be confused
 /// with any other small integer the projection carries (cores, jobs,
 /// guest index).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct MaximumGuests(u32);
 
@@ -230,7 +231,7 @@ pub struct VmHostCapability<'a> {
 /// source its content is fetched from, and the renderer that turns that
 /// source into served HTML. Three distinct roles, three distinct types — no
 /// two fields share a type (`skills/abstractions.md`, newtype-per-role).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HostedSite {
     pub domain: ServedDomain,
@@ -241,7 +242,7 @@ pub struct HostedSite {
 /// The public hostname a site is served at — the ACME-managed TLS name. A
 /// named domain value, not a bare `String`, so it cannot be confused with a
 /// node name, a path, or a source reference.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ServedDomain(pub(crate) String);
 
@@ -259,7 +260,7 @@ impl ServedDomain {
 /// flake / git form the workspace uses for every reproducible source (Spirit
 /// `6x2k`). Pinning the source is what makes the rendered site reproducible
 /// and the deploy rollback-able. A named source value, never a bare `String`.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct SiteSource(pub(crate) String);
 
@@ -278,19 +279,7 @@ impl SiteSource {
 /// switches the build-time render derivation on this variant.
 /// `MarkdownStatic` is the standard default — a markdown, Jekyll-style static
 /// site (Spirit `878r`).
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Default,
-    Serialize,
-    Deserialize,
-    DotosDecode,
-    DotosEncode,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub enum SiteRenderer {
     /// A markdown-sourced static site (Jekyll style). The default variant;
     /// CriomOS renders it with the cluster's chosen static-site generator at
@@ -304,7 +293,7 @@ pub enum SiteRenderer {
 pub enum PersonaDevelopmentCapability {
     /// Host the Git repository receive surface used by Persona
     /// development.
-    GitoliteServer {},
+    GitoliteServer,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -389,173 +378,13 @@ impl NodeService {
     }
 }
 
-impl DotosEncode for NodeService {
-    fn to_dotos(&self) -> String {
-        match self {
-            NodeService::TailnetClient {} => {
-                Delimiter::Parenthesis.wrap(["TailnetClient".to_owned()])
-            }
-            NodeService::TailnetController {} => {
-                Delimiter::Parenthesis.wrap(["TailnetController".to_owned()])
-            }
-            NodeService::NixBuilder { maximum_jobs } => {
-                Delimiter::Parenthesis.wrap(["NixBuilder".to_owned(), maximum_jobs.to_dotos()])
-            }
-            NodeService::NixCache {} => Delimiter::Parenthesis.wrap(["NixCache".to_owned()]),
-            NodeService::PersonaDevelopment { capabilities } => Delimiter::Parenthesis
-                .wrap(["PersonaDevelopment".to_owned(), capabilities.to_dotos()]),
-            NodeService::VmHost {
-                guest_subnet,
-                kvm,
-                maximum_guests,
-            } => Delimiter::Parenthesis.wrap([
-                "VmHost".to_owned(),
-                guest_subnet.to_dotos(),
-                kvm.to_dotos(),
-                maximum_guests.to_dotos(),
-            ]),
-            NodeService::WebHost { sites } => {
-                Delimiter::Parenthesis.wrap(["WebHost".to_owned(), sites.to_dotos()])
-            }
-        }
-    }
-}
-
-impl DotosDecode for NodeService {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let fields =
-            DotosBlock::new(block).expect_delimited(Delimiter::Parenthesis, "NodeService")?;
-        let variant = fields.first().and_then(Block::demote_to_string).ok_or(
-            DotosDecodeError::ExpectedAtom {
-                type_name: "NodeService",
-            },
-        )?;
-        let service = match variant {
-            "TailnetClient" => {
-                Self::expect_service_arity(fields, variant, 1)?;
-                NodeService::TailnetClient {}
-            }
-            "TailnetController" => {
-                Self::expect_service_arity(fields, variant, 1)?;
-                NodeService::TailnetController {}
-            }
-            "NixBuilder" => {
-                Self::expect_service_arity(fields, variant, 2)?;
-                NodeService::NixBuilder {
-                    maximum_jobs: Option::<u32>::from_dotos_block(&fields[1])?,
-                }
-            }
-            "NixCache" => {
-                Self::expect_service_arity(fields, variant, 1)?;
-                NodeService::NixCache {}
-            }
-            "PersonaDevelopment" => {
-                Self::expect_service_arity(fields, variant, 2)?;
-                NodeService::PersonaDevelopment {
-                    capabilities: Vec::<PersonaDevelopmentCapability>::from_dotos_block(
-                        &fields[1],
-                    )?,
-                }
-            }
-            "VmHost" => {
-                Self::expect_service_arity(fields, variant, 4)?;
-                NodeService::VmHost {
-                    guest_subnet: TapSubnet::from_dotos_block(&fields[1])?,
-                    kvm: KvmAvailability::from_dotos_block(&fields[2])?,
-                    maximum_guests: Option::<MaximumGuests>::from_dotos_block(&fields[3])?,
-                }
-            }
-            "WebHost" => {
-                Self::expect_service_arity(fields, variant, 2)?;
-                NodeService::WebHost {
-                    sites: Vec::<HostedSite>::from_dotos_block(&fields[1])?,
-                }
-            }
-            other => {
-                return Err(DotosDecodeError::UnknownVariant {
-                    enum_name: "NodeService",
-                    variant: other.to_string(),
-                });
-            }
-        };
-        Ok(service)
-    }
-}
-
-impl NodeService {
-    fn expect_service_arity(
-        fields: &[Block],
-        variant: &str,
-        expected: usize,
-    ) -> Result<(), DotosDecodeError> {
-        if fields.len() != expected {
-            return Err(DotosDecodeError::ExpectedRootCount {
-                type_name: match variant {
-                    "TailnetClient" => "TailnetClient",
-                    "TailnetController" => "TailnetController",
-                    "NixBuilder" => "NixBuilder",
-                    "NixCache" => "NixCache",
-                    "PersonaDevelopment" => "PersonaDevelopment",
-                    "VmHost" => "VmHost",
-                    "WebHost" => "WebHost",
-                    _ => "NodeService",
-                },
-                expected,
-                found: fields.len(),
-            });
-        }
-        Ok(())
-    }
-}
-
 impl PersonaDevelopmentCapability {
     pub fn kind(&self) -> PersonaDevelopmentCapabilityKind {
-        match self {
-            Self::GitoliteServer {} => PersonaDevelopmentCapabilityKind::GitoliteServer,
-        }
+        PersonaDevelopmentCapabilityKind::GitoliteServer
     }
 
     pub fn is_kind(&self, kind: PersonaDevelopmentCapabilityKind) -> bool {
         self.kind() == kind
-    }
-}
-
-impl DotosEncode for PersonaDevelopmentCapability {
-    fn to_dotos(&self) -> String {
-        match self {
-            PersonaDevelopmentCapability::GitoliteServer {} => {
-                Delimiter::Parenthesis.wrap(["GitoliteServer".to_owned()])
-            }
-        }
-    }
-}
-
-impl DotosDecode for PersonaDevelopmentCapability {
-    fn from_dotos_block(block: &Block) -> Result<Self, DotosDecodeError> {
-        let fields = DotosBlock::new(block)
-            .expect_delimited(Delimiter::Parenthesis, "PersonaDevelopmentCapability")?;
-        if fields.len() != 1 {
-            return Err(DotosDecodeError::ExpectedRootCount {
-                type_name: "PersonaDevelopmentCapability",
-                expected: 1,
-                found: fields.len(),
-            });
-        }
-        let variant = fields[0]
-            .demote_to_string()
-            .ok_or(DotosDecodeError::ExpectedAtom {
-                type_name: "PersonaDevelopmentCapability",
-            })?;
-        let capability = match variant {
-            "GitoliteServer" => PersonaDevelopmentCapability::GitoliteServer {},
-            other => {
-                return Err(DotosDecodeError::UnknownVariant {
-                    enum_name: "PersonaDevelopmentCapability",
-                    variant: other.to_string(),
-                });
-            }
-        };
-        Ok(capability)
     }
 }
 
@@ -578,7 +407,7 @@ impl NodeProposal {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RouterInterfaces {
     pub wan: Interface,
@@ -598,7 +427,7 @@ pub struct RouterInterfaces {
     pub backup_wireless: Option<BackupWireless>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BackupWireless {
     pub interface: Interface,
@@ -609,13 +438,13 @@ pub struct BackupWireless {
     pub password: SecretReference,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SecretReference {
     pub name: SecretName,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WlanBand {
     #[serde(rename = "2g")]
     TwoG,
@@ -625,7 +454,7 @@ pub enum WlanBand {
     SixG,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum WlanStandard {
     Wifi4,
@@ -633,7 +462,7 @@ pub enum WlanStandard {
     Wifi7,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodePubKeys {
     pub ssh: SshPubKey,
@@ -643,7 +472,7 @@ pub struct NodePubKeys {
     pub yggdrasil: Option<YggPubKeyEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct YggPubKeyEntry {
     pub pub_key: YggPubKey,
@@ -651,7 +480,7 @@ pub struct YggPubKeyEntry {
     pub subnet: YggSubnet,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserProposal {
     pub species: UserSpecies,
@@ -678,20 +507,20 @@ pub struct UserProposal {
     pub text_size: Option<TextSize>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserPubKeyEntry {
     pub ssh: SshPubKey,
     pub keygrip: Keygrip,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DomainProposal {
     pub species: DomainSpecies,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClusterTrust {
     pub cluster: Magnitude,
@@ -706,7 +535,7 @@ pub struct ClusterTrust {
 /// An external WireGuard proxy this node tunnels through. Becomes a
 /// peer on the `wgProxies` interface; downstream nix module routes
 /// `0.0.0.0/0` through it. One per VPN connection (NordVPN, etc.).
-#[derive(Debug, Clone, Serialize, Deserialize, DotosDecode, DotosEncode)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WireguardProxy {
     pub pub_key: WireguardPubKey,
@@ -716,12 +545,525 @@ pub struct WireguardProxy {
     pub interface_ip: NodeIp,
 }
 
-// Free-fn helpers used by serde defaults; not exposed.
-impl Magnitude {
-    pub(crate) fn default_zero() -> Self {
-        Magnitude::Zero
+impl Datomic for MaximumGuests {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        Ok(Self(u32_from_portion(portion)?))
     }
-    pub(crate) fn default_min() -> Self {
-        Magnitude::Min
+
+    fn portion(&self) -> Portion {
+        i64::from(self.0).portion()
     }
+}
+
+impl Datomic for ServedDomain {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        Ok(Self(DatomicString::embody(portion)?.as_ref().to_owned()))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.0, "served domain")
+    }
+}
+
+impl Datomic for SiteSource {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        Ok(Self(DatomicString::embody(portion)?.as_ref().to_owned()))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.0, "site source")
+    }
+}
+
+impl Datomic for HostedSite {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [domain, source, renderer] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            domain: ServedDomain::embody(domain)?,
+            source: SiteSource::embody(source)?,
+            renderer: SiteRenderer::embody(renderer)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.domain.portion(),
+            self.source.portion(),
+            self.renderer.portion(),
+        ])
+    }
+}
+
+impl Datomic for NodeService {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        match portion.bare_symbol() {
+            Some("TailnetClient") => return Ok(Self::TailnetClient {}),
+            Some("TailnetController") => return Ok(Self::TailnetController {}),
+            Some("NixCache") => return Ok(Self::NixCache {}),
+            _ => {}
+        }
+        let Some(headed) = portion.headed() else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        if headed.separator != Separator::Period {
+            return Err(portion.fault(FaultProblem::Head));
+        }
+        match headed.head.as_ref() {
+            "NixBuilder" => Ok(Self::NixBuilder {
+                maximum_jobs: optional_u32_from_portion(&headed.body)?,
+            }),
+            "PersonaDevelopment" => Ok(Self::PersonaDevelopment {
+                capabilities: Vec::<PersonaDevelopmentCapability>::embody(&headed.body)?,
+            }),
+            "VmHost" => {
+                let Some(parts) = headed.body.structural(StructuralEnclosure::Braced) else {
+                    return Err(headed.body.fault(FaultProblem::Shape));
+                };
+                let [guest_subnet, kvm, maximum_guests] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
+                Ok(Self::VmHost {
+                    guest_subnet: TapSubnet::embody(guest_subnet)?,
+                    kvm: KvmAvailability::embody(kvm)?,
+                    maximum_guests: Option::<MaximumGuests>::embody(maximum_guests)?,
+                })
+            }
+            "WebHost" => Ok(Self::WebHost {
+                sites: Vec::<HostedSite>::embody(&headed.body)?,
+            }),
+            _ => Err(portion.fault(FaultProblem::Head)),
+        }
+    }
+
+    fn portion(&self) -> Portion {
+        match self {
+            Self::TailnetClient {} => "TailnetClient".bare(),
+            Self::TailnetController {} => "TailnetController".bare(),
+            Self::NixBuilder { maximum_jobs } => {
+                "NixBuilder".headed(Separator::Period, optional_u32_portion(*maximum_jobs))
+            }
+            Self::NixCache {} => "NixCache".bare(),
+            Self::PersonaDevelopment { capabilities } => {
+                "PersonaDevelopment".headed(Separator::Period, capabilities.portion())
+            }
+            Self::VmHost {
+                guest_subnet,
+                kvm,
+                maximum_guests,
+            } => "VmHost".headed(
+                Separator::Period,
+                record(vec![
+                    guest_subnet.portion(),
+                    kvm.portion(),
+                    maximum_guests.portion(),
+                ]),
+            ),
+            Self::WebHost { sites } => "WebHost".headed(Separator::Period, sites.portion()),
+        }
+    }
+}
+
+impl Datomic for RouterInterfaces {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [
+            wan,
+            wlan,
+            wlan_band,
+            wlan_channel,
+            wlan_standard,
+            wpa3_sae_password,
+            backup_wireless,
+        ] = parts
+        else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            wan: Interface::embody(wan)?,
+            wlan: Interface::embody(wlan)?,
+            wlan_band: WlanBand::embody(wlan_band)?,
+            wlan_channel: u16_from_portion(wlan_channel)?,
+            wlan_standard: WlanStandard::embody(wlan_standard)?,
+            wpa3_sae_password: Option::<SecretReference>::embody(wpa3_sae_password)?,
+            backup_wireless: Option::<BackupWireless>::embody(backup_wireless)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.wan.portion(),
+            self.wlan.portion(),
+            self.wlan_band.portion(),
+            i64::from(self.wlan_channel).portion(),
+            self.wlan_standard.portion(),
+            self.wpa3_sae_password.portion(),
+            self.backup_wireless.portion(),
+        ])
+    }
+}
+
+impl Datomic for BackupWireless {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [interface, network_name, band, channel, standard, password] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            interface: Interface::embody(interface)?,
+            network_name: WirelessNetworkName::embody(network_name)?,
+            band: WlanBand::embody(band)?,
+            channel: u16_from_portion(channel)?,
+            standard: WlanStandard::embody(standard)?,
+            password: SecretReference::embody(password)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.interface.portion(),
+            self.network_name.portion(),
+            self.band.portion(),
+            i64::from(self.channel).portion(),
+            self.standard.portion(),
+            self.password.portion(),
+        ])
+    }
+}
+
+impl Datomic for SecretReference {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [name] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            name: SecretName::embody(name)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![self.name.portion()])
+    }
+}
+
+impl Datomic for NodePubKeys {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [ssh, nix, yggdrasil] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            ssh: SshPubKey::embody(ssh)?,
+            nix: Option::<NixPubKey>::embody(nix)?,
+            yggdrasil: Option::<YggPubKeyEntry>::embody(yggdrasil)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.ssh.portion(),
+            self.nix.portion(),
+            self.yggdrasil.portion(),
+        ])
+    }
+}
+
+impl Datomic for YggPubKeyEntry {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [pub_key, address, subnet] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            pub_key: YggPubKey::embody(pub_key)?,
+            address: YggAddress::embody(address)?,
+            subnet: YggSubnet::embody(subnet)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.pub_key.portion(),
+            self.address.portion(),
+            self.subnet.portion(),
+        ])
+    }
+}
+
+impl Datomic for UserPubKeyEntry {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [ssh, keygrip] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            ssh: SshPubKey::embody(ssh)?,
+            keygrip: Keygrip::embody(keygrip)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![self.ssh.portion(), self.keygrip.portion()])
+    }
+}
+
+impl Datomic for UserProposal {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [
+            species,
+            size,
+            keyboard,
+            style,
+            github_id,
+            fast_repeat,
+            pub_keys,
+            editor,
+            text_size,
+        ] = parts
+        else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            species: UserSpecies::embody(species)?,
+            size: Magnitude::embody(size)?,
+            keyboard: Keyboard::embody(keyboard)?,
+            style: Style::embody(style)?,
+            github_id: Option::<GithubId>::embody(github_id)?,
+            fast_repeat: Option::<bool>::embody(fast_repeat)?,
+            pub_keys: BTreeMap::<NodeName, UserPubKeyEntry>::embody(pub_keys)?,
+            editor: Option::<Editor>::embody(editor)?,
+            text_size: Option::<TextSize>::embody(text_size)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.species.portion(),
+            self.size.portion(),
+            self.keyboard.portion(),
+            self.style.portion(),
+            self.github_id.portion(),
+            self.fast_repeat.portion(),
+            self.pub_keys.portion(),
+            self.editor.portion(),
+            self.text_size.portion(),
+        ])
+    }
+}
+
+impl Datomic for DomainProposal {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [species] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            species: DomainSpecies::embody(species)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![self.species.portion()])
+    }
+}
+
+impl Datomic for ClusterTrust {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [cluster, clusters, nodes, users] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            cluster: Magnitude::embody(cluster)?,
+            clusters: BTreeMap::<ClusterName, Magnitude>::embody(clusters)?,
+            nodes: BTreeMap::<NodeName, Magnitude>::embody(nodes)?,
+            users: BTreeMap::<UserName, Magnitude>::embody(users)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.cluster.portion(),
+            self.clusters.portion(),
+            self.nodes.portion(),
+            self.users.portion(),
+        ])
+    }
+}
+
+impl Datomic for WireguardProxy {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [pub_key, endpoint, interface_ip] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            pub_key: WireguardPubKey::embody(pub_key)?,
+            endpoint: DatomicString::embody(endpoint)?.as_ref().to_owned(),
+            interface_ip: NodeIp::embody(interface_ip)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.pub_key.portion(),
+            datomic_string_portion(&self.endpoint, "WireGuard endpoint"),
+            self.interface_ip.portion(),
+        ])
+    }
+}
+
+impl Datomic for NodeProposal {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [
+            species,
+            size,
+            trust,
+            machine,
+            io,
+            pub_keys,
+            link_local_ips,
+            node_ip,
+            wireguard_pub_key,
+            nordvpn,
+            wifi_cert,
+            wireguard_untrusted_proxies,
+            wants_printing,
+            wants_hw_video_accel,
+            router_interfaces,
+            online,
+            services,
+        ] = parts
+        else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            species: NodeSpecies::embody(species)?,
+            size: Magnitude::embody(size)?,
+            trust: Magnitude::embody(trust)?,
+            machine: Machine::embody(machine)?,
+            io: Io::embody(io)?,
+            pub_keys: NodePubKeys::embody(pub_keys)?,
+            link_local_ips: Vec::<LinkLocalIp>::embody(link_local_ips)?,
+            node_ip: Option::<NodeIp>::embody(node_ip)?,
+            wireguard_pub_key: Option::<WireguardPubKey>::embody(wireguard_pub_key)?,
+            nordvpn: bool::embody(nordvpn)?,
+            wifi_cert: bool::embody(wifi_cert)?,
+            wireguard_untrusted_proxies: Vec::<WireguardProxy>::embody(
+                wireguard_untrusted_proxies,
+            )?,
+            wants_printing: bool::embody(wants_printing)?,
+            wants_hw_video_accel: bool::embody(wants_hw_video_accel)?,
+            router_interfaces: Option::<RouterInterfaces>::embody(router_interfaces)?,
+            online: Option::<bool>::embody(online)?,
+            services: Vec::<NodeService>::embody(services)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.species.portion(),
+            self.size.portion(),
+            self.trust.portion(),
+            self.machine.portion(),
+            self.io.portion(),
+            self.pub_keys.portion(),
+            self.link_local_ips.portion(),
+            self.node_ip.portion(),
+            self.wireguard_pub_key.portion(),
+            self.nordvpn.portion(),
+            self.wifi_cert.portion(),
+            self.wireguard_untrusted_proxies.portion(),
+            self.wants_printing.portion(),
+            self.wants_hw_video_accel.portion(),
+            self.router_interfaces.portion(),
+            self.online.portion(),
+            self.services.portion(),
+        ])
+    }
+}
+
+impl Datomic for ClusterProposal {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let Some(parts) = portion.structural(StructuralEnclosure::Braced) else {
+            return Err(portion.fault(FaultProblem::Shape));
+        };
+        let [nodes, users, domains, trust, domain_configuration] = parts else {
+            return Err(portion.fault(FaultProblem::Arity));
+        };
+        Ok(Self {
+            nodes: BTreeMap::<NodeName, NodeProposal>::embody(nodes)?,
+            users: BTreeMap::<UserName, UserProposal>::embody(users)?,
+            domains: BTreeMap::<DomainName, DomainProposal>::embody(domains)?,
+            trust: ClusterTrust::embody(trust)?,
+            domain_configuration: DomainConfiguration::embody(domain_configuration)?,
+        })
+    }
+
+    fn portion(&self) -> Portion {
+        record(vec![
+            self.nodes.portion(),
+            self.users.portion(),
+            self.domains.portion(),
+            self.trust.portion(),
+            self.domain_configuration.portion(),
+        ])
+    }
+}
+
+fn record(parts: Vec<Portion>) -> Portion {
+    PortionBuilding::structural("", StructuralEnclosure::Braced, parts)
+}
+
+fn u16_from_portion(portion: &Portion) -> std::result::Result<u16, Fault> {
+    u16::try_from(i64::embody(portion)?).map_err(|_| portion.fault(FaultProblem::Value))
+}
+
+fn u32_from_portion(portion: &Portion) -> std::result::Result<u32, Fault> {
+    u32::try_from(i64::embody(portion)?).map_err(|_| portion.fault(FaultProblem::Value))
+}
+
+fn optional_u32_from_portion(portion: &Portion) -> std::result::Result<Option<u32>, Fault> {
+    Option::<i64>::embody(portion)?
+        .map(|value| u32::try_from(value).map_err(|_| portion.fault(FaultProblem::Value)))
+        .transpose()
+}
+
+fn optional_u32_portion(value: Option<u32>) -> Portion {
+    value.map(i64::from).portion()
+}
+
+fn datomic_string_portion(value: &str, kind: &str) -> Portion {
+    let value = DatomicString::try_from(value.to_owned())
+        .unwrap_or_else(|_| panic!("{kind} must be Datomic-representable"));
+    Datomic::portion(&value)
 }

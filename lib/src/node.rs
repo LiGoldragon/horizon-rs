@@ -261,7 +261,7 @@ struct LidSwitchPolicy {
 
 /// Closed set of computer-model flags downstream consumers gate on.
 /// Add a variant here when a new model warrants a config branch.
-/// Field names emit as camelCase per dotos convention.
+/// Field names emit as camelCase per Datomic convention.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ComputerIs {

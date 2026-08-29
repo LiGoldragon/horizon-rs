@@ -1,6 +1,6 @@
 //! horizon-rs — typed schema + projection for criome cluster horizons.
 //!
-//! Reads a `ClusterProposal` (from goldragon dotos), produces a
+//! Reads a `ClusterProposal` (from goldragon Datomic), produces a
 //! viewpoint-scoped enriched `Horizon` with every method-derived
 //! field already filled.
 //!
@@ -10,6 +10,8 @@ pub mod address;
 pub mod cluster;
 pub mod domain;
 pub mod error;
+pub mod generated;
+pub mod generation;
 pub mod horizon;
 pub mod io;
 pub mod machine;

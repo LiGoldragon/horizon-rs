@@ -232,7 +232,7 @@ fn tailnet_roles_project_from_proposal_not_node_name() {
 fn persona_development_role_projects_from_proposal_not_node_name() {
     let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
     prop.services.push(NodeService::PersonaDevelopment {
-        capabilities: vec![PersonaDevelopmentCapability::GitoliteServer {}],
+        capabilities: vec![PersonaDevelopmentCapability::GitoliteServer],
     });
 
     let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
@@ -240,7 +240,7 @@ fn persona_development_role_projects_from_proposal_not_node_name() {
     assert_eq!(
         node.services,
         vec![NodeService::PersonaDevelopment {
-            capabilities: vec![PersonaDevelopmentCapability::GitoliteServer {}],
+            capabilities: vec![PersonaDevelopmentCapability::GitoliteServer],
         }]
     );
 }

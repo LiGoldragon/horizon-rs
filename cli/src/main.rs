@@ -1,13 +1,14 @@
-//! horizon-cli — read cluster proposal dotos on stdin, write
+//! horizon-cli — read a Datomic cluster proposal on stdin, write
 //! enriched horizon JSON on stdout.
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
 use clap::Parser;
-use dotos::DotosSource;
+use datomic::TextEdge;
 use horizon_lib::name::{ClusterName, NodeName};
 use horizon_lib::{ClusterProposal, Viewpoint};
+use protos::Text;
 
 #[derive(Parser)]
 #[command(
@@ -50,10 +51,10 @@ fn main() -> ExitCode {
     }
 
     let proposal: ClusterProposal = {
-        match DotosSource::new(&buf).parse() {
+        match Text::<ClusterProposal>::from(buf.as_str()).embody() {
             Ok(p) => p,
             Err(e) => {
-                eprintln!("error: parse cluster proposal: {e}");
+                eprintln!("error: parse cluster proposal: {e:?}");
                 return ExitCode::from(1);
             }
         }
