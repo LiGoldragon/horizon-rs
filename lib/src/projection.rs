@@ -430,8 +430,8 @@ impl HorizonDefinition {
             .1
             .1
             .first()
-            .map(|value| value.as_ref())
-            .unwrap_or_else(|| "criome.net");
+            .map(|value| value.as_ref().to_owned())
+            .unwrap_or_else(|| format!("{}.criome.net", self.1.0.as_ref()));
         for (name, projected) in &mut ex_nodes {
             let definition = resolved.nodes.get(name).expect("resolved node exists");
             derive_node(
@@ -462,7 +462,7 @@ impl HorizonDefinition {
                         user,
                         trust,
                         node,
-                        public_domain,
+                        &public_domain,
                         projected_node.behaves_as.center,
                         &projected_node.size,
                     )
@@ -584,7 +584,7 @@ fn named_nodes(
 
 fn validate_machines(nodes: &BTreeMap<String, NodeDefinition>) -> Result<(), Error> {
     for name in nodes.keys() {
-        resolved_architecture(name, nodes, &mut BTreeSet::new())?;
+        resolved_architecture(name, nodes)?;
     }
     Ok(())
 }
@@ -649,11 +649,7 @@ fn magnitude_rank(value: &Magnitude) -> u8 {
 fn resolved_architecture(
     name: &str,
     nodes: &BTreeMap<String, NodeDefinition>,
-    visiting: &mut BTreeSet<String>,
 ) -> Result<Architecture, Error> {
-    if !visiting.insert(name.to_owned()) {
-        return Err(Error::VmHostCycle(name.to_owned()));
-    }
     let definition = nodes.get(name).ok_or_else(|| Error::UnknownVmHost {
         node: name.to_owned(),
         host: name.to_owned(),
@@ -682,7 +678,29 @@ fn resolved_architecture(
                         host,
                     });
                 }
-                let observed = resolved_architecture(&host, nodes, visiting)?;
+                let host_definition = nodes.get(&host).expect("checked host exists");
+                let observed = match &host_definition.4 {
+                    MachineDefinition::Metal(architecture, _) => architecture.clone(),
+                    MachineDefinition::VirtualMachine(
+                        VirtualMachineHost::External(_, architecture),
+                        _,
+                        _,
+                    ) => architecture.clone(),
+                    MachineDefinition::VirtualMachine(
+                        VirtualMachineHost::Cluster(_, _, _, Some(architecture)),
+                        _,
+                        _,
+                    ) => architecture.clone(),
+                    MachineDefinition::VirtualMachine(
+                        VirtualMachineHost::Cluster(_, _, _, None),
+                        _,
+                        _,
+                    ) => {
+                        return Err(Error::VmHostArchitecture {
+                            node: name.to_owned(),
+                        });
+                    }
+                };
                 if host_architecture
                     .as_ref()
                     .is_some_and(|expected| expected != &observed)
@@ -705,7 +723,6 @@ fn resolved_architecture(
             Ok(architecture.clone().unwrap_or(inherited))
         }
     };
-    visiting.remove(name);
     result
 }
 
@@ -883,12 +900,7 @@ fn project_machine(
     match value {
         MachineDefinition::Metal(_, hardware) => Ok(Machine {
             kind: "Metal".into(),
-            architecture: architecture_name(&resolved_architecture(
-                node,
-                nodes,
-                &mut BTreeSet::new(),
-            )?)
-            .into(),
+            architecture: architecture_name(&resolved_architecture(node, nodes)?).into(),
             host: None,
             additional_hosts: vec![],
             user: None,
@@ -911,12 +923,7 @@ fn project_machine(
             };
             Ok(Machine {
                 kind: "VirtualMachine".into(),
-                architecture: architecture_name(&resolved_architecture(
-                    node,
-                    nodes,
-                    &mut BTreeSet::new(),
-                )?)
-                .into(),
+                architecture: architecture_name(&resolved_architecture(node, nodes)?).into(),
                 host,
                 additional_hosts,
                 user,
@@ -1070,7 +1077,13 @@ fn project_user(
         trust: magnitude(&trust).into(),
         keyboard: keyboard(&value.3).into(),
         style: style(&value.4).into(),
-        github_id: value.5.as_ref().map(|v| v.as_ref().to_owned()),
+        github_id: Some(
+            value
+                .5
+                .as_ref()
+                .map(|v| v.as_ref().to_owned())
+                .unwrap_or_else(|| value.0.as_ref().to_owned()),
+        ),
         fast_repeat: value.6,
         public_keys: value
             .7

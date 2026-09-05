@@ -306,3 +306,33 @@ fn local_vm_requires_an_existing_cluster_host() {
         matches!(definition.resolve(), Err(Error::UnknownVmHost { node, host }) if node == "mercury" && host == "missing")
     );
 }
+
+#[test]
+fn domain_and_github_defaults_follow_the_selected_cluster() {
+    let mut definition = definition(vec![text("live-install")], vec![installation()]);
+    definition.0.1.1.clear();
+    definition.1.3[0].5 = None;
+    let horizon = definition
+        .project("live-install")
+        .expect("defaults project");
+    assert_eq!(horizon.users[0].email_address, "li@goldragon.criome.net");
+    assert_eq!(horizon.users[0].github_id.as_deref(), Some("li"));
+}
+
+#[test]
+fn local_vm_architecture_inference_is_single_hop() {
+    let mut chained = local_vm();
+    chained.0 = text("chained");
+    chained.4 = MachineDefinition::VirtualMachine(
+        VirtualMachineHost::Cluster(text("mercury"), Vec::new(), None, None),
+        hardware(),
+        Some(30),
+    );
+    let definition = definition(
+        vec![text("live-install")],
+        vec![installation(), local_vm(), chained],
+    );
+    assert!(
+        matches!(definition.resolve(), Err(Error::VmHostArchitecture { node }) if node == "chained")
+    );
+}
