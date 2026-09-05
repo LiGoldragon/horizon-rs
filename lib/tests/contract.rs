@@ -172,11 +172,7 @@ fn definition(selected: Vec<protos::Text>, local_nodes: Vec<NodeDefinition>) -> 
                 Style::Emacs,
                 Some(text("li")),
                 Some(true),
-                vec![UserPubKey(
-                    text("zeus"),
-                    text("ssh-ed25519 AAAAuser"),
-                    text("keygrip"),
-                )],
+                vec![UserPubKey(text("zeus"), text("AAAAuser"), text("keygrip"))],
                 Some(Editor::Emacs),
                 Some(TextSize::Large),
             )],
@@ -211,6 +207,20 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
     assert!(graphical.node.installation_disks.is_empty());
     assert_eq!(graphical.node.keyboard, "Colemak");
     assert_eq!(graphical.node.compressed_swap_memory_percent, Some(20));
+    assert_eq!(
+        graphical.node.criome_domain_name,
+        "live-install.goldragon.criome"
+    );
+    assert_eq!(graphical.node.system, "x86_64-linux");
+    assert!(graphical.node.behaves_as.center);
+    assert_eq!(
+        graphical.node.builder_configs[0].host_name,
+        "zeus.goldragon.criome"
+    );
+    assert_eq!(
+        graphical.node.admin_ssh_public_keys,
+        ["ssh-ed25519 AAAAuser"]
+    );
     assert!(matches!(
         graphical.node.capabilities.as_slice(),
         [
@@ -244,6 +254,8 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
         "backup"
     );
     assert_eq!(graphical.users[0].public_keys[0].keygrip, "keygrip");
+    assert_eq!(graphical.users[0].email_address, "li@goldragon.criome.net");
+    assert_eq!(graphical.users[0].preferred_editor, "Emacs");
     assert_eq!(graphical.domains[0].provider, "Cloudflare");
     assert_eq!(graphical.trust.nodes[0].name, "zeus");
     assert_eq!(

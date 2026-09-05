@@ -53,6 +53,8 @@ pub struct ResolvedCluster {
 #[serde(rename_all = "camelCase")]
 pub struct Horizon {
     pub cluster: String,
+    pub tailnet_base_domain: String,
+    pub trusted_build_public_keys: Vec<String>,
     pub node: Node,
     pub ex_nodes: BTreeMap<String, Node>,
     pub users: Vec<User>,
@@ -79,6 +81,28 @@ pub struct Node {
     pub network: Network,
     pub keys: Keys,
     pub capabilities: Vec<Capability>,
+    pub criome_domain_name: String,
+    pub system: String,
+    pub max_jobs: i64,
+    pub build_cores: i64,
+    pub is_fully_trusted: bool,
+    pub is_remote_nix_builder: bool,
+    pub is_dispatcher: bool,
+    pub is_nix_cache: bool,
+    pub is_large_edge: bool,
+    pub enable_network_manager: bool,
+    pub has_base_public_keys: bool,
+    pub nix_public_key_line: Option<String>,
+    pub nix_cache_domain: Option<String>,
+    pub nix_url: Option<String>,
+    pub behaves_as: BehavesAs,
+    pub ssh_public_key_line: String,
+    pub builder_configs: Vec<BuilderConfig>,
+    pub cache_urls: Vec<String>,
+    pub ex_nodes_ssh_public_keys: Vec<String>,
+    pub dispatchers_ssh_public_keys: Vec<String>,
+    pub admin_ssh_public_keys: Vec<String>,
+    pub image_exchange_public_keys: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -129,6 +153,35 @@ pub struct HardwareView {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct BehavesAs {
+    pub center: bool,
+    pub router: bool,
+    pub edge: bool,
+    pub next_generation: bool,
+    pub low_power: bool,
+    pub bare_metal: bool,
+    pub virtual_machine: bool,
+    pub iso: bool,
+    pub large_ai: bool,
+    pub test_vm: bool,
+    pub cloud_node: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuilderConfig {
+    pub host_name: String,
+    pub ssh_user: String,
+    pub ssh_key: String,
+    pub supported_features: Vec<String>,
+    pub system: String,
+    pub max_jobs: i64,
+    pub public_host_key: String,
+    pub public_host_key_line: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Network {
     pub link_local_ips: Vec<String>,
     pub node_ip: Option<String>,
@@ -153,7 +206,7 @@ pub struct RouterInterfacesView {
     pub wlan_band: String,
     pub wlan_channel: i64,
     pub wlan_standard: String,
-    pub wpa3_sae_password: Option<String>,
+    pub wpa3_sae_password_reference: Option<String>,
     pub backup_wireless: Option<BackupWirelessView>,
 }
 
@@ -165,7 +218,7 @@ pub struct BackupWirelessView {
     pub band: String,
     pub channel: i64,
     pub standard: String,
-    pub password: String,
+    pub password_reference: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -240,6 +293,20 @@ pub struct User {
     pub public_keys: Vec<UserPubKeyView>,
     pub editor: Option<String>,
     pub text_size: Option<String>,
+    pub has_public_key: bool,
+    pub email_address: String,
+    pub matrix_id: String,
+    pub git_signing_key: Option<String>,
+    pub use_colemak: bool,
+    pub use_fast_repeat: bool,
+    pub is_multimedia_dev: bool,
+    pub is_code_dev: bool,
+    pub preferred_editor: String,
+    pub resolved_text_size: String,
+    pub ssh_public_keys: Vec<String>,
+    pub ssh_public_key: Option<String>,
+    pub extra_groups: Vec<String>,
+    pub enable_linger: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -347,7 +414,7 @@ impl HorizonDefinition {
             .nodes
             .get(node)
             .ok_or_else(|| Error::UnknownNode(node.to_owned()))?;
-        let ex_nodes = resolved
+        let ex_nodes: BTreeMap<String, Node> = resolved
             .nodes
             .iter()
             .filter(|(name, _)| name.as_str() != node)
@@ -355,19 +422,61 @@ impl HorizonDefinition {
                 Ok((name.clone(), project_node(definition, &resolved.nodes)?))
             })
             .collect::<Result<_, Error>>()?;
+        let mut ex_nodes = ex_nodes;
+        let mut projected_node = project_node(viewpoint, &resolved.nodes)?;
+        let internal_suffix = self.0.1.0.as_ref();
+        let public_domain = self
+            .0
+            .1
+            .1
+            .first()
+            .map(|value| value.as_ref())
+            .unwrap_or_else(|| "criome.net");
+        for (name, projected) in &mut ex_nodes {
+            let definition = resolved.nodes.get(name).expect("resolved node exists");
+            derive_node(
+                projected,
+                &resolved.name,
+                internal_suffix,
+                effective_node_trust(&self.1.5, name, &definition.3),
+            );
+        }
+        derive_node(
+            &mut projected_node,
+            &resolved.name,
+            internal_suffix,
+            effective_node_trust(&self.1.5, node, &viewpoint.3),
+        );
+        let trusted_build_public_keys = std::iter::once(&projected_node)
+            .chain(ex_nodes.values())
+            .filter_map(|node| node.nix_public_key_line.clone())
+            .collect::<Vec<String>>();
+        let users = self
+            .1
+            .3
+            .iter()
+            .filter_map(|user| {
+                let trust = effective_user_trust(&self.1.5, user.0.as_ref());
+                (!matches!(trust, Magnitude::Zero)).then(|| {
+                    project_user(
+                        user,
+                        trust,
+                        node,
+                        public_domain,
+                        projected_node.behaves_as.center,
+                        &projected_node.size,
+                    )
+                })
+            })
+            .collect::<Vec<User>>();
+        fill_viewpoint(&mut projected_node, &ex_nodes, &users);
         Ok(Horizon {
             cluster: resolved.name,
-            node: project_node(viewpoint, &resolved.nodes)?,
+            tailnet_base_domain: format!("tailnet.{}.{}", self.1.0.as_ref(), internal_suffix),
+            trusted_build_public_keys,
+            node: projected_node,
             ex_nodes,
-            users: self
-                .1
-                .3
-                .iter()
-                .filter_map(|user| {
-                    let trust = effective_user_trust(&self.1.5, user.0.as_ref());
-                    (!matches!(trust, Magnitude::Zero)).then(|| project_user(user, trust))
-                })
-                .collect(),
+            users,
             domains: self.1.4.iter().map(project_domain).collect(),
             trust: project_trust(&self.1.5),
             domain_configuration: DomainConfigurationView {
@@ -381,6 +490,81 @@ impl HorizonDefinition {
                     .collect(),
             },
         })
+    }
+}
+
+fn fill_viewpoint(viewpoint: &mut Node, ex_nodes: &BTreeMap<String, Node>, users: &[User]) {
+    viewpoint.builder_configs = ex_nodes
+        .values()
+        .filter(|node| node.is_remote_nix_builder)
+        .map(builder_config)
+        .collect();
+    viewpoint.cache_urls = ex_nodes
+        .values()
+        .filter_map(|node| node.nix_url.clone())
+        .collect();
+    viewpoint.ex_nodes_ssh_public_keys = ex_nodes
+        .values()
+        .map(|node| node.ssh_public_key_line.clone())
+        .collect();
+    viewpoint.dispatchers_ssh_public_keys = ex_nodes
+        .values()
+        .filter(|node| node.is_dispatcher)
+        .map(|node| node.ssh_public_key_line.clone())
+        .collect();
+    let mut nodes: BTreeMap<&str, &Node> = ex_nodes
+        .iter()
+        .map(|(name, node)| (name.as_str(), node))
+        .collect();
+    nodes.insert(viewpoint.name.as_str(), viewpoint);
+    let mut admin_ssh_public_keys = Vec::new();
+    for user in users.iter().filter(|user| user.trust == "Max") {
+        for key in &user.public_keys {
+            if nodes
+                .get(key.node.as_str())
+                .is_some_and(|node| node.is_fully_trusted)
+            {
+                let line = format!("ssh-ed25519 {}", key.ssh);
+                if !admin_ssh_public_keys.contains(&line) {
+                    admin_ssh_public_keys.push(line);
+                }
+            }
+        }
+    }
+    let mut image_exchange_public_keys = Vec::new();
+    if viewpoint.machine.kind == "VirtualMachine" {
+        for host in viewpoint
+            .machine
+            .host
+            .iter()
+            .chain(viewpoint.machine.additional_hosts.iter())
+        {
+            if let Some(node) = nodes.get(host.as_str()) {
+                if let Some(key) = &node.nix_public_key_line {
+                    image_exchange_public_keys.push(key.clone());
+                }
+            }
+        }
+    }
+    drop(nodes);
+    viewpoint.admin_ssh_public_keys = admin_ssh_public_keys;
+    viewpoint.image_exchange_public_keys = image_exchange_public_keys;
+}
+
+fn builder_config(node: &Node) -> BuilderConfig {
+    BuilderConfig {
+        host_name: node.criome_domain_name.clone(),
+        ssh_user: "nix-ssh".into(),
+        ssh_key: "/etc/ssh/ssh_host_ed25519_key".into(),
+        supported_features: if node.behaves_as.edge {
+            Vec::new()
+        } else {
+            vec!["big-parallel".into(), "kvm".into()]
+        },
+        system: node.system.clone(),
+        max_jobs: node.max_jobs,
+        public_host_key: node.keys.ssh.clone(),
+        public_host_key_line: node.ssh_public_key_line.clone(),
     }
 }
 
@@ -566,7 +750,121 @@ fn project_node(
         network: project_network(&definition.6),
         keys: project_keys(&definition.7),
         capabilities: definition.9.iter().map(project_capability).collect(),
+        criome_domain_name: String::new(),
+        system: String::new(),
+        max_jobs: 0,
+        build_cores: 0,
+        is_fully_trusted: false,
+        is_remote_nix_builder: false,
+        is_dispatcher: false,
+        is_nix_cache: false,
+        is_large_edge: false,
+        enable_network_manager: false,
+        has_base_public_keys: false,
+        nix_public_key_line: None,
+        nix_cache_domain: None,
+        nix_url: None,
+        behaves_as: BehavesAs {
+            center: false,
+            router: false,
+            edge: false,
+            next_generation: false,
+            low_power: false,
+            bare_metal: false,
+            virtual_machine: false,
+            iso: false,
+            large_ai: false,
+            test_vm: false,
+            cloud_node: false,
+        },
+        ssh_public_key_line: String::new(),
+        builder_configs: Vec::new(),
+        cache_urls: Vec::new(),
+        ex_nodes_ssh_public_keys: Vec::new(),
+        dispatchers_ssh_public_keys: Vec::new(),
+        admin_ssh_public_keys: Vec::new(),
+        image_exchange_public_keys: Vec::new(),
     })
+}
+
+fn derive_node(node: &mut Node, cluster: &str, suffix: &str, trust: Magnitude) {
+    let has = |kind: fn(&Capability) -> bool| node.capabilities.iter().any(kind);
+    let center = has(|capability| matches!(capability, Capability::Center));
+    let router = has(|capability| matches!(capability, Capability::Router));
+    let edge = has(|capability| matches!(capability, Capability::Edge));
+    let next_generation = has(|capability| matches!(capability, Capability::NextGeneration));
+    let low_power = has(|capability| matches!(capability, Capability::LowPower));
+    let large_ai = has(|capability| matches!(capability, Capability::LargeAi));
+    let test_vm = has(|capability| matches!(capability, Capability::TestVm));
+    let cloud_node = has(|capability| matches!(capability, Capability::CloudNode));
+    let virtual_machine = node.machine.kind == "VirtualMachine";
+    let bare_metal = !virtual_machine;
+    let iso = node.is_live && bare_metal;
+    node.behaves_as = BehavesAs {
+        center,
+        router,
+        edge,
+        next_generation,
+        low_power,
+        bare_metal,
+        virtual_machine,
+        iso,
+        large_ai,
+        test_vm,
+        cloud_node,
+    };
+    node.criome_domain_name = format!("{}.{}.{}", node.name, cluster, suffix);
+    node.system = match node.machine.architecture.as_str() {
+        "x86_64" => "x86_64-linux",
+        "aarch64" => "aarch64-linux",
+        _ => "unknown",
+    }
+    .to_owned();
+    node.trust = magnitude(&trust).to_owned();
+    node.is_fully_trusted = matches!(trust, Magnitude::Max);
+    node.has_base_public_keys = node.keys.nix.is_some() && node.keys.yggdrasil.is_some();
+    let maximum_jobs = node
+        .capabilities
+        .iter()
+        .find_map(|capability| match capability {
+            Capability::NixBuilder { maximum_jobs } => *maximum_jobs,
+            _ => None,
+        })
+        .unwrap_or(1);
+    node.max_jobs = maximum_jobs;
+    node.build_cores = maximum_jobs;
+    let online = node.online.unwrap_or(true);
+    node.is_remote_nix_builder = node
+        .capabilities
+        .iter()
+        .any(|capability| matches!(capability, Capability::NixBuilder { .. }))
+        && online
+        && node.is_fully_trusted
+        && node.has_base_public_keys;
+    node.is_dispatcher = !center && node.is_fully_trusted && !matches!(node.size.as_str(), "Zero");
+    node.is_nix_cache = node
+        .capabilities
+        .iter()
+        .any(|capability| matches!(capability, Capability::NixCache))
+        && online
+        && node.is_fully_trusted
+        && node.has_base_public_keys;
+    node.is_large_edge = matches!(node.size.as_str(), "Large" | "Max") && edge;
+    node.enable_network_manager =
+        !matches!(node.size.as_str(), "Zero") && !iso && !center && !router;
+    node.nix_public_key_line = node
+        .keys
+        .nix
+        .as_ref()
+        .map(|key| format!("{}:{key}", node.criome_domain_name));
+    node.nix_cache_domain = node
+        .is_nix_cache
+        .then(|| format!("nix.{}", node.criome_domain_name));
+    node.nix_url = node
+        .nix_cache_domain
+        .as_ref()
+        .map(|domain| format!("http://{domain}"));
+    node.ssh_public_key_line = format!("ssh-ed25519 {}", node.keys.ssh);
 }
 
 fn project_disk(value: &DiskLayout) -> Disk {
@@ -662,14 +960,14 @@ fn project_router(value: &RouterInterfaces) -> RouterInterfacesView {
         wlan_band: wlan_band(&value.2).into(),
         wlan_channel: value.3,
         wlan_standard: wlan_standard(&value.4).into(),
-        wpa3_sae_password: value.5.as_ref().map(|v| v.0.as_ref().to_owned()),
+        wpa3_sae_password_reference: value.5.as_ref().map(|v| v.0.as_ref().to_owned()),
         backup_wireless: value.6.as_ref().map(|v| BackupWirelessView {
             interface: v.0.as_ref().to_owned(),
             network_name: v.1.as_ref().to_owned(),
             band: wlan_band(&v.2).into(),
             channel: v.3,
             standard: wlan_standard(&v.4).into(),
-            password: v.5.0.as_ref().to_owned(),
+            password_reference: v.5.0.as_ref().to_owned(),
         }),
     }
 }
@@ -729,11 +1027,46 @@ fn project_capability(value: &NodeCapability) -> Capability {
         },
     }
 }
-fn project_user(value: &UserDefinition, trust: Magnitude) -> User {
+fn project_user(
+    value: &UserDefinition,
+    trust: Magnitude,
+    viewpoint: &str,
+    public_domain: &str,
+    viewpoint_center: bool,
+    viewpoint_size: &str,
+) -> User {
+    let viewpoint_key = value.7.iter().find(|key| key.0.as_ref() == viewpoint);
+    let is_code_dev = matches!(value.1, UserRole::Code | UserRole::Unlimited);
+    let is_multimedia_dev = matches!(value.1, UserRole::Multimedia | UserRole::Unlimited);
+    let is_max_trusted = matches!(trust, Magnitude::Max);
+    let mut extra_groups = vec!["audio".to_owned()];
+    if matches!(trust, Magnitude::Medium | Magnitude::Large | Magnitude::Max) {
+        extra_groups.push("video".to_owned());
+    }
+    if is_max_trusted {
+        extra_groups.extend(
+            [
+                "adbusers",
+                "nixdev",
+                "systemd-journal",
+                "dialout",
+                "plugdev",
+                "power",
+                "storage",
+                "libvirtd",
+            ]
+            .map(str::to_owned),
+        );
+    }
+    let resolved_size = if magnitude_rank(&value.2) <= size_rank(viewpoint_size) {
+        magnitude(&value.2).to_owned()
+    } else {
+        viewpoint_size.to_owned()
+    };
     User {
         name: value.0.as_ref().to_owned(),
         role: user_role(&value.1).into(),
-        size: magnitude(&value.2).into(),
+        size: resolved_size,
         trust: magnitude(&trust).into(),
         keyboard: keyboard(&value.3).into(),
         style: style(&value.4).into(),
@@ -750,6 +1083,45 @@ fn project_user(value: &UserDefinition, trust: Magnitude) -> User {
             .collect(),
         editor: value.8.as_ref().map(editor).map(str::to_owned),
         text_size: value.9.as_ref().map(text_size).map(str::to_owned),
+        has_public_key: viewpoint_key.is_some(),
+        email_address: format!("{}@{public_domain}", value.0.as_ref()),
+        matrix_id: format!("@{}:{public_domain}", value.0.as_ref()),
+        git_signing_key: viewpoint_key.map(|key| format!("&{}", key.2.as_ref())),
+        use_colemak: matches!(value.3, Keyboard::Colemak),
+        use_fast_repeat: value.6.unwrap_or(true),
+        is_multimedia_dev,
+        is_code_dev,
+        preferred_editor: value
+            .8
+            .as_ref()
+            .map(editor)
+            .unwrap_or(if is_code_dev { "Emacs" } else { "Codium" })
+            .to_owned(),
+        resolved_text_size: value
+            .9
+            .as_ref()
+            .map(text_size)
+            .unwrap_or("Medium")
+            .to_owned(),
+        ssh_public_keys: value
+            .7
+            .iter()
+            .map(|key| format!("ssh-ed25519 {}", key.1.as_ref()))
+            .collect(),
+        ssh_public_key: viewpoint_key.map(|key| format!("ssh-ed25519 {}", key.1.as_ref())),
+        extra_groups,
+        enable_linger: is_max_trusted && viewpoint_center,
+    }
+}
+
+fn size_rank(value: &str) -> u8 {
+    match value {
+        "Zero" => 0,
+        "Min" => 1,
+        "Medium" => 2,
+        "Large" => 3,
+        "Max" => 4,
+        _ => 0,
     }
 }
 fn project_domain(value: &DomainDefinition) -> Domain {
