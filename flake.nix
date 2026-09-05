@@ -42,7 +42,7 @@
           commonArgs = {
             inherit src;
             strictDeps = true;
-            version = "0.5.1";
+            version = "0.6.0";
           };
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in
@@ -54,11 +54,15 @@
         {
           default = ctx.craneLib.buildPackage (ctx.commonArgs // {
             inherit (ctx) cargoArtifacts;
-            # pname must match Cargo.toml's [[bin]] name so `nix run`
-            # finds bin/<pname>.
-            pname = "horizon-cli";
-            cargoExtraArgs = "--bin horizon-cli";
+            pname = "horizon";
             meta.mainProgram = "horizon-cli";
+            doCheck = false;
+          });
+          horizon-compose = ctx.craneLib.buildPackage (ctx.commonArgs // {
+            inherit (ctx) cargoArtifacts;
+            pname = "horizon-compose";
+            cargoExtraArgs = "--bin horizon-compose";
+            meta.mainProgram = "horizon-compose";
             doCheck = false;
           });
         });
@@ -84,5 +88,12 @@
         });
 
       formatter = forSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
+      apps = forSystems (system: {
+        horizon-compose = {
+          type = "app";
+          program = "${self.packages.${system}.horizon-compose}/bin/horizon-compose";
+          meta.description = "Materialize a validated Horizon definition";
+        };
+      });
     };
 }

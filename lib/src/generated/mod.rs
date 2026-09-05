@@ -1,5 +1,4 @@
-//! Datomic anatomy owned by the committed Horizon Ethos contract.
-//!
-//! Regenerate with `cargo run -p horizon-lib --bin horizon-regenerate`.
+//! Rust generated from `lib/ethos/horizon.ethos` by Ethos-zero.
 
-pub mod d3;
+#[rustfmt::skip]
+pub mod horizon;

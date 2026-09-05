@@ -1,18 +1,16 @@
 [package]
 name    = "horizon-lib"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2024"
+autotests = false
 
 [dependencies]
 serde      = { workspace = true }
 protos = { workspace = true }
-datomic = { workspace = true }
+datom-codec = { workspace = true }
 ethos-zero = { workspace = true }
-quote = { workspace = true }
-syn = { workspace = true }
 thiserror  = { workspace = true }
-ipnet      = { workspace = true }
 
-[[bin]]
-name = "horizon-regenerate"
-path = "tools/regenerate.rs"
+[[test]]
+name = "contract"
+path = "tests/contract.rs"

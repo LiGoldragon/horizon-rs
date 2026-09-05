@@ -1,19 +1,17 @@
-# Agent instructions — horizon-rs
+# Horizon agent notes
 
-You **MUST** read CriomOS's AGENTS.md (sibling repo) — CriomOS-cluster rules apply here.
+Horizon owns the typed Datom boundary between externally authored generic node
+catalogues, cluster-owned membership/facts, and consumers such as Lojix.
 
-## Repo role
+`HorizonConfiguration` carries generic node definitions and domain settings.
+`ClusterDefinition` carries local nodes, explicit selected generic names,
+users, domains, and trust. `horizon-compose` accepts exactly one typed
+`Compose.{ configuration-path cluster-definition-path }` request and writes
+the validated one-file `HorizonDefinition`. `HorizonDefinition::project(node)`
+resolves only selected generic names before producing the selected projection.
 
-Owns the horizon schema, type-checking, and method computation for CriomOS. Reads a cluster proposal in Datomic (from goldragon), projects it from a viewpoint `(cluster, node)`, emits an enriched horizon Datomic.
-
-CLI: `horizon-cli --cluster <C> --node <N> < proposal.Datomic > horizon.Datomic`.
-
-Spec: `docs/DESIGN.md`. Build-cores derivation rationale: `docs/BUILD_CORES.md`.
-
-First thing: run `bd list --status open`.
-
-## Protos estate status
-
-Stack: correct-new destination
-Status: active component, current checkout legacy-wired
-This checkout is not proof of correct-new adoption.
+The generated source in `lib/src/generated/` comes only from
+`lib/ethos/horizon.ethos` through the pinned Ethos generator. Do not edit it
+by hand. `MachineSpecies::Pod` migrated to `VirtualMachine`; there is no
+Container variant. Live definitions have no persistent layout, while keyboard
+and compressed swap remain node environment facts for both variants.

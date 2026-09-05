@@ -1,15 +1,19 @@
 [package]
 name    = "horizon-cli"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2024"
 
 [[bin]]
 name = "horizon-cli"
 path = "src/main.rs"
 
+[[bin]]
+name = "horizon-compose"
+path = "src/compose.rs"
+
 [dependencies]
 horizon-lib = { workspace = true }
-datomic = { workspace = true }
+datom-codec = { workspace = true }
 protos = { workspace = true }
 serde_json  = { workspace = true }
 clap        = { workspace = true }
