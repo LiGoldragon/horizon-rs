@@ -248,6 +248,11 @@ pub enum Capability {
     NextGeneration,
     LowPower,
     TestVm,
+    VmTesting {
+        gpu_passthrough: bool,
+        display: String,
+        gpu: Option<String>,
+    },
     CloudNode,
     Printing,
     HardwareVideo,
@@ -999,6 +1004,11 @@ fn project_capability(value: &NodeCapability) -> Capability {
         NodeCapability::NextGeneration(_) => Capability::NextGeneration,
         NodeCapability::LowPower(_) => Capability::LowPower,
         NodeCapability::TestVm(_) => Capability::TestVm,
+        NodeCapability::VmTesting(gpu_passthrough, display, gpu) => Capability::VmTesting {
+            gpu_passthrough: *gpu_passthrough,
+            display: display.as_ref().to_owned(),
+            gpu: gpu.as_ref().map(|value| value.as_ref().to_owned()),
+        },
         NodeCapability::CloudNode(_) => Capability::CloudNode,
         NodeCapability::Printing(_) => Capability::Printing,
         NodeCapability::HardwareVideo(_) => Capability::HardwareVideo,

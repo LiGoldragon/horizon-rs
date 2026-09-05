@@ -2221,6 +2221,7 @@ pub enum NodeCapability {
     NextGeneration(NoSettings),
     LowPower(NoSettings),
     TestVm(NoSettings),
+    VmTesting(protos::Boolean, protos::Text, std::option::Option<protos::Text>),
     CloudNode(NoSettings),
     Printing(NoSettings),
     HardwareVideo(NoSettings),
@@ -2265,6 +2266,15 @@ impl datom_codec::Datomic for NodeCapability {
             }
             "TestVm" => {
                 std::result::Result::Ok(Self::TestVm(datom_codec::Carrying::body(v)?))
+            }
+            "VmTesting" => {
+                let mut p = datom_codec::Headed::positions(v, 3)?;
+                let p0: protos::Boolean = datom_codec::Positional::position(&mut p)?;
+                let p1: protos::Text = datom_codec::Positional::position(&mut p)?;
+                let p2: std::option::Option<protos::Text> = datom_codec::Positional::position(
+                    &mut p,
+                )?;
+                std::result::Result::Ok(Self::VmTesting(p0, p1, p2))
             }
             "CloudNode" => {
                 std::result::Result::Ok(Self::CloudNode(datom_codec::Carrying::body(v)?))
@@ -2425,6 +2435,24 @@ impl protos::Conceivable<datom_codec::Datom> for NodeCapability {
                                 protos::Conceivable::conceive(p0)
                                     .expect("infallible datom ascent")
                                     .1,
+                            ),
+                        )
+                    }
+                    Self::VmTesting(p0, p1, p2) => {
+                        datom_codec::Datom::Variant(
+                            protos::Symbol::try_from("VmTesting")
+                                .expect("static variant"),
+                            std::boxed::Box::new(
+                                datom_codec::Datom::Struct(
+                                    vec![
+                                        protos::Conceivable::conceive(p0)
+                                        .expect("infallible datom ascent").1,
+                                        protos::Conceivable::conceive(p1)
+                                        .expect("infallible datom ascent").1,
+                                        protos::Conceivable::conceive(p2)
+                                        .expect("infallible datom ascent").1
+                                    ],
+                                ),
                             ),
                         )
                     }

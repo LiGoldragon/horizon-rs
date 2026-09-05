@@ -121,6 +121,7 @@ fn installation() -> NodeDefinition {
                 KvmAvailability::Available,
                 Some(4),
             ),
+            NodeCapability::VmTesting(true, text("Spice"), Some(text("1002:73bf"))),
             NodeCapability::WebHost(vec![HostedSite(
                 text("example.com"),
                 text("github:org/site/rev"),
@@ -241,6 +242,18 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
     assert!(
         matches!(graphical.ex_nodes["zeus"].capabilities[2], Capability::VmHost { ref kvm, .. } if kvm == "Available")
     );
+    assert!(matches!(
+        graphical.ex_nodes["zeus"].capabilities[3],
+        Capability::VmTesting {
+            gpu_passthrough: true,
+            ref display,
+            gpu: Some(ref gpu),
+        } if display == "Spice" && gpu == "1002:73bf"
+    ));
+    assert!(matches!(
+        graphical.ex_nodes["mercury"].capabilities.as_slice(),
+        [Capability::TestVm]
+    ));
     assert_eq!(
         graphical.ex_nodes["zeus"]
             .network
