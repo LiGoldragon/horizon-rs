@@ -1,14 +1,19 @@
 [package]
 name    = "horizon-lib"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 build = "build.rs"
 autotests = false
 
+[features]
+default = ["datom"]
+datom = ["dep:datom-codec", "dep:protos"]
+
 [dependencies]
 serde      = { workspace = true }
-protos = { workspace = true }
-datom-codec = { workspace = true }
+protos = { workspace = true, optional = true }
+datom-codec = { workspace = true, optional = true }
+rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 thiserror  = { workspace = true }
 
 [build-dependencies]

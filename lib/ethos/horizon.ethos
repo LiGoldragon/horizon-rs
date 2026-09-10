@@ -1,6 +1,8 @@
 ; Canonical authored Horizon input. Maps are named vectors because Datom has
 ; positional structs and vectors, not a map primitive.
-Library
+Signal
+[]
+[]
 []
 [ NodeName.String
   ClusterName.String
@@ -82,5 +84,3 @@ Library
   HorizonDefinition.{ HorizonConfiguration ClusterDefinition }
   CompositionRequest.{ String String }
   CompositionCommand.[ Compose.CompositionRequest ] ]
-[]
-[]

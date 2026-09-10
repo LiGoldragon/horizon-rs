@@ -18,7 +18,11 @@ pub type WirelessNetworkName = String;
 #[rustfmt::skip]
 pub type SecretName = String;
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct SecretReference {
     pub secret_name: SecretName,
 }
@@ -53,20 +57,32 @@ pub type SiteSource = String;
 #[rustfmt::skip]
 pub type ServedDomain = String;
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum UserRole {
     Code,
     Multimedia,
     Unlimited,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum Architecture {
     X86_64,
     Arm64,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum Magnitude {
     Zero,
     Min,
@@ -75,25 +91,41 @@ pub enum Magnitude {
     Max,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum Keyboard {
     Qwerty,
     Colemak,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum Style {
     Vim,
     Emacs,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum Editor {
     Codium,
     Emacs,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum TextSize {
     ExtraSmall,
     Small,
@@ -102,49 +134,81 @@ pub enum TextSize {
     ExtraLarge,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum Bootloader {
     Uefi,
     Mbr,
     Uboot,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum MotherBoard {
     Ondyfaind,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum DomainProvider {
     Cloudflare,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum WlanBand {
     TwoG,
     FiveG,
     SixG,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum WlanStandard {
     Wifi4,
     Wifi6,
     Wifi7,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum KvmAvailability {
     Available,
     Absent,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum SiteRenderer {
     MarkdownStatic,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum FsType {
     Ext2,
     Ext3,
@@ -160,7 +224,11 @@ pub enum FsType {
     Tmpfs,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct Hardware {
     pub integer: i64,
     pub model_name_option: Option<ModelName>,
@@ -170,42 +238,70 @@ pub struct Hardware {
     pub location_option: Option<Location>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct Cluster_Data {
     pub node_name: NodeName,
     pub node_name_vector: std::vec::Vec<NodeName>,
     pub user_name_option: Option<UserName>,
     pub architecture_option: Option<Architecture>,
 }
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct External_Data {
     pub string: String,
     pub architecture: Architecture,
 }
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum VirtualMachineHost {
     Cluster(Cluster_Data),
     External(External_Data),
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct Metal_Data {
     pub architecture: Architecture,
     pub hardware: Hardware,
 }
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct VirtualMachine_Data {
     pub virtual_machine_host: VirtualMachineHost,
     pub hardware: Hardware,
     pub integer_option: Option<i64>,
 }
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum MachineDefinition {
     Metal(Metal_Data),
     VirtualMachine(VirtualMachine_Data),
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct DiskLayout {
     pub device_path: DevicePath,
     pub mount_path: MountPath,
@@ -213,61 +309,101 @@ pub struct DiskLayout {
     pub string_vector: std::vec::Vec<String>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct SwapDevice {
     pub device_path: DevicePath,
     pub integer_option: Option<i64>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct CompressedSwap {
     pub integer: i64,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct NodeEnvironment {
     pub keyboard: Keyboard,
     pub compressed_swap_option: Option<CompressedSwap>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct Installation {
     pub bootloader: Bootloader,
     pub disk_layout_vector: std::vec::Vec<DiskLayout>,
     pub swap_device_vector: std::vec::Vec<SwapDevice>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct LiveDefinition {}
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum NodeVariant {
     Live(LiveDefinition),
     Installation(Installation),
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct YggdrasilKey {
     pub ygg_pub_key: YggPubKey,
     pub ygg_address: YggAddress,
     pub ygg_subnet: YggSubnet,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct NodeKeys {
     pub ssh_pub_key: SshPubKey,
     pub nix_pub_key_option: Option<NixPubKey>,
     pub yggdrasil_key_option: Option<YggdrasilKey>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct WireguardProxy {
     pub wireguard_pub_key: WireguardPubKey,
     pub string: String,
     pub node_ip: NodeIp,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct BackupWireless {
     pub interface: Interface,
     pub wireless_network_name: WirelessNetworkName,
@@ -277,7 +413,11 @@ pub struct BackupWireless {
     pub secret_reference: SecretReference,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct RouterInterfaces {
     pub first_interface: Interface,
     pub second_interface: Interface,
@@ -288,7 +428,11 @@ pub struct RouterInterfaces {
     pub backup_wireless_option: Option<BackupWireless>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct NodeNetwork {
     pub link_local_ip_vector: std::vec::Vec<LinkLocalIp>,
     pub node_ip_option: Option<NodeIp>,
@@ -297,34 +441,58 @@ pub struct NodeNetwork {
     pub router_interfaces_option: Option<RouterInterfaces>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct HostedSite {
     pub served_domain: ServedDomain,
     pub site_source: SiteSource,
     pub site_renderer: SiteRenderer,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum PersonaCapability {
     GitoliteServer,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct NoSettings {}
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct VmTesting_Data {
     pub boolean: bool,
     pub string: String,
     pub string_option: Option<String>,
 }
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct VmHost_Data {
     pub tap_subnet: TapSubnet,
     pub kvm_availability: KvmAvailability,
     pub integer_option: Option<i64>,
 }
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum NodeCapability {
     Graphical(NoSettings),
     Center(NoSettings),
@@ -351,7 +519,11 @@ pub enum NodeCapability {
 #[rustfmt::skip]
 pub type Capabilities = std::vec::Vec<NodeCapability>;
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct NodeDefinition {
     pub node_name: NodeName,
     pub node_variant: NodeVariant,
@@ -371,14 +543,22 @@ pub type GenericNodes = std::vec::Vec<NodeDefinition>;
 #[rustfmt::skip]
 pub type ClusterNodes = std::vec::Vec<NodeDefinition>;
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct UserPubKey {
     pub node_name: NodeName,
     pub ssh_pub_key: SshPubKey,
     pub keygrip: Keygrip,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct UserDefinition {
     pub user_name: UserName,
     pub user_role: UserRole,
@@ -394,7 +574,11 @@ pub struct UserDefinition {
 #[rustfmt::skip]
 pub type Users = std::vec::Vec<UserDefinition>;
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct DomainDefinition {
     pub domain_name: DomainName,
     pub domain_provider: DomainProvider,
@@ -402,25 +586,41 @@ pub struct DomainDefinition {
 #[rustfmt::skip]
 pub type Domains = std::vec::Vec<DomainDefinition>;
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct ClusterTrustEntry {
     pub cluster_name: ClusterName,
     pub magnitude: Magnitude,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct NodeTrustEntry {
     pub node_name: NodeName,
     pub magnitude: Magnitude,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct UserTrustEntry {
     pub user_name: UserName,
     pub magnitude: Magnitude,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct ClusterTrust {
     pub magnitude: Magnitude,
     pub cluster_trust_entry_vector: std::vec::Vec<ClusterTrustEntry>,
@@ -428,13 +628,21 @@ pub struct ClusterTrust {
     pub user_trust_entry_vector: std::vec::Vec<UserTrustEntry>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct DomainConfiguration {
     pub string: String,
     pub domain_name_vector: std::vec::Vec<DomainName>,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct ClusterDefinition {
     pub cluster_name: ClusterName,
     pub cluster_nodes: ClusterNodes,
@@ -444,25 +652,41 @@ pub struct ClusterDefinition {
     pub cluster_trust: ClusterTrust,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct HorizonConfiguration {
     pub generic_nodes: GenericNodes,
     pub domain_configuration: DomainConfiguration,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct HorizonDefinition {
     pub horizon_configuration: HorizonConfiguration,
     pub cluster_definition: ClusterDefinition,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct CompositionRequest {
     pub first_string: String,
     pub second_string: String,
 }
 #[rustfmt::skip]
-#[derive(datom_codec::Datomizable, datom_codec::Compositional, Clone, Debug, PartialEq)]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub enum CompositionCommand {
     Compose(CompositionRequest),
 }
