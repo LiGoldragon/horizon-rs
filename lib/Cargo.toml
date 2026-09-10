@@ -1,15 +1,18 @@
 [package]
 name    = "horizon-lib"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2024"
+build = "build.rs"
 autotests = false
 
 [dependencies]
 serde      = { workspace = true }
 protos = { workspace = true }
 datom-codec = { workspace = true }
-ethos-zero = { workspace = true }
 thiserror  = { workspace = true }
+
+[build-dependencies]
+ethos-zero = { workspace = true }
 
 [[test]]
 name = "contract"

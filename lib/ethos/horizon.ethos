@@ -1,32 +1,32 @@
 ; Canonical authored Horizon input. Maps are named vectors because Datom has
 ; positional structs and vectors, not a map primitive.
-Types
-[ protos:[ Text Integer Boolean ] ]
-[ NodeName.Text
-  ClusterName.Text
-  UserName.Text
-  DomainName.Text
-  ModelName.Text
-  Location.Text
-  Interface.Text
-  WirelessNetworkName.Text
-  SecretName.Text
+Library
+[]
+[ NodeName.String
+  ClusterName.String
+  UserName.String
+  DomainName.String
+  ModelName.String
+  Location.String
+  Interface.String
+  WirelessNetworkName.String
+  SecretName.String
   SecretReference.{ SecretName }
-  GithubId.Text
-  Keygrip.Text
-  DevicePath.Text
-  MountPath.Text
-  SshPubKey.Text
-  NixPubKey.Text
-  WireguardPubKey.Text
-  YggPubKey.Text
-  YggAddress.Text
-  YggSubnet.Text
-  LinkLocalIp.Text
-  NodeIp.Text
-  TapSubnet.Text
-  SiteSource.Text
-  ServedDomain.Text
+  GithubId.String
+  Keygrip.String
+  DevicePath.String
+  MountPath.String
+  SshPubKey.String
+  NixPubKey.String
+  WireguardPubKey.String
+  YggPubKey.String
+  YggAddress.String
+  YggSubnet.String
+  LinkLocalIp.String
+  NodeIp.String
+  TapSubnet.String
+  SiteSource.String
+  ServedDomain.String
   UserRole.[ Code Multimedia Unlimited ]
   Architecture.[ X86_64 Arm64 ]
   Magnitude.[ Zero Min Medium Large Max ]
@@ -43,9 +43,9 @@ Types
   SiteRenderer.[ MarkdownStatic ]
   FsType.[ Ext2 Ext3 Ext4 Btrfs Xfs Zfs F2fs Bcachefs Vfat Exfat Ntfs Tmpfs ]
   Hardware.{ Integer Option<ModelName> Option<MotherBoard> Option<Integer> Option<Integer> Option<Location> }
-  VirtualMachineHost.[ Cluster.{ NodeName Vector<NodeName> Option<UserName> Option<Architecture> } External.{ Text Architecture } ]
+  VirtualMachineHost.[ Cluster.{ NodeName Vector<NodeName> Option<UserName> Option<Architecture> } External.{ String Architecture } ]
   MachineDefinition.[ Metal.{ Architecture Hardware } VirtualMachine.{ VirtualMachineHost Hardware Option<Integer> } ]
-  DiskLayout.{ DevicePath MountPath FsType Vector<Text> }
+  DiskLayout.{ DevicePath MountPath FsType Vector<String> }
   SwapDevice.{ DevicePath Option<Integer> }
   CompressedSwap.{ Integer }
   NodeEnvironment.{ Keyboard Option<CompressedSwap> }
@@ -54,14 +54,14 @@ Types
   NodeVariant.[ Live.LiveDefinition Installation.Installation ]
   YggdrasilKey.{ YggPubKey YggAddress YggSubnet }
   NodeKeys.{ SshPubKey Option<NixPubKey> Option<YggdrasilKey> }
-  WireguardProxy.{ WireguardPubKey Text NodeIp }
+  WireguardProxy.{ WireguardPubKey String NodeIp }
   BackupWireless.{ Interface WirelessNetworkName WlanBand Integer WlanStandard SecretReference }
   RouterInterfaces.{ Interface Interface WlanBand Integer WlanStandard Option<SecretReference> Option<BackupWireless> }
   NodeNetwork.{ Vector<LinkLocalIp> Option<NodeIp> Option<WireguardPubKey> Vector<WireguardProxy> Option<RouterInterfaces> }
   HostedSite.{ ServedDomain SiteSource SiteRenderer }
   PersonaCapability.[ GitoliteServer ]
   NoSettings.{}
-  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean Text Option<Text> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.NoSettings TailnetController.NoSettings NixBuilder.Option<Integer> NixCache.NoSettings PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> ]
+  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.NoSettings TailnetController.NoSettings NixBuilder.Option<Integer> NixCache.NoSettings PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> ]
   Capabilities.Vector<NodeCapability>
   NodeDefinition.{ NodeName NodeVariant Magnitude Magnitude MachineDefinition NodeEnvironment NodeNetwork NodeKeys Option<Boolean> Capabilities }
   GenericNodeNames.Vector<NodeName>
@@ -76,10 +76,11 @@ Types
   NodeTrustEntry.{ NodeName Magnitude }
   UserTrustEntry.{ UserName Magnitude }
   ClusterTrust.{ Magnitude Vector<ClusterTrustEntry> Vector<NodeTrustEntry> Vector<UserTrustEntry> }
-  DomainConfiguration.{ Text Vector<DomainName> }
+  DomainConfiguration.{ String Vector<DomainName> }
   ClusterDefinition.{ ClusterName ClusterNodes GenericNodeNames Users Domains ClusterTrust }
   HorizonConfiguration.{ GenericNodes DomainConfiguration }
   HorizonDefinition.{ HorizonConfiguration ClusterDefinition }
-  CompositionRequest.{ Text Text }
+  CompositionRequest.{ String String }
   CompositionCommand.[ Compose.CompositionRequest ] ]
+[]
 []

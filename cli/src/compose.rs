@@ -2,7 +2,8 @@
 
 use std::process::ExitCode;
 
-use datom_codec::Textualizable;
+use datom_codec::Datomizable;
+use protos::{Protosizable, Textualizable};
 
 fn main() -> ExitCode {
     let Some(request) = std::env::args().nth(1) else {
@@ -21,7 +22,7 @@ fn main() -> ExitCode {
         }
     };
     let horizon_lib::CompositionCommand::Compose(request) = request;
-    let configuration = match std::fs::read_to_string(request.0.as_ref()) {
+    let configuration = match std::fs::read_to_string(&request.first_string) {
         Ok(text) => match horizon_lib::decode_configuration(&text) {
             Ok(configuration) => configuration,
             Err(error) => {
@@ -34,7 +35,7 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let cluster = match std::fs::read_to_string(request.1.as_ref()) {
+    let cluster = match std::fs::read_to_string(&request.second_string) {
         Ok(text) => match horizon_lib::decode_cluster(&text) {
             Ok(cluster) => cluster,
             Err(error) => {
@@ -48,7 +49,7 @@ fn main() -> ExitCode {
         }
     };
     match horizon_lib::compose(configuration, cluster) {
-        Ok(definition) => print!("{}\n", definition.textualize()),
+        Ok(definition) => println!("{}", definition.datomize(vec![]).protosize().textualize()),
         Err(error) => {
             eprintln!("error: compose HorizonDefinition: {error}");
             return ExitCode::from(1);

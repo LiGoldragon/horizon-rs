@@ -1,5 +1,11 @@
 # Upgrades
 
+## 0.7.0 — Current structural Datom stack
+
+- Migrates the authored Horizon Library contract to Ethos Zero 6.1.6 and its named generated fields.
+- Replaces the retired Protos text wrapper and direct textualization with the explicit Datom → Protos → text conversion chain.
+- Pins Protos 0.29.1 and Datom 0.25.6 while preserving Horizon definition validation and projection behavior.
+
 ## 0.6.0 — Datom composition and node definitions
 
 This release replaces the legacy `ClusterProposal`/Datomic API with generated

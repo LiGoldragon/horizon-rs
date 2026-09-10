@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use datom_codec::{Actualizable, IncorporationBudget, Potential};
+use datom_codec::{Actualizing, Budget, Compositional, Potential};
+use protos::ReaderBudget;
 use serde::Serialize;
 use thiserror::Error;
 
@@ -26,9 +27,17 @@ pub fn decode_composition_request(text: &str) -> Result<CompositionCommand, Erro
     actualize(text, 1_024)
 }
 
-fn actualize<T: datom_codec::Datomic>(text: &str, budget: i64) -> Result<T, Error> {
+fn actualize<T: Compositional>(text: &str, budget: i64) -> Result<T, Error> {
+    let reader_budget = usize::try_from(budget).expect("positive decode budget fits usize");
     Potential::<T>::from(text)
-        .actualize(IncorporationBudget::try_from(budget).expect("positive fixed budget"))
+        .actualize(&mut Budget {
+            remaining: budget,
+            reader: ReaderBudget {
+                remaining: reader_budget,
+            },
+            depth: 0,
+            maximum_depth: 256,
+        })
         .map_err(Error::Datom)
 }
 
@@ -38,7 +47,10 @@ pub fn compose(
     configuration: HorizonConfiguration,
     cluster: ClusterDefinition,
 ) -> Result<HorizonDefinition, Error> {
-    let definition = HorizonDefinition(configuration, cluster);
+    let definition = HorizonDefinition {
+        horizon_configuration: configuration,
+        cluster_definition: cluster,
+    };
     definition.resolve()?;
     Ok(definition)
 }
@@ -353,7 +365,7 @@ pub struct DomainConfigurationView {
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("datom: {0:?}")]
-    Datom(datom_codec::Fault),
+    Datom(datom_codec::Error),
     #[error("generic catalogue contains duplicate node {0:?}")]
     DuplicateGenericNode(String),
     #[error("cluster contains duplicate local node {0:?}")]
@@ -384,11 +396,17 @@ impl HorizonDefinition {
     /// Resolves only explicitly selected generic names; catalogue presence does
     /// not imply cluster membership.
     pub fn resolve(&self) -> Result<ResolvedCluster, Error> {
-        let generic = named_nodes(&self.0.0, Error::DuplicateGenericNode)?;
-        let mut nodes = named_nodes(&self.1.1, Error::DuplicateClusterNode)?;
+        let generic = named_nodes(
+            &self.horizon_configuration.generic_nodes,
+            Error::DuplicateGenericNode,
+        )?;
+        let mut nodes = named_nodes(
+            &self.cluster_definition.cluster_nodes,
+            Error::DuplicateClusterNode,
+        )?;
         let mut selected = BTreeSet::new();
-        for name in &self.1.2 {
-            let name = name.as_ref().to_owned();
+        for name in &self.cluster_definition.generic_node_names {
+            let name = name.clone();
             if !selected.insert(name.clone()) {
                 return Err(Error::DuplicateGenericSelection(name));
             }
@@ -401,14 +419,18 @@ impl HorizonDefinition {
         }
         nodes.retain(|name, definition| {
             !matches!(
-                effective_node_trust(&self.1.5, name, &definition.3),
+                effective_node_trust(
+                    &self.cluster_definition.cluster_trust,
+                    name,
+                    &definition.second_magnitude,
+                ),
                 Magnitude::Zero
             )
         });
         validate_tailnet_controller(&nodes)?;
         validate_machines(&nodes)?;
         Ok(ResolvedCluster {
-            name: self.1.0.as_ref().to_owned(),
+            name: self.cluster_definition.cluster_name.clone(),
             nodes,
         })
     }
@@ -429,39 +451,52 @@ impl HorizonDefinition {
             .collect::<Result<_, Error>>()?;
         let mut ex_nodes = ex_nodes;
         let mut projected_node = project_node(viewpoint, &resolved.nodes)?;
-        let internal_suffix = self.0.1.0.as_ref();
+        let internal_suffix = self
+            .horizon_configuration
+            .domain_configuration
+            .string
+            .as_str();
         let public_domain = self
-            .0
-            .1
-            .1
+            .horizon_configuration
+            .domain_configuration
+            .domain_name_vector
             .first()
-            .map(|value| value.as_ref().to_owned())
-            .unwrap_or_else(|| format!("{}.criome.net", self.1.0.as_ref()));
+            .cloned()
+            .unwrap_or_else(|| format!("{}.criome.net", self.cluster_definition.cluster_name));
         for (name, projected) in &mut ex_nodes {
             let definition = resolved.nodes.get(name).expect("resolved node exists");
             derive_node(
                 projected,
                 &resolved.name,
                 internal_suffix,
-                effective_node_trust(&self.1.5, name, &definition.3),
+                effective_node_trust(
+                    &self.cluster_definition.cluster_trust,
+                    name,
+                    &definition.second_magnitude,
+                ),
             );
         }
         derive_node(
             &mut projected_node,
             &resolved.name,
             internal_suffix,
-            effective_node_trust(&self.1.5, node, &viewpoint.3),
+            effective_node_trust(
+                &self.cluster_definition.cluster_trust,
+                node,
+                &viewpoint.second_magnitude,
+            ),
         );
         let trusted_build_public_keys = std::iter::once(&projected_node)
             .chain(ex_nodes.values())
             .filter_map(|node| node.nix_public_key_line.clone())
             .collect::<Vec<String>>();
         let users = self
-            .1
-            .3
+            .cluster_definition
+            .users
             .iter()
             .filter_map(|user| {
-                let trust = effective_user_trust(&self.1.5, user.0.as_ref());
+                let trust =
+                    effective_user_trust(&self.cluster_definition.cluster_trust, &user.user_name);
                 (!matches!(trust, Magnitude::Zero)).then(|| {
                     project_user(
                         user,
@@ -477,22 +512,32 @@ impl HorizonDefinition {
         fill_viewpoint(&mut projected_node, &ex_nodes, &users);
         Ok(Horizon {
             cluster: resolved.name,
-            tailnet_base_domain: format!("tailnet.{}.{}", self.1.0.as_ref(), internal_suffix),
+            tailnet_base_domain: format!(
+                "tailnet.{}.{}",
+                self.cluster_definition.cluster_name, internal_suffix
+            ),
             trusted_build_public_keys,
             node: projected_node,
             ex_nodes,
             users,
-            domains: self.1.4.iter().map(project_domain).collect(),
-            trust: project_trust(&self.1.5),
+            domains: self
+                .cluster_definition
+                .domains
+                .iter()
+                .map(project_domain)
+                .collect(),
+            trust: project_trust(&self.cluster_definition.cluster_trust),
             domain_configuration: DomainConfigurationView {
-                internal_suffix: self.0.1.0.as_ref().to_owned(),
+                internal_suffix: self
+                    .horizon_configuration
+                    .domain_configuration
+                    .string
+                    .clone(),
                 public_cluster_domains: self
-                    .0
-                    .1
-                    .1
-                    .iter()
-                    .map(|value| value.as_ref().to_owned())
-                    .collect(),
+                    .horizon_configuration
+                    .domain_configuration
+                    .domain_name_vector
+                    .to_vec(),
             },
         })
     }
@@ -544,10 +589,10 @@ fn fill_viewpoint(viewpoint: &mut Node, ex_nodes: &BTreeMap<String, Node>, users
             .iter()
             .chain(viewpoint.machine.additional_hosts.iter())
         {
-            if let Some(node) = nodes.get(host.as_str()) {
-                if let Some(key) = &node.nix_public_key_line {
-                    image_exchange_public_keys.push(key.clone());
-                }
+            if let Some(node) = nodes.get(host.as_str())
+                && let Some(key) = &node.nix_public_key_line
+            {
+                image_exchange_public_keys.push(key.clone());
             }
         }
     }
@@ -579,7 +624,7 @@ fn named_nodes(
 ) -> Result<BTreeMap<String, NodeDefinition>, Error> {
     let mut nodes = BTreeMap::new();
     for definition in definitions {
-        let name = definition.0.as_ref().to_owned();
+        let name = definition.node_name.clone();
         if nodes.insert(name.clone(), definition.clone()).is_some() {
             return Err(duplicate(name));
         }
@@ -596,7 +641,7 @@ fn validate_machines(nodes: &BTreeMap<String, NodeDefinition>) -> Result<(), Err
 
 fn validate_tailnet_controller(nodes: &BTreeMap<String, NodeDefinition>) -> Result<(), Error> {
     let mut controllers = nodes.iter().filter(|(_, node)| {
-        node.9
+        node.capabilities
             .iter()
             .any(|capability| matches!(capability, NodeCapability::TailnetController(_)))
     });
@@ -614,23 +659,23 @@ fn validate_tailnet_controller(nodes: &BTreeMap<String, NodeDefinition>) -> Resu
 
 fn effective_node_trust(trust: &ClusterTrust, name: &str, input: &Magnitude) -> Magnitude {
     let floor = trust
-        .2
+        .node_trust_entry_vector
         .iter()
-        .find(|entry| entry.0.as_ref() == name)
-        .map(|entry| &entry.1)
+        .find(|entry| entry.node_name == name)
+        .map(|entry| &entry.magnitude)
         .unwrap_or(&Magnitude::Max);
-    let cluster_limited = minimum_magnitude(floor, &trust.0);
+    let cluster_limited = minimum_magnitude(floor, &trust.magnitude);
     minimum_magnitude(input, &cluster_limited)
 }
 
 fn effective_user_trust(trust: &ClusterTrust, name: &str) -> Magnitude {
     let input = trust
-        .3
+        .user_trust_entry_vector
         .iter()
-        .find(|entry| entry.0.as_ref() == name)
-        .map(|entry| &entry.1)
+        .find(|entry| entry.user_name == name)
+        .map(|entry| &entry.magnitude)
         .unwrap_or(&Magnitude::Min);
-    minimum_magnitude(input, &trust.0)
+    minimum_magnitude(input, &trust.magnitude)
 }
 
 fn minimum_magnitude(left: &Magnitude, right: &Magnitude) -> Magnitude {
@@ -659,95 +704,79 @@ fn resolved_architecture(
         node: name.to_owned(),
         host: name.to_owned(),
     })?;
-    let result = match &definition.4 {
-        MachineDefinition::Metal(architecture, _) => Ok(architecture.clone()),
-        MachineDefinition::VirtualMachine(VirtualMachineHost::External(_, architecture), _, _) => {
-            Ok(architecture.clone())
-        }
-        MachineDefinition::VirtualMachine(
-            VirtualMachineHost::Cluster(host, additional_hosts, _, architecture),
-            _,
-            _,
-        ) => {
-            let mut hosts = vec![host.as_ref().to_owned()];
-            hosts.extend(
-                additional_hosts
-                    .iter()
-                    .map(|value| value.as_ref().to_owned()),
-            );
-            let mut host_architecture = None;
-            for host in hosts {
-                if !nodes.contains_key(&host) {
-                    return Err(Error::UnknownVmHost {
-                        node: name.to_owned(),
-                        host,
-                    });
-                }
-                let host_definition = nodes.get(&host).expect("checked host exists");
-                let observed = match &host_definition.4 {
-                    MachineDefinition::Metal(architecture, _) => architecture.clone(),
-                    MachineDefinition::VirtualMachine(
-                        VirtualMachineHost::External(_, architecture),
-                        _,
-                        _,
-                    ) => architecture.clone(),
-                    MachineDefinition::VirtualMachine(
-                        VirtualMachineHost::Cluster(_, _, _, Some(architecture)),
-                        _,
-                        _,
-                    ) => architecture.clone(),
-                    MachineDefinition::VirtualMachine(
-                        VirtualMachineHost::Cluster(_, _, _, None),
-                        _,
-                        _,
-                    ) => {
+    match &definition.machine_definition {
+        MachineDefinition::Metal(data) => Ok(data.architecture.clone()),
+        MachineDefinition::VirtualMachine(data) => match &data.virtual_machine_host {
+            VirtualMachineHost::External(external) => Ok(external.architecture.clone()),
+            VirtualMachineHost::Cluster(cluster) => {
+                let mut hosts = vec![cluster.node_name.clone()];
+                hosts.extend(cluster.node_name_vector.iter().cloned());
+                let mut host_architecture = None;
+                for host in hosts {
+                    if !nodes.contains_key(&host) {
+                        return Err(Error::UnknownVmHost {
+                            node: name.to_owned(),
+                            host,
+                        });
+                    }
+                    let host_definition = nodes.get(&host).expect("checked host exists");
+                    let observed = match &host_definition.machine_definition {
+                        MachineDefinition::Metal(data) => data.architecture.clone(),
+                        MachineDefinition::VirtualMachine(data) => match &data.virtual_machine_host
+                        {
+                            VirtualMachineHost::External(external) => external.architecture.clone(),
+                            VirtualMachineHost::Cluster(host) => {
+                                host.architecture_option.clone().ok_or_else(|| {
+                                    Error::VmHostArchitecture {
+                                        node: name.to_owned(),
+                                    }
+                                })?
+                            }
+                        },
+                    };
+                    if host_architecture
+                        .as_ref()
+                        .is_some_and(|expected| expected != &observed)
+                    {
                         return Err(Error::VmHostArchitecture {
                             node: name.to_owned(),
                         });
                     }
-                };
-                if host_architecture
+                    host_architecture = Some(observed);
+                }
+                let inherited = host_architecture.expect("cluster VM has a primary host");
+                if cluster
+                    .architecture_option
                     .as_ref()
-                    .is_some_and(|expected| expected != &observed)
+                    .is_some_and(|declared| declared != &inherited)
                 {
                     return Err(Error::VmHostArchitecture {
                         node: name.to_owned(),
                     });
                 }
-                host_architecture = Some(observed);
+                Ok(cluster.architecture_option.clone().unwrap_or(inherited))
             }
-            let inherited = host_architecture.expect("cluster VM has a primary host");
-            if architecture
-                .as_ref()
-                .is_some_and(|declared| declared != &inherited)
-            {
-                return Err(Error::VmHostArchitecture {
-                    node: name.to_owned(),
-                });
-            }
-            Ok(architecture.clone().unwrap_or(inherited))
-        }
-    };
-    result
+        },
+    }
 }
 
 fn project_node(
     definition: &NodeDefinition,
     nodes: &BTreeMap<String, NodeDefinition>,
 ) -> Result<Node, Error> {
-    let (variant, installation) = match &definition.1 {
+    let (variant, installation) = match &definition.node_variant {
         NodeVariant::Live(_) => ("Live".to_owned(), None),
         NodeVariant::Installation(value) => (
             "Installation".to_owned(),
             Some(InstallationView {
-                bootloader: bootloader(&value.0).to_owned(),
-                disks: value.1.iter().map(project_disk).collect(),
+                bootloader: bootloader(&value.bootloader).to_owned(),
+                disks: value.disk_layout_vector.iter().map(project_disk).collect(),
                 swap_devices: value
-                    .2
+                    .swap_device_vector
                     .iter()
                     .map(|swap| SwapDeviceView {
-                        device: swap.0.as_ref().to_owned(),
-                        size_mebibytes: swap.1,
+                        device: swap.device_path.clone(),
+                        size_mebibytes: swap.integer_option,
                     })
                     .collect(),
             }),
@@ -757,21 +786,29 @@ fn project_node(
         .as_ref()
         .map_or_else(Vec::new, |value| value.disks.clone());
     Ok(Node {
-        name: definition.0.as_ref().to_owned(),
+        name: definition.node_name.clone(),
         is_live: installation.is_none(),
         is_installation: installation.is_some(),
         variant,
         installation,
         installation_disks,
-        size: magnitude(&definition.2).to_owned(),
-        trust: magnitude(&definition.3).to_owned(),
-        online: definition.8,
-        keyboard: keyboard(&definition.5.0).to_owned(),
-        compressed_swap_memory_percent: definition.5.1.as_ref().map(|value| value.0),
-        machine: project_machine(&definition.0.as_ref().to_owned(), &definition.4, nodes)?,
-        network: project_network(&definition.6),
-        keys: project_keys(&definition.7),
-        capabilities: definition.9.iter().map(project_capability).collect(),
+        size: magnitude(&definition.first_magnitude).to_owned(),
+        trust: magnitude(&definition.second_magnitude).to_owned(),
+        online: definition.boolean_option,
+        keyboard: keyboard(&definition.node_environment.keyboard).to_owned(),
+        compressed_swap_memory_percent: definition
+            .node_environment
+            .compressed_swap_option
+            .as_ref()
+            .map(|value| value.integer),
+        machine: project_machine(&definition.node_name, &definition.machine_definition, nodes)?,
+        network: project_network(&definition.node_network),
+        keys: project_keys(&definition.node_keys),
+        capabilities: definition
+            .capabilities
+            .iter()
+            .map(project_capability)
+            .collect(),
         criome_domain_name: String::new(),
         system: String::new(),
         max_jobs: 0,
@@ -891,10 +928,10 @@ fn derive_node(node: &mut Node, cluster: &str, suffix: &str, trust: Magnitude) {
 
 fn project_disk(value: &DiskLayout) -> Disk {
     Disk {
-        device: value.0.as_ref().to_owned(),
-        mount: value.1.as_ref().to_owned(),
-        fs_type: fs_type(&value.2).to_owned(),
-        options: value.3.iter().map(|v| v.as_ref().to_owned()).collect(),
+        device: value.device_path.clone(),
+        mount: value.mount_path.clone(),
+        fs_type: fs_type(&value.fs_type).to_owned(),
+        options: value.string_vector.clone(),
     }
 }
 fn project_machine(
@@ -903,27 +940,24 @@ fn project_machine(
     nodes: &BTreeMap<String, NodeDefinition>,
 ) -> Result<Machine, Error> {
     match value {
-        MachineDefinition::Metal(_, hardware) => Ok(Machine {
+        MachineDefinition::Metal(data) => Ok(Machine {
             kind: "Metal".into(),
             architecture: architecture_name(&resolved_architecture(node, nodes)?).into(),
             host: None,
             additional_hosts: vec![],
             user: None,
             disk_gib: None,
-            hardware: project_hardware(hardware),
+            hardware: project_hardware(&data.hardware),
         }),
-        MachineDefinition::VirtualMachine(host_choice, hardware, disk_gib) => {
-            let (host, additional_hosts, user) = match host_choice {
-                VirtualMachineHost::Cluster(host, additional_hosts, user, _) => (
-                    Some(host.as_ref().to_owned()),
-                    additional_hosts
-                        .iter()
-                        .map(|v| v.as_ref().to_owned())
-                        .collect(),
-                    user.as_ref().map(|v| v.as_ref().to_owned()),
+        MachineDefinition::VirtualMachine(data) => {
+            let (host, additional_hosts, user) = match &data.virtual_machine_host {
+                VirtualMachineHost::Cluster(cluster) => (
+                    Some(cluster.node_name.clone()),
+                    cluster.node_name_vector.clone(),
+                    cluster.user_name_option.clone(),
                 ),
-                VirtualMachineHost::External(host, _) => {
-                    (Some(host.as_ref().to_owned()), Vec::new(), None)
+                VirtualMachineHost::External(external) => {
+                    (Some(external.string.clone()), Vec::new(), None)
                 }
             };
             Ok(Machine {
@@ -932,66 +966,79 @@ fn project_machine(
                 host,
                 additional_hosts,
                 user,
-                disk_gib: *disk_gib,
-                hardware: project_hardware(hardware),
+                disk_gib: data.integer_option,
+                hardware: project_hardware(&data.hardware),
             })
         }
     }
 }
 fn project_hardware(value: &Hardware) -> HardwareView {
     HardwareView {
-        cores: value.0,
-        model: value.1.as_ref().map(|v| v.as_ref().to_owned()),
-        motherboard: value.2.as_ref().map(motherboard).map(str::to_owned),
-        chip_generation: value.3,
-        ram_gib: value.4,
-        location: value.5.as_ref().map(|v| v.as_ref().to_owned()),
+        cores: value.integer,
+        model: value.model_name_option.clone(),
+        motherboard: value
+            .mother_board_option
+            .as_ref()
+            .map(motherboard)
+            .map(str::to_owned),
+        chip_generation: value.first_integer_option,
+        ram_gib: value.second_integer_option,
+        location: value.location_option.clone(),
     }
 }
 fn project_network(value: &NodeNetwork) -> Network {
     Network {
-        link_local_ips: value.0.iter().map(|v| v.as_ref().to_owned()).collect(),
-        node_ip: value.1.as_ref().map(|v| v.as_ref().to_owned()),
-        wireguard_public_key: value.2.as_ref().map(|v| v.as_ref().to_owned()),
+        link_local_ips: value.link_local_ip_vector.clone(),
+        node_ip: value.node_ip_option.clone(),
+        wireguard_public_key: value.wireguard_pub_key_option.clone(),
         wireguard_proxies: value
-            .3
+            .wireguard_proxy_vector
             .iter()
             .map(|p| WireguardProxyView {
-                public_key: p.0.as_ref().to_owned(),
-                endpoint: p.1.as_ref().to_owned(),
-                interface_ip: p.2.as_ref().to_owned(),
+                public_key: p.wireguard_pub_key.clone(),
+                endpoint: p.string.clone(),
+                interface_ip: p.node_ip.clone(),
             })
             .collect(),
-        router_interfaces: value.4.as_ref().map(project_router),
+        router_interfaces: value.router_interfaces_option.as_ref().map(project_router),
     }
 }
 fn project_router(value: &RouterInterfaces) -> RouterInterfacesView {
     RouterInterfacesView {
-        wan: value.0.as_ref().to_owned(),
-        wlan: value.1.as_ref().to_owned(),
-        wlan_band: wlan_band(&value.2).into(),
-        wlan_channel: value.3,
-        wlan_standard: wlan_standard(&value.4).into(),
-        wpa3_sae_password_reference: value.5.as_ref().map(|v| v.0.as_ref().to_owned()),
-        backup_wireless: value.6.as_ref().map(|v| BackupWirelessView {
-            interface: v.0.as_ref().to_owned(),
-            network_name: v.1.as_ref().to_owned(),
-            band: wlan_band(&v.2).into(),
-            channel: v.3,
-            standard: wlan_standard(&v.4).into(),
-            password_reference: v.5.0.as_ref().to_owned(),
-        }),
+        wan: value.first_interface.clone(),
+        wlan: value.second_interface.clone(),
+        wlan_band: wlan_band(&value.wlan_band).into(),
+        wlan_channel: value.integer,
+        wlan_standard: wlan_standard(&value.wlan_standard).into(),
+        wpa3_sae_password_reference: value
+            .secret_reference_option
+            .as_ref()
+            .map(|v| v.secret_name.clone()),
+        backup_wireless: value
+            .backup_wireless_option
+            .as_ref()
+            .map(|v| BackupWirelessView {
+                interface: v.interface.clone(),
+                network_name: v.wireless_network_name.clone(),
+                band: wlan_band(&v.wlan_band).into(),
+                channel: v.integer,
+                standard: wlan_standard(&v.wlan_standard).into(),
+                password_reference: v.secret_reference.secret_name.clone(),
+            }),
     }
 }
 fn project_keys(value: &NodeKeys) -> Keys {
     Keys {
-        ssh: value.0.as_ref().to_owned(),
-        nix: value.1.as_ref().map(|v| v.as_ref().to_owned()),
-        yggdrasil: value.2.as_ref().map(|v| YggdrasilKeyView {
-            public_key: v.0.as_ref().to_owned(),
-            address: v.1.as_ref().to_owned(),
-            subnet: v.2.as_ref().to_owned(),
-        }),
+        ssh: value.ssh_pub_key.clone(),
+        nix: value.nix_pub_key_option.clone(),
+        yggdrasil: value
+            .yggdrasil_key_option
+            .as_ref()
+            .map(|v| YggdrasilKeyView {
+                public_key: v.ygg_pub_key.clone(),
+                address: v.ygg_address.clone(),
+                subnet: v.ygg_subnet.clone(),
+            }),
     }
 }
 fn project_capability(value: &NodeCapability) -> Capability {
@@ -1004,10 +1051,10 @@ fn project_capability(value: &NodeCapability) -> Capability {
         NodeCapability::NextGeneration(_) => Capability::NextGeneration,
         NodeCapability::LowPower(_) => Capability::LowPower,
         NodeCapability::TestVm(_) => Capability::TestVm,
-        NodeCapability::VmTesting(gpu_passthrough, display, gpu) => Capability::VmTesting {
-            gpu_passthrough: *gpu_passthrough,
-            display: display.as_ref().to_owned(),
-            gpu: gpu.as_ref().map(|value| value.as_ref().to_owned()),
+        NodeCapability::VmTesting(data) => Capability::VmTesting {
+            gpu_passthrough: data.boolean,
+            display: data.string.clone(),
+            gpu: data.string_option.clone(),
         },
         NodeCapability::CloudNode(_) => Capability::CloudNode,
         NodeCapability::Printing(_) => Capability::Printing,
@@ -1027,18 +1074,18 @@ fn project_capability(value: &NodeCapability) -> Capability {
                 .map(str::to_owned)
                 .collect(),
         },
-        NodeCapability::VmHost(subnet, kvm, maximum_guests) => Capability::VmHost {
-            guest_subnet: subnet.as_ref().to_owned(),
-            kvm: kvm_availability(kvm).into(),
-            maximum_guests: *maximum_guests,
+        NodeCapability::VmHost(data) => Capability::VmHost {
+            guest_subnet: data.tap_subnet.clone(),
+            kvm: kvm_availability(&data.kvm_availability).into(),
+            maximum_guests: data.integer_option,
         },
         NodeCapability::WebHost(sites) => Capability::WebHost {
             sites: sites
                 .iter()
                 .map(|site| HostedSiteView {
-                    domain: site.0.as_ref().to_owned(),
-                    source: site.1.as_ref().to_owned(),
-                    renderer: site_renderer(&site.2).into(),
+                    domain: site.served_domain.clone(),
+                    source: site.site_source.clone(),
+                    renderer: site_renderer(&site.site_renderer).into(),
                 })
                 .collect(),
         },
@@ -1052,9 +1099,12 @@ fn project_user(
     viewpoint_center: bool,
     viewpoint_size: &str,
 ) -> User {
-    let viewpoint_key = value.7.iter().find(|key| key.0.as_ref() == viewpoint);
-    let is_code_dev = matches!(value.1, UserRole::Code | UserRole::Unlimited);
-    let is_multimedia_dev = matches!(value.1, UserRole::Multimedia | UserRole::Unlimited);
+    let viewpoint_key = value
+        .user_pub_key_vector
+        .iter()
+        .find(|key| key.node_name == viewpoint);
+    let is_code_dev = matches!(value.user_role, UserRole::Code | UserRole::Unlimited);
+    let is_multimedia_dev = matches!(value.user_role, UserRole::Multimedia | UserRole::Unlimited);
     let is_max_trusted = matches!(trust, Magnitude::Max);
     let mut extra_groups = vec!["audio".to_owned()];
     if matches!(trust, Magnitude::Medium | Magnitude::Large | Magnitude::Max) {
@@ -1075,63 +1125,67 @@ fn project_user(
             .map(str::to_owned),
         );
     }
-    let resolved_size = if magnitude_rank(&value.2) <= size_rank(viewpoint_size) {
-        magnitude(&value.2).to_owned()
+    let resolved_size = if magnitude_rank(&value.magnitude) <= size_rank(viewpoint_size) {
+        magnitude(&value.magnitude).to_owned()
     } else {
         viewpoint_size.to_owned()
     };
     User {
-        name: value.0.as_ref().to_owned(),
-        role: user_role(&value.1).into(),
+        name: value.user_name.clone(),
+        role: user_role(&value.user_role).into(),
         size: resolved_size,
         trust: magnitude(&trust).into(),
-        keyboard: keyboard(&value.3).into(),
-        style: style(&value.4).into(),
+        keyboard: keyboard(&value.keyboard).into(),
+        style: style(&value.style).into(),
         github_id: Some(
             value
-                .5
+                .github_id_option
                 .as_ref()
-                .map(|v| v.as_ref().to_owned())
-                .unwrap_or_else(|| value.0.as_ref().to_owned()),
+                .cloned()
+                .unwrap_or_else(|| value.user_name.clone()),
         ),
-        fast_repeat: value.6,
+        fast_repeat: value.boolean_option,
         public_keys: value
-            .7
+            .user_pub_key_vector
             .iter()
             .map(|v| UserPubKeyView {
-                node: v.0.as_ref().to_owned(),
-                ssh: v.1.as_ref().to_owned(),
-                keygrip: v.2.as_ref().to_owned(),
+                node: v.node_name.clone(),
+                ssh: v.ssh_pub_key.clone(),
+                keygrip: v.keygrip.clone(),
             })
             .collect(),
-        editor: value.8.as_ref().map(editor).map(str::to_owned),
-        text_size: value.9.as_ref().map(text_size).map(str::to_owned),
+        editor: value.editor_option.as_ref().map(editor).map(str::to_owned),
+        text_size: value
+            .text_size_option
+            .as_ref()
+            .map(text_size)
+            .map(str::to_owned),
         has_public_key: viewpoint_key.is_some(),
-        email_address: format!("{}@{public_domain}", value.0.as_ref()),
-        matrix_id: format!("@{}:{public_domain}", value.0.as_ref()),
-        git_signing_key: viewpoint_key.map(|key| format!("&{}", key.2.as_ref())),
-        use_colemak: matches!(value.3, Keyboard::Colemak),
-        use_fast_repeat: value.6.unwrap_or(true),
+        email_address: format!("{}@{public_domain}", value.user_name),
+        matrix_id: format!("@{}:{public_domain}", value.user_name),
+        git_signing_key: viewpoint_key.map(|key| format!("&{}", key.keygrip)),
+        use_colemak: matches!(value.keyboard, Keyboard::Colemak),
+        use_fast_repeat: value.boolean_option.unwrap_or(true),
         is_multimedia_dev,
         is_code_dev,
         preferred_editor: value
-            .8
+            .editor_option
             .as_ref()
             .map(editor)
             .unwrap_or(if is_code_dev { "Emacs" } else { "Codium" })
             .to_owned(),
         resolved_text_size: value
-            .9
+            .text_size_option
             .as_ref()
             .map(text_size)
             .unwrap_or("Medium")
             .to_owned(),
         ssh_public_keys: value
-            .7
+            .user_pub_key_vector
             .iter()
-            .map(|key| format!("ssh-ed25519 {}", key.1.as_ref()))
+            .map(|key| format!("ssh-ed25519 {}", key.ssh_pub_key))
             .collect(),
-        ssh_public_key: viewpoint_key.map(|key| format!("ssh-ed25519 {}", key.1.as_ref())),
+        ssh_public_key: viewpoint_key.map(|key| format!("ssh-ed25519 {}", key.ssh_pub_key)),
         extra_groups,
         enable_linger: is_max_trusted && viewpoint_center,
     }
@@ -1149,35 +1203,35 @@ fn size_rank(value: &str) -> u8 {
 }
 fn project_domain(value: &DomainDefinition) -> Domain {
     Domain {
-        name: value.0.as_ref().to_owned(),
-        provider: domain_provider(&value.1).into(),
+        name: value.domain_name.clone(),
+        provider: domain_provider(&value.domain_provider).into(),
     }
 }
 fn project_trust(value: &ClusterTrust) -> Trust {
     Trust {
-        cluster: magnitude(&value.0).into(),
+        cluster: magnitude(&value.magnitude).into(),
         clusters: value
-            .1
+            .cluster_trust_entry_vector
             .iter()
             .map(|v| TrustEntry {
-                name: v.0.as_ref().to_owned(),
-                magnitude: magnitude(&v.1).into(),
+                name: v.cluster_name.clone(),
+                magnitude: magnitude(&v.magnitude).into(),
             })
             .collect(),
         nodes: value
-            .2
+            .node_trust_entry_vector
             .iter()
             .map(|v| TrustEntry {
-                name: v.0.as_ref().to_owned(),
-                magnitude: magnitude(&v.1).into(),
+                name: v.node_name.clone(),
+                magnitude: magnitude(&v.magnitude).into(),
             })
             .collect(),
         users: value
-            .3
+            .user_trust_entry_vector
             .iter()
             .map(|v| TrustEntry {
-                name: v.0.as_ref().to_owned(),
-                magnitude: magnitude(&v.1).into(),
+                name: v.user_name.clone(),
+                magnitude: magnitude(&v.magnitude).into(),
             })
             .collect(),
     }
