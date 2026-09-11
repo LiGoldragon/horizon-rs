@@ -424,6 +424,17 @@ fn fixed_location_projects_without_changing_hardware_location() {
 }
 
 #[test]
+fn ipv6_node_ip_round_trips() {
+    let mut definition = definition(Vec::new(), vec![installation()]);
+    definition.cluster_definition.cluster_nodes[0]
+        .node_network
+        .node_ip_option = Some(text("5::7/128"));
+    let encoded = encode(&definition);
+    let decoded = decode(encoded.as_ref()).expect("IPv6 node IP decodes");
+    assert_eq!(encode(&decoded), encoded);
+}
+
+#[test]
 fn local_vm_architecture_inference_is_single_hop() {
     let mut chained = local_vm();
     chained.node_name = text("chained");
