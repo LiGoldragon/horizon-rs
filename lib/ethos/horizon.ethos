@@ -54,7 +54,7 @@ Signal
   DiskLayout.{ DevicePath MountPath FsType Vector<String> }
   SwapDevice.{ DevicePath Option<Integer> }
   CompressedSwap.{ Integer }
-  FixedLocation.{ Latitude Longitude Altitude Accuracy }
+  FixedLocation.{ Decimal Decimal Decimal Decimal }
   NodeEnvironment.{ Keyboard Option<CompressedSwap> }
   Installation.{ Bootloader Vector<DiskLayout> Vector<SwapDevice> }
   LiveDefinition.{}

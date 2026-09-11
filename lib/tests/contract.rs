@@ -401,10 +401,10 @@ fn domain_and_github_defaults_follow_the_selected_cluster() {
 fn fixed_location_projects_without_changing_hardware_location() {
     let mut installation = installation();
     installation.fixed_location_option = Some(FixedLocation {
-        latitude: 16.736944,
-        longitude: -92.6375,
-        altitude: 2121.0,
-        accuracy: 1000.0,
+        first_decimal: 16.736944,
+        second_decimal: -92.6375,
+        third_decimal: 2121.0,
+        fourth_decimal: 1000.0,
     });
     let definition = definition(Vec::new(), vec![installation]);
     let encoded = encode(&definition);

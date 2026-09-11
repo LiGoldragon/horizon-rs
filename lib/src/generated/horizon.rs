@@ -342,10 +342,10 @@ pub struct CompressedSwap {
     derive(datom_codec::Datomizable, datom_codec::Compositional)
 )]
 pub struct FixedLocation {
-    pub latitude: Latitude,
-    pub longitude: Longitude,
-    pub altitude: Altitude,
-    pub accuracy: Accuracy,
+    pub first_decimal: f64,
+    pub second_decimal: f64,
+    pub third_decimal: f64,
+    pub fourth_decimal: f64,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
