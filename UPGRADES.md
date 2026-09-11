@@ -1,5 +1,19 @@
 # Upgrades
 
+## 0.8.0 to 0.9.0
+
+`NodeDefinition` gains a trailing optional `FixedLocation` value. Migrate every
+authored node by appending `None`, except nodes with a deliberate static
+GeoClue override, which append `Some.{ latitude longitude altitude accuracy }`.
+Latitude and longitude are Decimal degrees; altitude and accuracy are Decimal
+metres. This is an operator-declared fixed city position, not a measured device
+position.
+
+Publish the Horizon revision and update every direct `horizon-lib` consumer
+before supplying a migrated definition to Lojix. The active 0.21 Lojix route
+accepts only an externally composed `horizon-definition.datom`; legacy
+`proposal.datom` is not that artifact and must not be used as a substitute.
+
 ## 0.7.0 — Current structural Datom stack
 
 - Migrates the authored Horizon Library contract to Ethos Zero 6.1.6 and its named generated fields.
