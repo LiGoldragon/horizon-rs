@@ -12,6 +12,14 @@ pub type ModelName = String;
 #[rustfmt::skip]
 pub type Location = String;
 #[rustfmt::skip]
+pub type Latitude = f64;
+#[rustfmt::skip]
+pub type Longitude = f64;
+#[rustfmt::skip]
+pub type Altitude = f64;
+#[rustfmt::skip]
+pub type Accuracy = f64;
+#[rustfmt::skip]
 pub type Interface = String;
 #[rustfmt::skip]
 pub type WirelessNetworkName = String;
@@ -333,6 +341,18 @@ pub struct CompressedSwap {
     feature = "datom",
     derive(datom_codec::Datomizable, datom_codec::Compositional)
 )]
+pub struct FixedLocation {
+    pub latitude: Latitude,
+    pub longitude: Longitude,
+    pub altitude: Altitude,
+    pub accuracy: Accuracy,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "datom",
+    derive(datom_codec::Datomizable, datom_codec::Compositional)
+)]
 pub struct NodeEnvironment {
     pub keyboard: Keyboard,
     pub compressed_swap_option: Option<CompressedSwap>,
@@ -535,6 +555,7 @@ pub struct NodeDefinition {
     pub node_keys: NodeKeys,
     pub boolean_option: Option<bool>,
     pub capabilities: Capabilities,
+    pub fixed_location_option: Option<FixedLocation>,
 }
 #[rustfmt::skip]
 pub type GenericNodeNames = std::vec::Vec<NodeName>;

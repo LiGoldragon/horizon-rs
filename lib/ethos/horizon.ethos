@@ -10,6 +10,10 @@ Signal
   DomainName.String
   ModelName.String
   Location.String
+  Latitude.Decimal
+  Longitude.Decimal
+  Altitude.Decimal
+  Accuracy.Decimal
   Interface.String
   WirelessNetworkName.String
   SecretName.String
@@ -50,6 +54,7 @@ Signal
   DiskLayout.{ DevicePath MountPath FsType Vector<String> }
   SwapDevice.{ DevicePath Option<Integer> }
   CompressedSwap.{ Integer }
+  FixedLocation.{ Latitude Longitude Altitude Accuracy }
   NodeEnvironment.{ Keyboard Option<CompressedSwap> }
   Installation.{ Bootloader Vector<DiskLayout> Vector<SwapDevice> }
   LiveDefinition.{}
@@ -65,7 +70,7 @@ Signal
   NoSettings.{}
   NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.NoSettings TailnetController.NoSettings NixBuilder.Option<Integer> NixCache.NoSettings PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> ]
   Capabilities.Vector<NodeCapability>
-  NodeDefinition.{ NodeName NodeVariant Magnitude Magnitude MachineDefinition NodeEnvironment NodeNetwork NodeKeys Option<Boolean> Capabilities }
+  NodeDefinition.{ NodeName NodeVariant Magnitude Magnitude MachineDefinition NodeEnvironment NodeNetwork NodeKeys Option<Boolean> Capabilities Option<FixedLocation> }
   GenericNodeNames.Vector<NodeName>
   GenericNodes.Vector<NodeDefinition>
   ClusterNodes.Vector<NodeDefinition>

@@ -85,6 +85,7 @@ fn node(
         node_keys: keys(),
         boolean_option: Some(true),
         capabilities,
+        fixed_location_option: None,
     }
 }
 fn graphical_live() -> NodeDefinition {
@@ -120,6 +121,7 @@ fn minimal_live() -> NodeDefinition {
         node_keys: keys(),
         boolean_option: Some(true),
         capabilities: vec![],
+        fixed_location_option: None,
     }
 }
 fn installation() -> NodeDefinition {
@@ -393,6 +395,32 @@ fn domain_and_github_defaults_follow_the_selected_cluster() {
         .expect("defaults project");
     assert_eq!(horizon.users[0].email_address, "li@goldragon.criome.net");
     assert_eq!(horizon.users[0].github_id.as_deref(), Some("li"));
+}
+
+#[test]
+fn fixed_location_projects_without_changing_hardware_location() {
+    let mut installation = installation();
+    installation.fixed_location_option = Some(FixedLocation {
+        latitude: 16.736944,
+        longitude: -92.6375,
+        altitude: 2121.0,
+        accuracy: 1000.0,
+    });
+    let definition = definition(Vec::new(), vec![installation]);
+    let encoded = encode(&definition);
+    let decoded = decode(encoded.as_ref()).expect("fixed location decodes");
+    let horizon = decoded.project("zeus").expect("fixed location projects");
+
+    assert_eq!(
+        horizon.node.fixed_location,
+        Some(FixedLocationView {
+            latitude: 16.736944,
+            longitude: -92.6375,
+            altitude: 2121.0,
+            accuracy: 1000.0,
+        })
+    );
+    assert_eq!(horizon.node.machine.hardware.location.as_deref(), Some("home-lab"));
 }
 
 #[test]

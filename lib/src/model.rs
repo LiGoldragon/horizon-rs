@@ -57,6 +57,16 @@ pub struct Node {
     pub dispatchers_ssh_public_keys: Vec<String>,
     pub admin_ssh_public_keys: Vec<String>,
     pub image_exchange_public_keys: Vec<String>,
+    pub fixed_location: Option<FixedLocationView>,
+}
+
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FixedLocationView {
+    pub latitude: f64,
+    pub longitude: f64,
+    pub altitude: f64,
+    pub accuracy: f64,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

@@ -549,6 +549,12 @@ fn project_node(
         dispatchers_ssh_public_keys: Vec::new(),
         admin_ssh_public_keys: Vec::new(),
         image_exchange_public_keys: Vec::new(),
+        fixed_location: definition.fixed_location_option.as_ref().map(|value| FixedLocationView {
+            latitude: value.latitude,
+            longitude: value.longitude,
+            altitude: value.altitude,
+            accuracy: value.accuracy,
+        }),
     })
 }
 
