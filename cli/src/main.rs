@@ -4,6 +4,7 @@ use std::io::{Read, Write};
 use std::process::ExitCode;
 
 use clap::Parser;
+use horizon_lib::{DatomDecoding, HorizonDefinition, Projecting};
 
 #[derive(Parser)]
 #[command(
@@ -22,7 +23,7 @@ fn main() -> ExitCode {
         eprintln!("error: read stdin: {error}");
         return ExitCode::from(2);
     }
-    let definition = match horizon_lib::decode(&text) {
+    let definition = match HorizonDefinition::decode(&text) {
         Ok(definition) => definition,
         Err(error) => {
             eprintln!("error: parse horizon definition: {error}");

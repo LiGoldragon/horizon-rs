@@ -3,6 +3,9 @@
 use std::process::ExitCode;
 
 use datom_codec::Datomizable;
+use horizon_lib::{
+    ClusterDefinition, Composing, CompositionCommand, DatomDecoding, HorizonConfiguration,
+};
 use protos::{Protosizable, Textualizable};
 
 fn main() -> ExitCode {
@@ -14,16 +17,16 @@ fn main() -> ExitCode {
         eprintln!("error: horizon-compose accepts exactly one Datom request");
         return ExitCode::from(2);
     }
-    let request = match horizon_lib::decode_composition_request(&request) {
+    let request = match CompositionCommand::decode(&request) {
         Ok(request) => request,
         Err(error) => {
             eprintln!("error: parse composition request: {error}");
             return ExitCode::from(2);
         }
     };
-    let horizon_lib::CompositionCommand::Compose(request) = request;
+    let CompositionCommand::Compose(request) = request;
     let configuration = match std::fs::read_to_string(&request.first_string) {
-        Ok(text) => match horizon_lib::decode_configuration(&text) {
+        Ok(text) => match HorizonConfiguration::decode(&text) {
             Ok(configuration) => configuration,
             Err(error) => {
                 eprintln!("error: parse HorizonConfiguration: {error}");
@@ -36,7 +39,7 @@ fn main() -> ExitCode {
         }
     };
     let cluster = match std::fs::read_to_string(&request.second_string) {
-        Ok(text) => match horizon_lib::decode_cluster(&text) {
+        Ok(text) => match ClusterDefinition::decode(&text) {
             Ok(cluster) => cluster,
             Err(error) => {
                 eprintln!("error: parse ClusterDefinition: {error}");
@@ -48,7 +51,7 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    match horizon_lib::compose(configuration, cluster) {
+    match configuration.compose(cluster) {
         Ok(definition) => println!("{}", definition.datomize(vec![]).protosize().textualize()),
         Err(error) => {
             eprintln!("error: compose HorizonDefinition: {error}");

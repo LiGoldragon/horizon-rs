@@ -1,5 +1,37 @@
 # Upgrades
 
+## 0.9.0 to 0.10.0
+
+Horizon's production Rust now homes every verb in a trait: `lib/src` and
+`cli/src` carry no module-level free function but `fn main`, and no inherent
+`impl` block. Two Nix checks, `no-free-functions` and `no-inherent-methods`,
+enforce this. Nothing about the Datom wire form, the authored contract, or the
+projected JSON changed; only the Rust surface moved.
+
+Mechanical consumer migration:
+
+- `horizon_lib::decode(text)` becomes `HorizonDefinition::decode(text)`,
+  `horizon_lib::decode_configuration(text)` becomes
+  `HorizonConfiguration::decode(text)`, `horizon_lib::decode_cluster(text)`
+  becomes `ClusterDefinition::decode(text)`, and
+  `horizon_lib::decode_composition_request(text)` becomes
+  `CompositionCommand::decode(text)`. All four are the one method of the new
+  `horizon_lib::DatomDecoding` trait, which must be in scope; each document
+  kind carries its own `DatomDecoding::BUDGET`.
+- `horizon_lib::compose(configuration, cluster)` becomes
+  `configuration.compose(cluster)`, the one method of the new
+  `horizon_lib::Composing` trait on `HorizonConfiguration`.
+- `HorizonDefinition::resolve` and `HorizonDefinition::project` are no longer
+  inherent. They are the two methods of the new `horizon_lib::Projecting`
+  trait; call sites are unchanged, but the trait must be in scope. A consumer
+  importing `horizon_lib::*` needs no edit; one naming
+  `use horizon_lib::HorizonDefinition;` must add `Projecting`.
+- `horizon_lib::NodeDefinitions` names the `BTreeMap<String, NodeDefinition>`
+  that `ResolvedCluster::nodes` has always been; the field's type is
+  unchanged.
+
+Signatures, error variants, and every generated and view type are unchanged.
+
 ## 0.8.0 to 0.9.0
 
 `NodeDefinition` gains a trailing optional `FixedLocation` value. Migrate every

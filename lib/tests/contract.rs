@@ -254,7 +254,7 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
         vec![installation(), local_vm(), external_vm()],
     );
     let encoded = encode(&definition);
-    let decoded = decode(encoded.as_ref()).expect("complete definition decodes");
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("complete definition decodes");
     assert_eq!(encode(&decoded), encoded);
 
     let graphical = decoded
@@ -408,7 +408,7 @@ fn fixed_location_projects_without_changing_hardware_location() {
     });
     let definition = definition(Vec::new(), vec![installation]);
     let encoded = encode(&definition);
-    let decoded = decode(encoded.as_ref()).expect("fixed location decodes");
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("fixed location decodes");
     let horizon = decoded.project("zeus").expect("fixed location projects");
 
     assert_eq!(
@@ -420,7 +420,10 @@ fn fixed_location_projects_without_changing_hardware_location() {
             accuracy: 1000.0,
         })
     );
-    assert_eq!(horizon.node.machine.hardware.location.as_deref(), Some("home-lab"));
+    assert_eq!(
+        horizon.node.machine.hardware.location.as_deref(),
+        Some("home-lab")
+    );
 }
 
 #[test]
@@ -430,7 +433,7 @@ fn ipv6_node_ip_round_trips() {
         .node_network
         .node_ip_option = Some(text("5::7/128"));
     let encoded = encode(&definition);
-    let decoded = decode(encoded.as_ref()).expect("IPv6 node IP decodes");
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("IPv6 node IP decodes");
     assert_eq!(encode(&decoded), encoded);
 }
 

@@ -42,7 +42,7 @@
           commonArgs = {
             inherit src;
             strictDeps = true;
-            version = "0.9.0";
+            version = "0.10.0";
           };
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in
@@ -73,6 +73,12 @@
           default = ctx.craneLib.cargoTest (ctx.commonArgs // {
             inherit (ctx) cargoArtifacts;
           });
+          no-free-functions = ctx.pkgs.runCommand "horizon-no-free-functions"
+            { inherit (ctx.commonArgs) src; }
+            (builtins.readFile ./checks/no-free-functions.sh);
+          no-inherent-methods = ctx.pkgs.runCommand "horizon-no-inherent-methods"
+            { inherit (ctx.commonArgs) src; }
+            (builtins.readFile ./checks/no-inherent-methods.sh);
         });
 
       devShells = forSystems (system:
