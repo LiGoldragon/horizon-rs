@@ -2,6 +2,8 @@
 
 use std::collections::BTreeMap;
 
+use datom_codec::Decimating;
+
 use super::error::Error;
 use super::names::Named;
 use super::views::Projection;
@@ -267,11 +269,14 @@ impl NodeProjection for NodeDefinition {
             fixed_location: self
                 .fixed_location_option
                 .as_ref()
+                // A `Decimal` is finite by construction, so widening it back to
+                // the `f64` the serialized view carries cannot produce a value
+                // the view could not hold.
                 .map(|value| FixedLocationView {
-                    latitude: value.first_decimal,
-                    longitude: value.second_decimal,
-                    altitude: value.third_decimal,
-                    accuracy: value.fourth_decimal,
+                    latitude: value.first_decimal.float(),
+                    longitude: value.second_decimal.float(),
+                    altitude: value.third_decimal.float(),
+                    accuracy: value.fourth_decimal.float(),
                 }),
         })
     }

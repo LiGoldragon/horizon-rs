@@ -1,7 +1,10 @@
-use datom_codec::Datomizable;
+use datom_codec::{Datomizable, Decimal};
 use horizon_lib::*;
 use protos::{Protosizable, Textualizable};
 
+fn decimal(value: f64) -> Decimal {
+    Decimal::try_from(value).expect("a finite literal is a decimal")
+}
 fn text(value: &str) -> String {
     value.to_owned()
 }
@@ -401,10 +404,10 @@ fn domain_and_github_defaults_follow_the_selected_cluster() {
 fn fixed_location_projects_without_changing_hardware_location() {
     let mut installation = installation();
     installation.fixed_location_option = Some(FixedLocation {
-        first_decimal: 16.736944,
-        second_decimal: -92.6375,
-        third_decimal: 2121.0,
-        fourth_decimal: 1000.0,
+        first_decimal: decimal(16.736944),
+        second_decimal: decimal(-92.6375),
+        third_decimal: decimal(2121.0),
+        fourth_decimal: decimal(1000.0),
     });
     let definition = definition(Vec::new(), vec![installation]);
     let encoded = encode(&definition);

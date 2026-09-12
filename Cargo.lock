@@ -141,17 +141,18 @@ checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 
 [[package]]
 name = "datom-codec"
-version = "0.27.0"
-source = "git+https://github.com/LiGoldragon/datom-codec?rev=6dccc76b75918a91d3370a9d4fe88aa7dd567876#6dccc76b75918a91d3370a9d4fe88aa7dd567876"
+version = "0.31.0"
+source = "git+https://github.com/LiGoldragon/datom-codec?rev=09e2a9d52bf7f2f11e51d15cb6c3177f72c6c927#09e2a9d52bf7f2f11e51d15cb6c3177f72c6c927"
 dependencies = [
  "datom-codec-derive",
  "protos",
+ "rkyv",
 ]
 
 [[package]]
 name = "datom-codec-derive"
-version = "0.27.0"
-source = "git+https://github.com/LiGoldragon/datom-codec?rev=6dccc76b75918a91d3370a9d4fe88aa7dd567876#6dccc76b75918a91d3370a9d4fe88aa7dd567876"
+version = "0.31.0"
+source = "git+https://github.com/LiGoldragon/datom-codec?rev=09e2a9d52bf7f2f11e51d15cb6c3177f72c6c927#09e2a9d52bf7f2f11e51d15cb6c3177f72c6c927"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -166,8 +167,8 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "ethos-zero"
-version = "9.0.0"
-source = "git+https://github.com/LiGoldragon/ethos-zero?rev=b232d35e03011161fe7ec9129ad99a9914413348#b232d35e03011161fe7ec9129ad99a9914413348"
+version = "10.0.0"
+source = "git+https://github.com/LiGoldragon/ethos-zero?rev=4bf73cae8d4f5a2072c76a11cd2f00aa3fe9f8e3#4bf73cae8d4f5a2072c76a11cd2f00aa3fe9f8e3"
 dependencies = [
  "datom-codec",
  "prettyplease",
@@ -216,7 +217,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "horizon-cli"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "clap",
  "datom-codec",
@@ -227,7 +228,7 @@ dependencies = [
 
 [[package]]
 name = "horizon-lib"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
  "datom-codec",
  "ethos-zero",
@@ -335,8 +336,8 @@ dependencies = [
 
 [[package]]
 name = "protos"
-version = "0.30.1"
-source = "git+https://github.com/LiGoldragon/protos?rev=171b21f65337983ab624b7b906397a4f1f92c5a3#171b21f65337983ab624b7b906397a4f1f92c5a3"
+version = "0.31.0"
+source = "git+https://github.com/LiGoldragon/protos?rev=1febca7836bf8d5f5973a302fdd50aa9c84c159b#1febca7836bf8d5f5973a302fdd50aa9c84c159b"
 
 [[package]]
 name = "ptr_meta"

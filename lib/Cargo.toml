@@ -1,18 +1,21 @@
 [package]
 name    = "horizon-lib"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2024"
 build = "build.rs"
 autotests = false
 
 [features]
 default = ["datom"]
-datom = ["dep:datom-codec", "dep:protos"]
+# `datom-codec` is no longer optional: the generated contract names
+# `datom_codec::Decimal` outside this gate, so the crate cannot compile
+# without it. The gate remains for the datom kinds themselves.
+datom = ["dep:protos"]
 
 [dependencies]
 serde      = { workspace = true }
 protos = { workspace = true, optional = true }
-datom-codec = { workspace = true, optional = true }
+datom-codec = { workspace = true }
 rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 thiserror  = { workspace = true }
 
