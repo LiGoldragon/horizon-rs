@@ -1,6 +1,6 @@
 //! Decoding one authored Datom document into the typed value it names.
 
-use datom_codec::{Actualizing, Budget, Compositional, Potential};
+use datom_codec::{Actualizing, Budget, Composing as DatomComposing, Potential};
 use protos::ReaderBudget;
 
 use super::error::Error;
@@ -8,7 +8,7 @@ use crate::*;
 
 /// A document kind Horizon accepts in authored Datom text, together with the
 /// decoding budget that kind is allowed to spend.
-pub trait DatomDecoding: Compositional + Sized {
+pub trait DatomDecoding: DatomComposing + Sized {
     /// The largest decode this document kind may cost.
     const BUDGET: i64;
 

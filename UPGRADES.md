@@ -1,5 +1,31 @@
 # Upgrades
 
+## 0.10.1 to 0.11.0
+
+The producer chain repins to the arity-split substrate: `datom-codec`
+`6dccc76b75918a91d3370a9d4fe88aa7dd567876` (0.27.0, was `627db67f2655…` /
+0.26.3) and `ethos-zero` `b232d35e03011161fe7ec9129ad99a9914413348` (9.0.0,
+was `de3d9928b156…` / 8.0.1). `protos` is unchanged at
+`171b21f65337983ab624b7b906397a4f1f92c5a3` (0.30.1). Horizon declares no
+`signal` dependency, so that repin does not apply here.
+
+`datom-codec` 0.27.0 gives arity back to `Compositional` — it now carries
+`const ARITY` and `from_positions`, and names the kind a datom composes into
+`Composing`. `ethos-zero` 9.0.0 emits the renamed derive, so every committed
+ethos-zero-generated file changed: `lib/src/generated/horizon.rs` no longer
+wraps its `#[cfg_attr(feature = "datom", derive(...))]` onto four lines and
+now derives `datom_codec::Composing` in place of `datom_codec::Compositional`.
+`lib/build.rs` asserts the regeneration is byte-identical to the committed
+file on every build.
+
+This is a breaking change to Horizon's own public Rust surface: the
+`datom`-feature derive on every generated type changes name, and
+`horizon_lib::DatomDecoding`'s supertrait bound moves from
+`datom_codec::Compositional` to `datom_codec::Composing`. A consumer naming
+`datom_codec::Compositional` against a Horizon generated type, or bounding
+against it directly, must move to `datom_codec::Composing`. The Datom wire
+form and the authored contract are unchanged.
+
 ## 0.10.0 to 0.10.1
 
 The producer chain settles on its final heads: `protos`
