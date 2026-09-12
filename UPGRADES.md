@@ -1,5 +1,22 @@
 # Upgrades
 
+## 0.10.0 to 0.10.1
+
+The producer chain settles on its final heads: `protos`
+`171b21f65337983ab624b7b906397a4f1f92c5a3` (0.30.1), `datom-codec`
+`627db67f2655efd9f786864009955005fd8ab2ad` (0.26.3), `ethos-zero`
+`de3d9928b156f2e1a92d060b7817af201abfdbef` (8.0.1). No authored type, no Datom
+wire form and no Rust surface changed: `lib/src/generated/horizon.rs`
+regenerates byte-identical under ethos-zero 8.0.1, which `lib/build.rs` asserts
+on every build.
+
+`Cargo.lock` also collapses to one revision of each of our crates. It had
+carried two `datom-codec` 0.25.7 entries — the one this crate pinned and a
+second, `f2cc06858d38a4028c928d33323a6d682e7c222f`, reached through
+ethos-zero 6.1.6. A consumer taking this revision inherits a single codec.
+
+Consumers repin the revision and change nothing else.
+
 ## 0.9.0 to 0.10.0
 
 Horizon's production Rust now homes every verb in a trait: `lib/src` and
