@@ -233,6 +233,14 @@ fn service_vector_decodes_tailnet_controller_without_parameters() {
 }
 
 #[test]
+fn core_checkup_decodes_as_an_explicit_unit_service_and_round_trips() {
+    let services = decode::<Vec<NodeService>>("[(CoreCheckup)]").unwrap();
+
+    assert_eq!(services, vec![NodeService::CoreCheckup {}]);
+    assert_eq!(services.to_dotos(), "[(CoreCheckup)]");
+}
+
+#[test]
 fn removed_agent_intercom_node_services_are_rejected() {
     for removed_service in ["AgentIntercomLocal", "AgentIntercomGraphical"] {
         let error = decode::<Vec<NodeService>>(&format!("[({removed_service})]")).unwrap_err();

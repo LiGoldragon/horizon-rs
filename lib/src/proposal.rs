@@ -136,6 +136,9 @@ pub enum NodeService {
     /// Serve a cluster Nix binary cache. CriomOS owns the service port
     /// and signing-key path.
     NixCache {},
+    /// Run Core Checkup on this node. The cluster proposal selects this
+    /// service role; CriomOS owns the timer and its implementation.
+    CoreCheckup {},
     /// Host Persona development infrastructure. Nested capabilities
     /// select sub-roles without making the cluster author CriomOS
     /// implementation details.
@@ -313,6 +316,7 @@ pub enum NodeServiceKind {
     TailnetController,
     NixBuilder,
     NixCache,
+    CoreCheckup,
     PersonaDevelopment,
     VmHost,
     WebHost,
@@ -330,6 +334,7 @@ impl NodeService {
             Self::TailnetController {} => NodeServiceKind::TailnetController,
             Self::NixBuilder { .. } => NodeServiceKind::NixBuilder,
             Self::NixCache {} => NodeServiceKind::NixCache,
+            Self::CoreCheckup {} => NodeServiceKind::CoreCheckup,
             Self::PersonaDevelopment { .. } => NodeServiceKind::PersonaDevelopment,
             Self::VmHost { .. } => NodeServiceKind::VmHost,
             Self::WebHost { .. } => NodeServiceKind::WebHost,
@@ -402,6 +407,9 @@ impl DotosEncode for NodeService {
                 Delimiter::Parenthesis.wrap(["NixBuilder".to_owned(), maximum_jobs.to_dotos()])
             }
             NodeService::NixCache {} => Delimiter::Parenthesis.wrap(["NixCache".to_owned()]),
+            NodeService::CoreCheckup {} => {
+                Delimiter::Parenthesis.wrap(["CoreCheckup".to_owned()])
+            }
             NodeService::PersonaDevelopment { capabilities } => Delimiter::Parenthesis
                 .wrap(["PersonaDevelopment".to_owned(), capabilities.to_dotos()]),
             NodeService::VmHost {
@@ -448,6 +456,10 @@ impl DotosDecode for NodeService {
             "NixCache" => {
                 Self::expect_service_arity(fields, variant, 1)?;
                 NodeService::NixCache {}
+            }
+            "CoreCheckup" => {
+                Self::expect_service_arity(fields, variant, 1)?;
+                NodeService::CoreCheckup {}
             }
             "PersonaDevelopment" => {
                 Self::expect_service_arity(fields, variant, 2)?;
