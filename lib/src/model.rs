@@ -228,6 +228,7 @@ pub enum Capability {
         maximum_jobs: Option<i64>,
     },
     NixCache,
+    OpenCodeTesting,
     PersonaDevelopment {
         capabilities: Vec<String>,
     },

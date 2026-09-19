@@ -403,6 +403,7 @@ pub enum NodeCapability {
     TailnetController(NoSettings),
     NixBuilder(Option<i64>),
     NixCache(NoSettings),
+    OpenCodeTesting(NoSettings),
     PersonaDevelopment(std::vec::Vec<PersonaCapability>),
     VmHost(VmHost_Data),
     WebHost(std::vec::Vec<HostedSite>),

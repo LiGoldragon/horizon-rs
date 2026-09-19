@@ -100,6 +100,7 @@ fn graphical_live() -> NodeDefinition {
             NodeCapability::Graphical(NoSettings {}),
             NodeCapability::Center(NoSettings {}),
             NodeCapability::LargeAi(NoSettings {}),
+            NodeCapability::OpenCodeTesting(NoSettings {}),
         ],
     )
 }
@@ -286,7 +287,8 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
         [
             Capability::Graphical,
             Capability::Center,
-            Capability::LargeAi
+            Capability::LargeAi,
+            Capability::OpenCodeTesting
         ]
     ));
     assert_eq!(
