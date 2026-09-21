@@ -63,11 +63,11 @@ fn tailnet_controller_service() -> NodeService {
     NodeService::TailnetController {}
 }
 
-fn usb_ipv4_gateway_service() -> NodeService {
+fn usb_ipv4_gateway_service(gateway: &str) -> NodeService {
     NodeService::UsbIpv4Gateway {
         downstream: Interface::new("enp0s20f0u1c2"),
         downstream_mac: MacAddress::try_new("02:0e:c6:33:4f:97").unwrap(),
-        gateway: Ipv4Cidr::try_new("10.44.0.1/24").unwrap(),
+        gateway: Ipv4Cidr::try_new(gateway).unwrap(),
         uplink: Interface::new("enp0s31f6"),
     }
 }
@@ -335,15 +335,22 @@ fn project_rejects_multiple_active_tailnet_controller_servers() {
 }
 
 #[test]
-fn project_rejects_duplicate_usb_gateway_address_on_one_node() {
+fn project_rejects_multiple_usb_gateway_services_on_one_node() {
     let mut proposal = cluster_proposal(Magnitude::Max);
     let services = &mut proposal
         .nodes
         .get_mut(&NodeName::try_new("ouranos").unwrap())
         .unwrap()
         .services;
-    services.push(usb_ipv4_gateway_service());
-    services.push(usb_ipv4_gateway_service());
+    services.push(usb_ipv4_gateway_service("10.44.0.1/24"));
+    // A different address and interface pair is still a conflict: one node
+    // has one downstream USB gateway role.
+    services.push(NodeService::UsbIpv4Gateway {
+        downstream: Interface::new("enp0s20f0u1c3"),
+        downstream_mac: MacAddress::try_new("02:0e:c6:33:4f:98").unwrap(),
+        gateway: Ipv4Cidr::try_new("10.45.0.1/24").unwrap(),
+        uplink: Interface::new("enp0s31f7"),
+    });
 
     assert!(proposal.project(&viewpoint("ouranos")).is_err());
 }

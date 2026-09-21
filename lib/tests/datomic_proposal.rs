@@ -159,7 +159,7 @@ fn usb_gateway_serde_json_payload_round_trips_and_validates() {
         {
           "usbIpv4Gateway": {
             "downstream": "enp0s20f0u1c2",
-            "downstreamMac": "02:0e:c6:33:4f:97",
+            "downstreamMac": "00:0e:c6:33:4f:97",
             "gateway": "10.44.0.1/24",
             "uplink": "enp0s31f6"
           }
@@ -168,7 +168,7 @@ fn usb_gateway_serde_json_payload_round_trips_and_validates() {
     let service: NodeService = serde_json::from_str(fixture).expect("valid USB gateway payload");
     assert_eq!(
         serde_json::to_string(&service).unwrap(),
-        r#"{"usbIpv4Gateway":{"downstream":"enp0s20f0u1c2","downstreamMac":"02:0e:c6:33:4f:97","gateway":"10.44.0.1/24","uplink":"enp0s31f6"}}"#
+        r#"{"usbIpv4Gateway":{"downstream":"enp0s20f0u1c2","downstreamMac":"00:0e:c6:33:4f:97","gateway":"10.44.0.1/24","uplink":"enp0s31f6"}}"#
     );
 
     let invalid = fixture.replace("10.44.0.1/24", "10.44.0.0/24");

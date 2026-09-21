@@ -4,7 +4,7 @@
 //! it produces the typed `Horizon`. Proposal types carry only raw
 //! data — no derived fields appear here.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionBuilding, PortionViewing};
 use ipnet::Ipv4Net;
@@ -566,16 +566,19 @@ impl NodeProposal {
     }
 
     pub fn validate_usb_ipv4_gateways(&self) -> Result<()> {
-        let mut gateways = BTreeSet::new();
+        let mut gateway_seen = false;
         for service in &self.services {
             service.validate_usb_ipv4_gateway()?;
             let Some(gateway) = service.usb_ipv4_gateway() else {
                 continue;
             };
-            let gateway = gateway.gateway.to_string();
-            if !gateways.insert(gateway.clone()) {
-                return Err(invalid_gateway_value("duplicate USB IPv4 gateway", gateway));
+            if gateway_seen {
+                return Err(invalid_gateway_value(
+                    "multiple USB IPv4 gateways",
+                    gateway.gateway.to_string(),
+                ));
             }
+            gateway_seen = true;
         }
         Ok(())
     }

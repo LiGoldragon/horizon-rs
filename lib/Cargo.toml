@@ -13,6 +13,9 @@ syn = { workspace = true }
 thiserror  = { workspace = true }
 ipnet      = { workspace = true }
 
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [[bin]]
 name = "horizon-regenerate"
 path = "tools/regenerate.rs"
