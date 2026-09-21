@@ -163,6 +163,12 @@ fn installation() -> NodeDefinition {
                 site_source: text("github:org/site/rev"),
                 site_renderer: SiteRenderer::MarkdownStatic,
             }]),
+            NodeCapability::UsbIpv4Gateway(UsbIpv4Gateway {
+                first_interface: text("enp0s20f0u1c2"),
+                mac_address: text("00:0e:c6:33:4f:97"),
+                ipv4_cidr: text("10.44.0.1/24"),
+                second_interface: text("enp0s31f6"),
+            }),
         ],
     )
 }
@@ -290,6 +296,12 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
             Capability::LargeAi,
             Capability::OpenCodeTesting
         ]
+    ));
+    assert!(matches!(
+        graphical.ex_nodes["zeus"].capabilities[5],
+        Capability::UsbIpv4Gateway { ref downstream, ref downstream_mac, ref gateway, ref uplink }
+            if downstream == "enp0s20f0u1c2" && downstream_mac == "00:0e:c6:33:4f:97"
+                && gateway == "10.44.0.1/24" && uplink == "enp0s31f6"
     ));
     assert_eq!(
         graphical.ex_nodes["zeus"]

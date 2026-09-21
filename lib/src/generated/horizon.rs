@@ -22,6 +22,10 @@ pub type Accuracy = datom_codec::Decimal;
 #[rustfmt::skip]
 pub type Interface = String;
 #[rustfmt::skip]
+pub type MacAddress = String;
+#[rustfmt::skip]
+pub type Ipv4Cidr = String;
+#[rustfmt::skip]
 pub type WirelessNetworkName = String;
 #[rustfmt::skip]
 pub type SecretName = String;
@@ -360,6 +364,15 @@ pub struct HostedSite {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct UsbIpv4Gateway {
+    pub first_interface: Interface,
+    pub mac_address: MacAddress,
+    pub ipv4_cidr: Ipv4Cidr,
+    pub second_interface: Interface,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum PersonaCapability {
     GitoliteServer,
 }
@@ -407,6 +420,7 @@ pub enum NodeCapability {
     PersonaDevelopment(std::vec::Vec<PersonaCapability>),
     VmHost(VmHost_Data),
     WebHost(std::vec::Vec<HostedSite>),
+    UsbIpv4Gateway(UsbIpv4Gateway),
 }
 #[rustfmt::skip]
 pub type Capabilities = std::vec::Vec<NodeCapability>;

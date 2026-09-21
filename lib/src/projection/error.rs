@@ -31,4 +31,6 @@ pub enum Error {
     VmHostCycle(String),
     #[error("trusted cluster has more than one TailnetController: {first:?}, {second:?}")]
     MultipleTailnetControllers { first: String, second: String },
+    #[error("node {node:?} has an invalid USB IPv4 gateway: {reason}")]
+    InvalidUsbIpv4Gateway { node: String, reason: &'static str },
 }

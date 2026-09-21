@@ -240,6 +240,12 @@ pub enum Capability {
     WebHost {
         sites: Vec<HostedSiteView>,
     },
+    UsbIpv4Gateway {
+        downstream: String,
+        downstream_mac: String,
+        gateway: String,
+        uplink: String,
+    },
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

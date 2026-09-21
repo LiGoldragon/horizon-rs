@@ -78,6 +78,7 @@ impl Projecting for HorizonDefinition {
             )
         });
         nodes.validate_tailnet_controller()?;
+        nodes.validate_usb_ipv4_gateways()?;
         nodes.validate_machines()?;
         Ok(ResolvedCluster {
             name: self.cluster_definition.cluster_name.clone(),

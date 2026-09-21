@@ -15,6 +15,8 @@ Signal
   Altitude.Decimal
   Accuracy.Decimal
   Interface.String
+  MacAddress.String
+  Ipv4Cidr.String
   WirelessNetworkName.String
   SecretName.String
   SecretReference.{ SecretName }
@@ -66,9 +68,10 @@ Signal
   RouterInterfaces.{ Interface Interface WlanBand Integer WlanStandard Option<SecretReference> Option<BackupWireless> }
   NodeNetwork.{ Vector<LinkLocalIp> Option<NodeIp> Option<WireguardPubKey> Vector<WireguardProxy> Option<RouterInterfaces> }
   HostedSite.{ ServedDomain SiteSource SiteRenderer }
+  UsbIpv4Gateway.{ Interface MacAddress Ipv4Cidr Interface }
   PersonaCapability.[ GitoliteServer ]
   NoSettings.{}
-  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.NoSettings TailnetController.NoSettings NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.NoSettings PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> ]
+  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.NoSettings TailnetController.NoSettings NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.NoSettings PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> UsbIpv4Gateway.UsbIpv4Gateway ]
   Capabilities.Vector<NodeCapability>
   NodeDefinition.{ NodeName NodeVariant Magnitude Magnitude MachineDefinition NodeEnvironment NodeNetwork NodeKeys Option<Boolean> Capabilities Option<FixedLocation> }
   GenericNodeNames.Vector<NodeName>

@@ -162,6 +162,12 @@ impl Projection for NodeCapability {
                     })
                     .collect(),
             },
+            NodeCapability::UsbIpv4Gateway(data) => Capability::UsbIpv4Gateway {
+                downstream: data.first_interface.clone(),
+                downstream_mac: data.mac_address.clone(),
+                gateway: data.ipv4_cidr.clone(),
+                uplink: data.second_interface.clone(),
+            },
         }
     }
 }

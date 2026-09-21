@@ -45,6 +45,7 @@ pub(crate) trait NodeGraph {
 
     /// Refuses a cluster naming more than one tailnet controller.
     fn validate_tailnet_controller(&self) -> Result<(), Error>;
+    fn validate_usb_ipv4_gateways(&self) -> Result<(), Error>;
 }
 
 impl NodeGraph for NodeDefinitions {
@@ -128,6 +129,45 @@ impl NodeGraph for NodeDefinitions {
                 first: first.clone(),
                 second: second.clone(),
             });
+        }
+        Ok(())
+    }
+
+    fn validate_usb_ipv4_gateways(&self) -> Result<(), Error> {
+        for (node, definition) in self {
+            let gateways = definition.capabilities.iter().filter_map(|capability| match capability {
+                NodeCapability::UsbIpv4Gateway(data) => Some(data),
+                _ => None,
+            }).collect::<Vec<_>>();
+            if gateways.len() > 1 {
+                return Err(Error::InvalidUsbIpv4Gateway { node: node.clone(), reason: "multiple gateway capabilities" });
+            }
+            let Some(gateway) = gateways.first() else { continue };
+            if gateway.first_interface == gateway.second_interface {
+                return Err(Error::InvalidUsbIpv4Gateway { node: node.clone(), reason: "uplink and downstream are equal" });
+            }
+            let mac = &gateway.mac_address;
+            let octets = mac.split(':').collect::<Vec<_>>();
+            if octets.len() != 6 || octets.iter().any(|part| part.len() != 2 || u8::from_str_radix(part, 16).is_err()) || mac != &mac.to_lowercase() || mac == "00:00:00:00:00:00" || u8::from_str_radix(octets[0], 16).is_ok_and(|first| first & 1 != 0) {
+                return Err(Error::InvalidUsbIpv4Gateway { node: node.clone(), reason: "MAC address is not canonical unicast" });
+            }
+            let Some((address, prefix)) = gateway.ipv4_cidr.split_once('/') else {
+                return Err(Error::InvalidUsbIpv4Gateway { node: node.clone(), reason: "gateway is not an IPv4 CIDR" });
+            };
+            let Ok(address) = address.parse::<std::net::Ipv4Addr>() else {
+                return Err(Error::InvalidUsbIpv4Gateway { node: node.clone(), reason: "gateway is not IPv4" });
+            };
+            let Ok(prefix) = prefix.parse::<u8>() else {
+                return Err(Error::InvalidUsbIpv4Gateway { node: node.clone(), reason: "gateway prefix is invalid" });
+            };
+            if !(1..=30).contains(&prefix) || gateway.ipv4_cidr != format!("{address}/{prefix}") {
+                return Err(Error::InvalidUsbIpv4Gateway { node: node.clone(), reason: "gateway CIDR is not canonical host subnet" });
+            }
+            let value = u32::from(address);
+            let mask = u32::MAX << (32 - prefix);
+            if value == (value & mask) || value == (value | !mask) {
+                return Err(Error::InvalidUsbIpv4Gateway { node: node.clone(), reason: "gateway cannot be network or broadcast" });
+            }
         }
         Ok(())
     }
