@@ -1,53 +1,86 @@
-//! Horizon's one-document projection CLI.
+//! horizon-cli — read a Datomic cluster proposal on stdin, write
+//! enriched horizon JSON on stdout.
 
 use std::io::{Read, Write};
 use std::process::ExitCode;
 
 use clap::Parser;
-use horizon_lib::{DatomDecoding, HorizonDefinition, Projecting};
+use datomic::TextEdge;
+use horizon_lib::name::{ClusterName, NodeName};
+use horizon_lib::{ClusterProposal, Viewpoint};
+use protos::Text;
 
 #[derive(Parser)]
 #[command(
     name = "horizon-cli",
-    about = "Resolve and project a Horizon definition"
+    about = "Project a cluster proposal into the enriched horizon for one viewpoint node"
 )]
 struct Cli {
+    /// Cluster name (matches the proposal's cluster identity).
+    #[arg(long)]
+    cluster: String,
+
+    /// Viewpoint node name (must exist in the proposal).
     #[arg(long)]
     node: String,
 }
 
+impl Cli {
+    fn viewpoint(&self) -> Result<Viewpoint, String> {
+        let cluster = ClusterName::try_new(&self.cluster).map_err(|e| e.to_string())?;
+        let node = NodeName::try_new(&self.node).map_err(|e| e.to_string())?;
+        Ok(Viewpoint { cluster, node })
+    }
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    let mut text = String::new();
-    if let Err(error) = std::io::stdin().read_to_string(&mut text) {
-        eprintln!("error: read stdin: {error}");
+
+    let viewpoint = match cli.viewpoint() {
+        Ok(v) => v,
+        Err(msg) => {
+            eprintln!("error: {msg}");
+            return ExitCode::from(2);
+        }
+    };
+
+    let mut buf = String::new();
+    if let Err(e) = std::io::stdin().read_to_string(&mut buf) {
+        eprintln!("error: read stdin: {e}");
         return ExitCode::from(2);
     }
-    let definition = match HorizonDefinition::decode(&text) {
-        Ok(definition) => definition,
-        Err(error) => {
-            eprintln!("error: parse horizon definition: {error}");
-            return ExitCode::from(1);
-        }
-    };
-    let horizon = match definition.project(&cli.node) {
-        Ok(horizon) => horizon,
-        Err(error) => {
-            eprintln!("error: resolve horizon definition: {error}");
-            return ExitCode::from(1);
-        }
-    };
-    match serde_json::to_string_pretty(&horizon) {
-        Ok(json) => {
-            if let Err(error) = std::io::stdout().write_all(format!("{json}\n").as_bytes()) {
-                eprintln!("error: write stdout: {error}");
-                return ExitCode::from(2);
+
+    let proposal: ClusterProposal = {
+        match Text::<ClusterProposal>::from(buf.as_str()).embody() {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("error: parse cluster proposal: {e:?}");
+                return ExitCode::from(1);
             }
         }
-        Err(error) => {
-            eprintln!("error: serialize horizon: {error}");
+    };
+
+    let horizon = match proposal.project(&viewpoint) {
+        Ok(h) => h,
+        Err(e) => {
+            eprintln!("error: project: {e}");
             return ExitCode::from(1);
         }
+    };
+
+    let json = match serde_json::to_string_pretty(&horizon) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: emit horizon: {e}");
+            return ExitCode::from(1);
+        }
+    };
+
+    if let Err(e) = std::io::stdout().write_all(json.as_bytes()) {
+        eprintln!("error: write stdout: {e}");
+        return ExitCode::from(2);
     }
+    let _ = std::io::stdout().write_all(b"\n");
+
     ExitCode::SUCCESS
 }
