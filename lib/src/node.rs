@@ -17,8 +17,8 @@ use crate::machine::Machine;
 use crate::magnitude::{AtLeast, Magnitude};
 use crate::name::{ClusterName, CriomeDomainName, ModelName, NodeName, UserName};
 use crate::proposal::{
-    HostedSite, NodeProposal, NodeService, NodeServiceKind, RouterInterfaces, VmHostCapability,
-    WireguardProxy,
+    HostedSite, NodeProposal, NodeService, NodeServiceKind, RouterInterfaces,
+    UsbIpv4GatewayCapability, VmHostCapability, WireguardProxy,
 };
 use crate::pub_key::{
     NixPubKey, NixPubKeyLine, SshPubKey, SshPubKeyLine, WireguardPubKey, YggPubKey,
@@ -596,6 +596,11 @@ impl Node {
     /// facts off `horizon.ex_nodes`.
     pub fn vm_host_capability(&self) -> Option<VmHostCapability<'_>> {
         self.services.iter().find_map(NodeService::vm_host)
+    }
+
+    /// The gateway payload this projected node declares, if any.
+    pub fn usb_ipv4_gateway_capability(&self) -> Option<UsbIpv4GatewayCapability<'_>> {
+        self.services.iter().find_map(NodeService::usb_ipv4_gateway)
     }
 
     /// The sites this node hosts, if it declares a `WebHost` service.

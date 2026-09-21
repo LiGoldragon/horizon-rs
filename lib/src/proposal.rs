@@ -4,15 +4,17 @@
 //! it produces the typed `Horizon`. Proposal types carry only raw
 //! data — no derived fields appear here.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use datomic::{Datomic, DatomicString, Fault, FaultProblem, PortionBuilding, PortionViewing};
+use ipnet::Ipv4Net;
 use protos::{Portion, Separator, StructuralEnclosure};
 use serde::{Deserialize, Serialize};
 
 use crate::address::{Interface, LinkLocalIp, NodeIp, TapSubnet};
 use crate::address::{YggAddress, YggSubnet};
 use crate::domain::DomainConfiguration;
+use crate::error::{Error, Result};
 use crate::io::Io;
 use crate::machine::Machine;
 use crate::magnitude::Magnitude;
@@ -176,6 +178,122 @@ pub enum NodeService {
     /// Nix sandbox into an immutable artifact, leaving the node to serve
     /// static files only (Spirit `878r`).
     WebHost { sites: Vec<HostedSite> },
+    /// Share IPv4 internet access to one directly connected downstream
+    /// interface. The payload is deployment data; consumers decide their
+    /// implementation without inspecting node names.
+    UsbIpv4Gateway {
+        downstream: Interface,
+        downstream_mac: MacAddress,
+        gateway: Ipv4Cidr,
+        uplink: Interface,
+    },
+}
+
+/// A canonical, unicast, non-zero Ethernet MAC address.
+///
+/// Locally administered unicast addresses remain valid: the U/L bit says who
+/// assigned an address; it does not make a packet multicast.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct MacAddress([u8; 6]);
+
+impl MacAddress {
+    pub fn try_new(value: impl Into<String>) -> Result<Self> {
+        let got = value.into();
+        let mut octets = [0; 6];
+        let mut parts = got.split(':');
+        for octet in &mut octets {
+            let Some(part) = parts.next() else {
+                return Err(invalid_gateway_value("MAC address", got));
+            };
+            if part.len() != 2 {
+                return Err(invalid_gateway_value("MAC address", got));
+            }
+            *octet = u8::from_str_radix(part, 16)
+                .map_err(|_| invalid_gateway_value("MAC address", got.clone()))?;
+        }
+        if parts.next().is_some()
+            || octets == [0; 6]
+            || octets[0] & 1 != 0
+            || got != format_mac(octets)
+        {
+            return Err(invalid_gateway_value("MAC address", got));
+        }
+        Ok(Self(octets))
+    }
+}
+
+impl TryFrom<String> for MacAddress {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self> {
+        Self::try_new(value)
+    }
+}
+
+impl From<MacAddress> for String {
+    fn from(value: MacAddress) -> Self {
+        value.to_string()
+    }
+}
+
+impl std::fmt::Display for MacAddress {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&format_mac(self.0))
+    }
+}
+
+/// An addressed IPv4 gateway CIDR. It must name a usable host in a regular
+/// subnet; network, broadcast, `/0`, `/31`, and `/32` forms are rejected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct Ipv4Cidr(Ipv4Net);
+
+impl Ipv4Cidr {
+    pub fn try_new(value: impl Into<String>) -> Result<Self> {
+        let got = value.into();
+        let parsed: Ipv4Net = got
+            .parse()
+            .map_err(|_| invalid_gateway_value("IPv4 gateway CIDR", got.clone()))?;
+        let prefix = parsed.prefix_len();
+        let address = parsed.addr();
+        if !(1..=30).contains(&prefix)
+            || address == parsed.network()
+            || address == parsed.broadcast()
+            || got != parsed.to_string()
+        {
+            return Err(invalid_gateway_value("IPv4 gateway CIDR", got));
+        }
+        Ok(Self(parsed))
+    }
+}
+
+impl TryFrom<String> for Ipv4Cidr {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self> {
+        Self::try_new(value)
+    }
+}
+
+impl From<Ipv4Cidr> for String {
+    fn from(value: Ipv4Cidr) -> Self {
+        value.to_string()
+    }
+}
+
+impl std::fmt::Display for Ipv4Cidr {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UsbIpv4GatewayCapability<'a> {
+    pub downstream: &'a Interface,
+    pub downstream_mac: MacAddress,
+    pub gateway: Ipv4Cidr,
+    pub uplink: &'a Interface,
 }
 
 /// Whether a VM host offers hardware acceleration (`/dev/kvm`). A
@@ -305,6 +423,7 @@ pub enum NodeServiceKind {
     PersonaDevelopment,
     VmHost,
     WebHost,
+    UsbIpv4Gateway,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -322,6 +441,7 @@ impl NodeService {
             Self::PersonaDevelopment { .. } => NodeServiceKind::PersonaDevelopment,
             Self::VmHost { .. } => NodeServiceKind::VmHost,
             Self::WebHost { .. } => NodeServiceKind::WebHost,
+            Self::UsbIpv4Gateway { .. } => NodeServiceKind::UsbIpv4Gateway,
         }
     }
 
@@ -365,6 +485,41 @@ impl NodeService {
         }
     }
 
+    /// The exact cluster-authored USB IPv4 gateway payload, if this service
+    /// declares one. Consumers read this payload as a unit.
+    pub fn usb_ipv4_gateway(&self) -> Option<UsbIpv4GatewayCapability<'_>> {
+        match self {
+            Self::UsbIpv4Gateway {
+                downstream,
+                downstream_mac,
+                gateway,
+                uplink,
+            } => Some(UsbIpv4GatewayCapability {
+                downstream,
+                downstream_mac: *downstream_mac,
+                gateway: *gateway,
+                uplink,
+            }),
+            _ => None,
+        }
+    }
+
+    fn validate_usb_ipv4_gateway(&self) -> Result<()> {
+        let Self::UsbIpv4Gateway {
+            downstream, uplink, ..
+        } = self
+        else {
+            return Ok(());
+        };
+        if downstream == uplink {
+            return Err(invalid_gateway_value(
+                "USB IPv4 gateway interfaces",
+                downstream.to_string(),
+            ));
+        }
+        Ok(())
+    }
+
     pub fn has_persona_development_capability(
         &self,
         kind: PersonaDevelopmentCapabilityKind,
@@ -404,6 +559,25 @@ impl NodeProposal {
     /// capacity ceiling through this.
     pub fn vm_host_capability(&self) -> Option<VmHostCapability<'_>> {
         self.services.iter().find_map(NodeService::vm_host)
+    }
+
+    pub fn usb_ipv4_gateway_capability(&self) -> Option<UsbIpv4GatewayCapability<'_>> {
+        self.services.iter().find_map(NodeService::usb_ipv4_gateway)
+    }
+
+    pub fn validate_usb_ipv4_gateways(&self) -> Result<()> {
+        let mut gateways = BTreeSet::new();
+        for service in &self.services {
+            service.validate_usb_ipv4_gateway()?;
+            let Some(gateway) = service.usb_ipv4_gateway() else {
+                continue;
+            };
+            let gateway = gateway.gateway.to_string();
+            if !gateways.insert(gateway.clone()) {
+                return Err(invalid_gateway_value("duplicate USB IPv4 gateway", gateway));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -636,6 +810,24 @@ impl Datomic for NodeService {
             "WebHost" => Ok(Self::WebHost {
                 sites: Vec::<HostedSite>::embody(&headed.body)?,
             }),
+            "UsbIpv4Gateway" => {
+                let Some(parts) = headed.body.structural(StructuralEnclosure::Braced) else {
+                    return Err(headed.body.fault(FaultProblem::Shape));
+                };
+                let [downstream, downstream_mac, gateway, uplink] = parts else {
+                    return Err(headed.body.fault(FaultProblem::Arity));
+                };
+                let service = Self::UsbIpv4Gateway {
+                    downstream: Interface::embody(downstream)?,
+                    downstream_mac: MacAddress::embody(downstream_mac)?,
+                    gateway: Ipv4Cidr::embody(gateway)?,
+                    uplink: Interface::embody(uplink)?,
+                };
+                service
+                    .validate_usb_ipv4_gateway()
+                    .map_err(|_| headed.body.fault(FaultProblem::Value))?;
+                Ok(service)
+            }
             _ => Err(portion.fault(FaultProblem::Head)),
         }
     }
@@ -664,7 +856,43 @@ impl Datomic for NodeService {
                 ]),
             ),
             Self::WebHost { sites } => "WebHost".headed(Separator::Period, sites.portion()),
+            Self::UsbIpv4Gateway {
+                downstream,
+                downstream_mac,
+                gateway,
+                uplink,
+            } => "UsbIpv4Gateway".headed(
+                Separator::Period,
+                record(vec![
+                    downstream.portion(),
+                    downstream_mac.portion(),
+                    gateway.portion(),
+                    uplink.portion(),
+                ]),
+            ),
         }
+    }
+}
+
+impl Datomic for MacAddress {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let value = DatomicString::embody(portion)?;
+        Self::try_new(value.as_ref().to_owned()).map_err(|_| portion.fault(FaultProblem::Value))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.to_string(), "MAC address")
+    }
+}
+
+impl Datomic for Ipv4Cidr {
+    fn embody(portion: &Portion) -> std::result::Result<Self, Fault> {
+        let value = DatomicString::embody(portion)?;
+        Self::try_new(value.as_ref().to_owned()).map_err(|_| portion.fault(FaultProblem::Value))
+    }
+
+    fn portion(&self) -> Portion {
+        datomic_string_portion(&self.to_string(), "IPv4 gateway CIDR")
     }
 }
 
@@ -1066,4 +1294,19 @@ fn datomic_string_portion(value: &str, kind: &str) -> Portion {
     let value = DatomicString::try_from(value.to_owned())
         .unwrap_or_else(|_| panic!("{kind} must be Datomic-representable"));
     Datomic::portion(&value)
+}
+
+fn invalid_gateway_value(kind: &'static str, got: impl Into<String>) -> Error {
+    Error::UnknownVariant {
+        kind,
+        got: got.into(),
+    }
+}
+
+fn format_mac(octets: [u8; 6]) -> String {
+    octets
+        .iter()
+        .map(|octet| format!("{octet:02x}"))
+        .collect::<Vec<_>>()
+        .join(":")
 }

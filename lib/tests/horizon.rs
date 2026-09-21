@@ -12,9 +12,9 @@ use horizon_lib::machine::{Location, Machine};
 use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, NodeName, SecretName, UserName, WirelessNetworkName};
 use horizon_lib::proposal::{
-    BackupWireless, ClusterProposal, ClusterTrust, KvmAvailability, MaximumGuests, NodeProposal,
-    NodePubKeys, NodeService, RouterInterfaces, SecretReference, UserProposal, UserPubKeyEntry,
-    WlanBand, WlanStandard, YggPubKeyEntry,
+    BackupWireless, ClusterProposal, ClusterTrust, Ipv4Cidr, KvmAvailability, MacAddress,
+    MaximumGuests, NodeProposal, NodePubKeys, NodeService, RouterInterfaces, SecretReference,
+    UserProposal, UserPubKeyEntry, WlanBand, WlanStandard, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{
@@ -61,6 +61,15 @@ fn io() -> Io {
 
 fn tailnet_controller_service() -> NodeService {
     NodeService::TailnetController {}
+}
+
+fn usb_ipv4_gateway_service() -> NodeService {
+    NodeService::UsbIpv4Gateway {
+        downstream: Interface::new("enp0s20f0u1c2"),
+        downstream_mac: MacAddress::try_new("02:0e:c6:33:4f:97").unwrap(),
+        gateway: Ipv4Cidr::try_new("10.44.0.1/24").unwrap(),
+        uplink: Interface::new("enp0s31f6"),
+    }
 }
 
 fn pub_keys(nix: bool, ygg: bool) -> NodePubKeys {
@@ -323,6 +332,38 @@ fn project_rejects_multiple_active_tailnet_controller_servers() {
         Error::MultipleTailnetControllers { first, second }
             if first.as_str() == "ouranos" && second.as_str() == "prometheus"
     ));
+}
+
+#[test]
+fn project_rejects_duplicate_usb_gateway_address_on_one_node() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    let services = &mut proposal
+        .nodes
+        .get_mut(&NodeName::try_new("ouranos").unwrap())
+        .unwrap()
+        .services;
+    services.push(usb_ipv4_gateway_service());
+    services.push(usb_ipv4_gateway_service());
+
+    assert!(proposal.project(&viewpoint("ouranos")).is_err());
+}
+
+#[test]
+fn project_rejects_usb_gateway_with_identical_interfaces() {
+    let mut proposal = cluster_proposal(Magnitude::Max);
+    proposal
+        .nodes
+        .get_mut(&NodeName::try_new("ouranos").unwrap())
+        .unwrap()
+        .services
+        .push(NodeService::UsbIpv4Gateway {
+            downstream: Interface::new("enp0s31f6"),
+            downstream_mac: MacAddress::try_new("02:0e:c6:33:4f:97").unwrap(),
+            gateway: Ipv4Cidr::try_new("10.44.0.1/24").unwrap(),
+            uplink: Interface::new("enp0s31f6"),
+        });
+
+    assert!(proposal.project(&viewpoint("ouranos")).is_err());
 }
 
 #[test]

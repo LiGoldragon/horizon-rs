@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use horizon_lib::address::{YggAddress, YggSubnet};
+use horizon_lib::address::{Interface, YggAddress, YggSubnet};
 use horizon_lib::domain::DomainConfiguration;
 use horizon_lib::io::Io;
 use horizon_lib::machine::Machine;
@@ -11,8 +11,8 @@ use horizon_lib::magnitude::Magnitude;
 use horizon_lib::name::{ClusterName, ModelName, NodeName, UserName};
 use horizon_lib::node::{LidSwitchAction, NodeProjection};
 use horizon_lib::proposal::{
-    HostedSite, NodeProposal, NodePubKeys, NodeService, PersonaDevelopmentCapability, ServedDomain,
-    SiteRenderer, SiteSource, YggPubKeyEntry,
+    HostedSite, Ipv4Cidr, MacAddress, NodeProposal, NodePubKeys, NodeService,
+    PersonaDevelopmentCapability, ServedDomain, SiteRenderer, SiteSource, YggPubKeyEntry,
 };
 use horizon_lib::pub_key::{NixPubKey, SshPubKey, YggPubKey};
 use horizon_lib::species::{Arch, Bootloader, Keyboard, MachineSpecies, NodeSpecies};
@@ -276,6 +276,24 @@ fn web_host_sites_project_from_service_variant() {
     // The web-host generator reads the cluster-authored sites off the
     // projection, exactly as the VM-test generator reads `VmHost`.
     assert_eq!(node.web_host_sites(), Some([site].as_slice()));
+}
+
+#[test]
+fn usb_ipv4_gateway_payload_projects_without_node_name_logic() {
+    let mut prop = proposal(NodeSpecies::EdgeTesting, Magnitude::Large, true);
+    prop.services.push(NodeService::UsbIpv4Gateway {
+        downstream: Interface::new("enp0s20f0u1c2"),
+        downstream_mac: MacAddress::try_new("02:0e:c6:33:4f:97").unwrap(),
+        gateway: Ipv4Cidr::try_new("10.44.0.1/24").unwrap(),
+        uplink: Interface::new("enp0s31f6"),
+    });
+
+    let node = prop.project(ctx_for("arbitrary-node", Magnitude::Max));
+    let gateway = node.usb_ipv4_gateway_capability().unwrap();
+    assert_eq!(gateway.downstream.as_str(), "enp0s20f0u1c2");
+    assert_eq!(gateway.downstream_mac.to_string(), "02:0e:c6:33:4f:97");
+    assert_eq!(gateway.gateway.to_string(), "10.44.0.1/24");
+    assert_eq!(gateway.uplink.as_str(), "enp0s31f6");
 }
 
 #[test]

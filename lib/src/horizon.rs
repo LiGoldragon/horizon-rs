@@ -60,6 +60,7 @@ impl ClusterProposal {
             // hosts of its architecture. A no-op for the single-host
             // majority.
             proposal.validate_host_set_single_arch(name, &self.nodes)?;
+            proposal.validate_usb_ipv4_gateways()?;
             let resolved_arch = proposal.resolve_arch(name, &self.nodes)?;
             let ctx = NodeProjection {
                 name: name.clone(),
