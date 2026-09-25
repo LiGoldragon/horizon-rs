@@ -91,6 +91,7 @@ impl Projection for RouterInterfaces {
                     password_reference: backup.secret_reference.secret_name.clone(),
                 }
             }),
+            usb_lan_mac_address: self.mac_address_option.clone(),
         }
     }
 }

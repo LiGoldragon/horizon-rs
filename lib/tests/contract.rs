@@ -69,6 +69,7 @@ fn node(
                     secret_name: text("backup-wifi"),
                 },
             }),
+            mac_address_option: Some(text("00:0e:c6:ad:21:5d")),
         }),
     };
     NodeDefinition {
@@ -321,6 +322,16 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
             .expect("backup")
             .network_name,
         "backup"
+    );
+    assert_eq!(
+        graphical.ex_nodes["zeus"]
+            .network
+            .router_interfaces
+            .as_ref()
+            .expect("router")
+            .usb_lan_mac_address
+            .as_deref(),
+        Some("00:0e:c6:ad:21:5d")
     );
     assert_eq!(graphical.users[0].public_keys[0].keygrip, "keygrip");
     assert_eq!(graphical.users[0].email_address, "li@goldragon.criome.net");

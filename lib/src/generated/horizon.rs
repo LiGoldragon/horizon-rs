@@ -22,6 +22,8 @@ pub type Accuracy = f64;
 #[rustfmt::skip]
 pub type Interface = String;
 #[rustfmt::skip]
+pub type MacAddress = String;
+#[rustfmt::skip]
 pub type WirelessNetworkName = String;
 #[rustfmt::skip]
 pub type SecretName = String;
@@ -446,6 +448,7 @@ pub struct RouterInterfaces {
     pub wlan_standard: WlanStandard,
     pub secret_reference_option: Option<SecretReference>,
     pub backup_wireless_option: Option<BackupWireless>,
+    pub mac_address_option: Option<MacAddress>,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq)]

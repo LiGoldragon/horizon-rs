@@ -172,6 +172,7 @@ pub struct RouterInterfacesView {
     pub wlan_standard: String,
     pub wpa3_sae_password_reference: Option<String>,
     pub backup_wireless: Option<BackupWirelessView>,
+    pub usb_lan_mac_address: Option<String>,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
