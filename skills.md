@@ -139,10 +139,11 @@ field order.
 
 Use shapes that carry their noun:
 
-- `TailnetClient`
-- `TailnetController`
+- `TailnetClient { preauth key secret reference }`
+- `TailnetController { cluster CA certificate, TLS certificate and key secret references }`
 - `NixBuilder { maximum_jobs }`
 - `NixCache`
+- `UsbDownlink { ipv4 network }`
 - `PersonaDevelopment { capabilities = [GitoliteServer] }`
 
 The variant names the cluster owner's selection. Horizon projection

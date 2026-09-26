@@ -72,6 +72,7 @@ fn node(
                     secret_name: text("backup-wifi"),
                 },
             }),
+            country_code: text("MX"),
         }),
     };
     NodeDefinition {
@@ -462,5 +463,121 @@ fn local_vm_architecture_inference_is_single_hop() {
     );
     assert!(
         matches!(definition.resolve(), Err(Error::VmHostArchitecture { node }) if node == "chained")
+    );
+}
+
+#[test]
+fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
+    let mut controller = installation();
+    controller.capabilities.push(NodeCapability::TailnetClient(SecretReference {
+        secret_name: text("tailnetPreauthKeyZeus"),
+    }));
+    controller
+        .capabilities
+        .push(NodeCapability::TailnetController(TailnetController_Data {
+            certificate_authority_option: Some(text("MIIBfixtureCertificateAuthority==")),
+            tls_certificate_reference: TlsCertificateReference {
+                secret_name: text("headscaleTlsCertificate"),
+            },
+            tls_key_reference: TlsKeyReference {
+                secret_name: text("headscaleTlsKey"),
+            },
+        }));
+    let mut client = local_vm();
+    client.capabilities.push(NodeCapability::TailnetClient(SecretReference {
+        secret_name: text("tailnetPreauthKeyMercury"),
+    }));
+    let definition = definition(Vec::new(), vec![controller, client]);
+    let encoded = encode(&definition);
+    assert!(encoded.contains("TailnetClient.{ tailnetPreauthKeyMercury }"));
+    assert!(encoded.contains(
+        "TailnetController.{ Some.MIIBfixtureCertificateAuthority== { headscaleTlsCertificate } { headscaleTlsKey } }"
+    ));
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("tailnet roles decode");
+    assert_eq!(encode(&decoded), encoded);
+
+    let horizon = decoded.project("mercury").expect("tailnet client projects");
+    assert!(matches!(
+        horizon.node.capabilities.as_slice(),
+        [Capability::TestVm, Capability::TailnetClient { preauth_key_reference }]
+            if preauth_key_reference == "tailnetPreauthKeyMercury"
+    ));
+    let controller_view = horizon.ex_nodes["zeus"]
+        .capabilities
+        .iter()
+        .find(|capability| matches!(capability, Capability::TailnetController { .. }))
+        .expect("the client sees the controller");
+    assert_eq!(
+        controller_view,
+        &Capability::TailnetController {
+            certificate_authority: Some(text("MIIBfixtureCertificateAuthority==")),
+            tls_certificate_reference: text("headscaleTlsCertificate"),
+            tls_key_reference: text("headscaleTlsKey"),
+        }
+    );
+    assert_eq!(horizon.ex_nodes["zeus"].criome_domain_name, "zeus.goldragon.criome");
+
+    let json = serde_json::to_value(controller_view).expect("capability serializes");
+    assert_eq!(
+        json,
+        serde_json::json!({
+            "kind": "tailnetController",
+            "certificateAuthority": "MIIBfixtureCertificateAuthority==",
+            "tlsCertificateReference": "headscaleTlsCertificate",
+            "tlsKeyReference": "headscaleTlsKey",
+        })
+    );
+    let client_json =
+        serde_json::to_value(&horizon.node.capabilities[1]).expect("capability serializes");
+    assert_eq!(
+        client_json,
+        serde_json::json!({
+            "kind": "tailnetClient",
+            "preauthKeyReference": "tailnetPreauthKeyMercury",
+        })
+    );
+}
+
+#[test]
+fn router_country_and_usb_downlink_project_for_consumers() {
+    let mut gateway = installation();
+    gateway
+        .capabilities
+        .push(NodeCapability::UsbDownlink(UsbDownlink_Data {
+            ipv4_cidr: text("10.44.0.0/24"),
+        }));
+    let definition = definition(Vec::new(), vec![gateway, local_vm()]);
+    let encoded = encode(&definition);
+    assert!(encoded.contains("UsbDownlink.{ 10.44.0.0/24 }"));
+    assert!(encoded.contains("{ backup-wifi } } MX }"));
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("router country decodes");
+    assert_eq!(encode(&decoded), encoded);
+
+    let horizon = decoded.project("zeus").expect("gateway projects");
+    let router = horizon
+        .node
+        .network
+        .router_interfaces
+        .as_ref()
+        .expect("router interfaces");
+    assert_eq!(router.country, "MX");
+    let router_json = serde_json::to_value(router).expect("router serializes");
+    assert_eq!(router_json["country"], "MX");
+
+    let downlink = horizon
+        .node
+        .capabilities
+        .iter()
+        .find(|capability| matches!(capability, Capability::UsbDownlink { .. }))
+        .expect("downlink capability");
+    assert_eq!(
+        serde_json::to_value(downlink).expect("capability serializes"),
+        serde_json::json!({ "kind": "usbDownlink", "ipv4Network": "10.44.0.0/24" })
+    );
+    assert!(
+        horizon.ex_nodes["mercury"]
+            .capabilities
+            .iter()
+            .all(|capability| !matches!(capability, Capability::UsbDownlink { .. }))
     );
 }

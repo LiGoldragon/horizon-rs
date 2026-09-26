@@ -16,8 +16,13 @@ Signal
   Accuracy.Decimal
   Interface.String
   WirelessNetworkName.String
+  CountryCode.String
+  Ipv4Cidr.String
   SecretName.String
   SecretReference.{ SecretName }
+  CertificateAuthority.String
+  TlsCertificateReference.{ SecretName }
+  TlsKeyReference.{ SecretName }
   GithubId.String
   Keygrip.String
   DevicePath.String
@@ -63,12 +68,12 @@ Signal
   NodeKeys.{ SshPubKey Option<NixPubKey> Option<YggdrasilKey> }
   WireguardProxy.{ WireguardPubKey String NodeIp }
   BackupWireless.{ Interface WirelessNetworkName WlanBand Integer WlanStandard SecretReference }
-  RouterInterfaces.{ Interface Interface WlanBand Integer WlanStandard Option<SecretReference> Option<BackupWireless> }
+  RouterInterfaces.{ Interface Interface WlanBand Integer WlanStandard Option<SecretReference> Option<BackupWireless> CountryCode }
   NodeNetwork.{ Vector<LinkLocalIp> Option<NodeIp> Option<WireguardPubKey> Vector<WireguardProxy> Option<RouterInterfaces> }
   HostedSite.{ ServedDomain SiteSource SiteRenderer }
   PersonaCapability.[ GitoliteServer ]
   NoSettings.{}
-  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.NoSettings TailnetController.NoSettings NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.NoSettings PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> ]
+  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.SecretReference TailnetController.{ Option<CertificateAuthority> TlsCertificateReference TlsKeyReference } NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.NoSettings PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> UsbDownlink.{ Ipv4Cidr } ]
   Capabilities.Vector<NodeCapability>
   NodeDefinition.{ NodeName NodeVariant Magnitude Magnitude MachineDefinition NodeEnvironment NodeNetwork NodeKeys Option<Boolean> Capabilities Option<FixedLocation> }
   GenericNodeNames.Vector<NodeName>

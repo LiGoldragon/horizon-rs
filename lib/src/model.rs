@@ -172,6 +172,8 @@ pub struct RouterInterfacesView {
     pub wlan_standard: String,
     pub wpa3_sae_password_reference: Option<String>,
     pub backup_wireless: Option<BackupWirelessView>,
+    /// ISO 3166-1 alpha-2 regulatory country for the node's radios.
+    pub country: String,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
@@ -222,8 +224,20 @@ pub enum Capability {
     HardwareVideo,
     Nordvpn,
     WifiCertificate,
-    TailnetClient,
-    TailnetController,
+    /// A tailnet member. `preauthKeyReference` names the sops secret holding
+    /// this node's reusable Headscale preauth key.
+    #[serde(rename_all = "camelCase")]
+    TailnetClient { preauth_key_reference: String },
+    /// The tailnet control server. `certificateAuthority` is the base64 DER
+    /// of the public cluster CA certificate every tailnet member trusts
+    /// (absent until minted); the two references name the sops secrets
+    /// holding the server's TLS certificate and private key.
+    #[serde(rename_all = "camelCase")]
+    TailnetController {
+        certificate_authority: Option<String>,
+        tls_certificate_reference: String,
+        tls_key_reference: String,
+    },
     NixBuilder {
         maximum_jobs: Option<i64>,
     },
@@ -240,6 +254,11 @@ pub enum Capability {
     WebHost {
         sites: Vec<HostedSiteView>,
     },
+    /// USB Ethernet downlinks propagate this node's Internet access: the
+    /// integrated NIC is the uplink, every USB Ethernet NIC is a downlink,
+    /// and `ipv4Network` is the IPv4 network served on the downlinks.
+    #[serde(rename_all = "camelCase")]
+    UsbDownlink { ipv4_network: String },
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

@@ -1,5 +1,51 @@
 # Upgrades
 
+## 0.12.0 to 0.13.0
+
+This release carries three cluster-data additions, all breaking the text
+form of existing records that use them.
+
+The two tailnet capabilities now carry the data their consumers need, so a
+tailnet is fully declared by cluster data:
+
+```ethos
+CertificateAuthority.String
+TlsCertificateReference.{ SecretName }
+TlsKeyReference.{ SecretName }
+TailnetClient.SecretReference
+TailnetController.{ Option<CertificateAuthority> TlsCertificateReference TlsKeyReference }
+```
+
+- `TailnetClient` names the sops secret holding that node's reusable
+  Headscale preauth key: `TailnetClient.{ tailnetPreauthKeyOuranos }`.
+- `TailnetController` carries the base64 DER of the public cluster CA
+  certificate (`None` until the CA is minted) and names the two sops secrets
+  holding the control server's TLS certificate and private key:
+  `TailnetController.{ Some.MII… { headscaleTlsCertificate } { headscaleTlsKey } }`.
+
+Every node's projection shows every other node's capabilities, so a client
+reads the controller's CA and domain name from `exNodes`. The projected views
+are `{ kind = "tailnetClient"; preauthKeyReference = …; }` and
+`{ kind = "tailnetController"; certificateAuthority = … or null;
+tlsCertificateReference = …; tlsKeyReference = …; }`.
+
+`RouterInterfaces` gains a required eighth field, `CountryCode` (ISO 3166-1
+alpha-2, e.g. `MX`), the regulatory country for the router's radios. It
+projects as `routerInterfaces.country`.
+
+A new capability `UsbDownlink.{ Ipv4Cidr }` declares USB-downlink Internet
+propagation: the integrated NIC is the uplink, every USB Ethernet NIC is a
+downlink selected by bus role, and the CIDR is the IPv4 network served on
+the downlinks (`UsbDownlink.{ 10.44.0.0/24 }`). It projects as
+`{ kind = "usbDownlink"; ipv4Network = "10.44.0.0/24"; }`.
+
+Migration: every `RouterInterfaces` record appends its country code. The
+bare `TailnetClient.{}` and `TailnetController.{}` forms no
+longer decode. Every tailnet node must name its preauth key secret, and the
+controller must name its TLS secrets. Signal contracts that carry
+`HorizonDefinition` (signal-lojix, meta-signal-lojix) and Lojix must repin
+this revision before a cluster definition in the new form is submitted.
+
 ## 0.10.1 to 0.11.0
 
 The producer chain repins to the arity-split substrate: `datom-codec`

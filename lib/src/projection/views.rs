@@ -91,6 +91,7 @@ impl Projection for RouterInterfaces {
                     password_reference: backup.secret_reference.secret_name.clone(),
                 }
             }),
+            country: self.country_code.clone(),
         }
     }
 }
@@ -137,8 +138,14 @@ impl Projection for NodeCapability {
             NodeCapability::HardwareVideo(_) => Capability::HardwareVideo,
             NodeCapability::Nordvpn(_) => Capability::Nordvpn,
             NodeCapability::WifiCertificate(_) => Capability::WifiCertificate,
-            NodeCapability::TailnetClient(_) => Capability::TailnetClient,
-            NodeCapability::TailnetController(_) => Capability::TailnetController,
+            NodeCapability::TailnetClient(preauth_key) => Capability::TailnetClient {
+                preauth_key_reference: preauth_key.secret_name.clone(),
+            },
+            NodeCapability::TailnetController(data) => Capability::TailnetController {
+                certificate_authority: data.certificate_authority_option.clone(),
+                tls_certificate_reference: data.tls_certificate_reference.secret_name.clone(),
+                tls_key_reference: data.tls_key_reference.secret_name.clone(),
+            },
             NodeCapability::NixBuilder(maximum_jobs) => Capability::NixBuilder {
                 maximum_jobs: *maximum_jobs,
             },
@@ -161,6 +168,9 @@ impl Projection for NodeCapability {
                         renderer: site.site_renderer.name().into(),
                     })
                     .collect(),
+            },
+            NodeCapability::UsbDownlink(data) => Capability::UsbDownlink {
+                ipv4_network: data.ipv4_cidr.clone(),
             },
         }
     }

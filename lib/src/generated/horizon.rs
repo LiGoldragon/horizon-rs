@@ -24,11 +24,29 @@ pub type Interface = String;
 #[rustfmt::skip]
 pub type WirelessNetworkName = String;
 #[rustfmt::skip]
+pub type CountryCode = String;
+#[rustfmt::skip]
+pub type Ipv4Cidr = String;
+#[rustfmt::skip]
 pub type SecretName = String;
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct SecretReference {
+    pub secret_name: SecretName,
+}
+#[rustfmt::skip]
+pub type CertificateAuthority = String;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct TlsCertificateReference {
+    pub secret_name: SecretName,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct TlsKeyReference {
     pub secret_name: SecretName,
 }
 #[rustfmt::skip]
@@ -338,6 +356,7 @@ pub struct RouterInterfaces {
     pub wlan_standard: WlanStandard,
     pub secret_reference_option: Option<SecretReference>,
     pub backup_wireless_option: Option<BackupWireless>,
+    pub country_code: CountryCode,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -377,10 +396,22 @@ pub struct VmTesting_Data {
 }
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct TailnetController_Data {
+    pub certificate_authority_option: Option<CertificateAuthority>,
+    pub tls_certificate_reference: TlsCertificateReference,
+    pub tls_key_reference: TlsKeyReference,
+}
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct VmHost_Data {
     pub tap_subnet: TapSubnet,
     pub kvm_availability: KvmAvailability,
     pub integer_option: Option<i64>,
+}
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct UsbDownlink_Data {
+    pub ipv4_cidr: Ipv4Cidr,
 }
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
@@ -399,14 +430,15 @@ pub enum NodeCapability {
     HardwareVideo(NoSettings),
     Nordvpn(NoSettings),
     WifiCertificate(NoSettings),
-    TailnetClient(NoSettings),
-    TailnetController(NoSettings),
+    TailnetClient(SecretReference),
+    TailnetController(TailnetController_Data),
     NixBuilder(Option<i64>),
     NixCache(NoSettings),
     OpenCodeTesting(NoSettings),
     PersonaDevelopment(std::vec::Vec<PersonaCapability>),
     VmHost(VmHost_Data),
     WebHost(std::vec::Vec<HostedSite>),
+    UsbDownlink(UsbDownlink_Data),
 }
 #[rustfmt::skip]
 pub type Capabilities = std::vec::Vec<NodeCapability>;
