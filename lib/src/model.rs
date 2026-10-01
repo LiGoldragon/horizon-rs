@@ -165,7 +165,6 @@ pub struct WireguardProxyView {
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RouterInterfacesView {
-    pub wan: String,
     pub wlan: String,
     pub wlan_band: String,
     pub wlan_channel: i64,
@@ -227,7 +226,9 @@ pub enum Capability {
     /// A tailnet member. `preauthKeyReference` names the sops secret holding
     /// this node's reusable Headscale preauth key.
     #[serde(rename_all = "camelCase")]
-    TailnetClient { preauth_key_reference: String },
+    TailnetClient {
+        preauth_key_reference: String,
+    },
     /// The tailnet control server. `certificateAuthority` is the base64 DER
     /// of the public cluster CA certificate every tailnet member trusts
     /// (absent until minted); the two references name the sops secrets
@@ -258,7 +259,9 @@ pub enum Capability {
     /// integrated NIC is the uplink, every USB Ethernet NIC is a downlink,
     /// and `ipv4Network` is the IPv4 network served on the downlinks.
     #[serde(rename_all = "camelCase")]
-    UsbDownlink { ipv4_network: String },
+    UsbDownlink {
+        ipv4_network: String,
+    },
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

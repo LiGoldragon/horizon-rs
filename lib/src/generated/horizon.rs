@@ -349,8 +349,7 @@ pub struct BackupWireless {
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct RouterInterfaces {
-    pub first_interface: Interface,
-    pub second_interface: Interface,
+    pub interface: Interface,
     pub wlan_band: WlanBand,
     pub integer: i64,
     pub wlan_standard: WlanStandard,

@@ -68,7 +68,7 @@ Signal
   NodeKeys.{ SshPubKey Option<NixPubKey> Option<YggdrasilKey> }
   WireguardProxy.{ WireguardPubKey String NodeIp }
   BackupWireless.{ Interface WirelessNetworkName WlanBand Integer WlanStandard SecretReference }
-  RouterInterfaces.{ Interface Interface WlanBand Integer WlanStandard Option<SecretReference> Option<BackupWireless> CountryCode }
+  RouterInterfaces.{ Interface WlanBand Integer WlanStandard Option<SecretReference> Option<BackupWireless> CountryCode }
   NodeNetwork.{ Vector<LinkLocalIp> Option<NodeIp> Option<WireguardPubKey> Vector<WireguardProxy> Option<RouterInterfaces> }
   HostedSite.{ ServedDomain SiteSource SiteRenderer }
   PersonaCapability.[ GitoliteServer ]

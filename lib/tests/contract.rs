@@ -54,8 +54,7 @@ fn node(
             node_ip: text("10.0.0.2"),
         }],
         router_interfaces_option: Some(RouterInterfaces {
-            first_interface: text("wan0"),
-            second_interface: text("wlan0"),
+            interface: text("wlan0"),
             wlan_band: WlanBand::FiveG,
             integer: 36,
             wlan_standard: WlanStandard::Wifi6,
@@ -469,9 +468,11 @@ fn local_vm_architecture_inference_is_single_hop() {
 #[test]
 fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
     let mut controller = installation();
-    controller.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyZeus"),
-    }));
+    controller
+        .capabilities
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: text("tailnetPreauthKeyZeus"),
+        }));
     controller
         .capabilities
         .push(NodeCapability::TailnetController(TailnetController_Data {
@@ -484,9 +485,11 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             },
         }));
     let mut client = local_vm();
-    client.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyMercury"),
-    }));
+    client
+        .capabilities
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: text("tailnetPreauthKeyMercury"),
+        }));
     let definition = definition(Vec::new(), vec![controller, client]);
     let encoded = encode(&definition);
     assert!(encoded.contains("TailnetClient.{ tailnetPreauthKeyMercury }"));
@@ -515,7 +518,10 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             tls_key_reference: text("headscaleTlsKey"),
         }
     );
-    assert_eq!(horizon.ex_nodes["zeus"].criome_domain_name, "zeus.goldragon.criome");
+    assert_eq!(
+        horizon.ex_nodes["zeus"].criome_domain_name,
+        "zeus.goldragon.criome"
+    );
 
     let json = serde_json::to_value(controller_view).expect("capability serializes");
     assert_eq!(
@@ -580,4 +586,18 @@ fn router_country_and_usb_downlink_project_for_consumers() {
             .iter()
             .all(|capability| !matches!(capability, Capability::UsbDownlink { .. }))
     );
+}
+
+#[test]
+fn router_projection_leaves_wired_selection_to_hardware_roles() {
+    let horizon = definition(vec![], vec![installation()])
+        .project("zeus")
+        .unwrap();
+    let network = serde_json::to_value(&horizon.node.network).unwrap();
+    let radio = network.get("routerInterfaces").unwrap();
+    assert!(
+        radio.get("wan").is_none(),
+        "wired selectors belong to hardware roles, not cluster names"
+    );
+    assert_eq!(radio.get("wlan").unwrap(), "wlan0");
 }

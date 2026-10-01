@@ -72,8 +72,7 @@ impl Projection for RouterInterfaces {
 
     fn project(&self) -> RouterInterfacesView {
         RouterInterfacesView {
-            wan: self.first_interface.clone(),
-            wlan: self.second_interface.clone(),
+            wlan: self.interface.clone(),
             wlan_band: self.wlan_band.name().into(),
             wlan_channel: self.integer,
             wlan_standard: self.wlan_standard.name().into(),
