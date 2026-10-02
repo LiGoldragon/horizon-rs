@@ -1,5 +1,21 @@
 # Upgrades
 
+## 0.13.0 to 0.14.0
+
+`RouterInterfaces` removes its first wired/WAN selector. Its remaining
+`interface` is the access-point radio; the other radio fields retain their
+order. Cluster text and rkyv archives change, and the projection no longer
+emits `routerInterfaces.wan`. Update the canonical cluster producer and every
+consumer together, without an old-shape placeholder.
+
+Remove only the former first field from each present router record; preserve
+its radio settings and other node data. Project every declared node with the
+exact Horizon revision pinned by the intended Lojix consumer before publishing
+data. signal-lojix 7, meta-signal-lojix 8 and Lojix 9 carry the matching layout.
+Existing Lojix schema-5 state requires the separately qualified offline
+conversion documented in Lojix's `UPGRADES.md`; decoder/pin convergence alone
+is not state migration or permission to activate hosts.
+
 ## 0.12.0 to 0.13.0
 
 This release carries three cluster-data additions, all breaking the text
