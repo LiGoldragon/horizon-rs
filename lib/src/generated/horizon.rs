@@ -206,11 +206,11 @@ pub enum FsType {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct Hardware {
     pub integer: i64,
-    pub model_name_option: Option<ModelName>,
-    pub mother_board_option: Option<MotherBoard>,
-    pub first_integer_option: Option<i64>,
-    pub second_integer_option: Option<i64>,
-    pub location_option: Option<Location>,
+    pub model_name_option: std::option::Option<ModelName>,
+    pub mother_board_option: std::option::Option<MotherBoard>,
+    pub first_integer_option: std::option::Option<i64>,
+    pub second_integer_option: std::option::Option<i64>,
+    pub location_option: std::option::Option<Location>,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -218,15 +218,17 @@ pub struct Hardware {
 pub struct Cluster_Data {
     pub node_name: NodeName,
     pub node_name_vector: std::vec::Vec<NodeName>,
-    pub user_name_option: Option<UserName>,
-    pub architecture_option: Option<Architecture>,
+    pub user_name_option: std::option::Option<UserName>,
+    pub architecture_option: std::option::Option<Architecture>,
 }
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct External_Data {
     pub string: String,
     pub architecture: Architecture,
 }
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum VirtualMachineHost {
@@ -240,13 +242,15 @@ pub struct Metal_Data {
     pub architecture: Architecture,
     pub hardware: Hardware,
 }
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct VirtualMachine_Data {
     pub virtual_machine_host: VirtualMachineHost,
     pub hardware: Hardware,
-    pub integer_option: Option<i64>,
+    pub integer_option: std::option::Option<i64>,
 }
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum MachineDefinition {
@@ -267,7 +271,7 @@ pub struct DiskLayout {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct SwapDevice {
     pub device_path: DevicePath,
-    pub integer_option: Option<i64>,
+    pub integer_option: std::option::Option<i64>,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -289,7 +293,7 @@ pub struct FixedLocation {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct NodeEnvironment {
     pub keyboard: Keyboard,
-    pub compressed_swap_option: Option<CompressedSwap>,
+    pub compressed_swap_option: std::option::Option<CompressedSwap>,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -323,8 +327,8 @@ pub struct YggdrasilKey {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct NodeKeys {
     pub ssh_pub_key: SshPubKey,
-    pub nix_pub_key_option: Option<NixPubKey>,
-    pub yggdrasil_key_option: Option<YggdrasilKey>,
+    pub nix_pub_key_option: std::option::Option<NixPubKey>,
+    pub yggdrasil_key_option: std::option::Option<YggdrasilKey>,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -354,8 +358,8 @@ pub struct RouterInterfaces {
     pub wlan_band: WlanBand,
     pub integer: i64,
     pub wlan_standard: WlanStandard,
-    pub secret_reference_option: Option<SecretReference>,
-    pub backup_wireless_option: Option<BackupWireless>,
+    pub secret_reference_option: std::option::Option<SecretReference>,
+    pub backup_wireless_option: std::option::Option<BackupWireless>,
     pub country_code: CountryCode,
 }
 #[rustfmt::skip]
@@ -363,10 +367,10 @@ pub struct RouterInterfaces {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct NodeNetwork {
     pub link_local_ip_vector: std::vec::Vec<LinkLocalIp>,
-    pub node_ip_option: Option<NodeIp>,
-    pub wireguard_pub_key_option: Option<WireguardPubKey>,
+    pub node_ip_option: std::option::Option<NodeIp>,
+    pub wireguard_pub_key_option: std::option::Option<WireguardPubKey>,
     pub wireguard_proxy_vector: std::vec::Vec<WireguardProxy>,
-    pub router_interfaces_option: Option<RouterInterfaces>,
+    pub router_interfaces_option: std::option::Option<RouterInterfaces>,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -392,27 +396,31 @@ pub struct NoSettings {}
 pub struct VmTesting_Data {
     pub boolean: bool,
     pub string: String,
-    pub string_option: Option<String>,
+    pub string_option: std::option::Option<String>,
 }
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct TailnetController_Data {
-    pub certificate_authority_option: Option<CertificateAuthority>,
+    pub certificate_authority_option: std::option::Option<CertificateAuthority>,
     pub tls_certificate_reference: TlsCertificateReference,
     pub tls_key_reference: TlsKeyReference,
 }
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct VmHost_Data {
     pub tap_subnet: TapSubnet,
     pub kvm_availability: KvmAvailability,
-    pub integer_option: Option<i64>,
+    pub integer_option: std::option::Option<i64>,
 }
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct UsbDownlink_Data {
     pub ipv4_cidr: Ipv4Cidr,
 }
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum NodeCapability {
@@ -432,7 +440,7 @@ pub enum NodeCapability {
     WifiCertificate(NoSettings),
     TailnetClient(SecretReference),
     TailnetController(TailnetController_Data),
-    NixBuilder(Option<i64>),
+    NixBuilder(std::option::Option<i64>),
     NixCache(NoSettings),
     OpenCodeTesting(NoSettings),
     PersonaDevelopment(std::vec::Vec<PersonaCapability>),
@@ -454,9 +462,9 @@ pub struct NodeDefinition {
     pub node_environment: NodeEnvironment,
     pub node_network: NodeNetwork,
     pub node_keys: NodeKeys,
-    pub boolean_option: Option<bool>,
+    pub boolean_option: std::option::Option<bool>,
     pub capabilities: Capabilities,
-    pub fixed_location_option: Option<FixedLocation>,
+    pub fixed_location_option: std::option::Option<FixedLocation>,
 }
 #[rustfmt::skip]
 pub type GenericNodeNames = std::vec::Vec<NodeName>;
@@ -481,11 +489,11 @@ pub struct UserDefinition {
     pub magnitude: Magnitude,
     pub keyboard: Keyboard,
     pub style: Style,
-    pub github_id_option: Option<GithubId>,
-    pub boolean_option: Option<bool>,
+    pub github_id_option: std::option::Option<GithubId>,
+    pub boolean_option: std::option::Option<bool>,
     pub user_pub_key_vector: std::vec::Vec<UserPubKey>,
-    pub editor_option: Option<Editor>,
-    pub text_size_option: Option<TextSize>,
+    pub editor_option: std::option::Option<Editor>,
+    pub text_size_option: std::option::Option<TextSize>,
 }
 #[rustfmt::skip]
 pub type Users = std::vec::Vec<UserDefinition>;

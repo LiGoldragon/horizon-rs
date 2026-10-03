@@ -1,6 +1,6 @@
 use datom_codec::{Datomizable, Decimal};
 use horizon_lib::*;
-use protos::{Protosizable, Textualizable};
+use protos::{Compactable, Protosizable};
 
 fn decimal(value: f64) -> Decimal {
     Decimal::try_from(value).expect("a finite literal is a decimal")
@@ -9,7 +9,7 @@ fn text(value: &str) -> String {
     value.to_owned()
 }
 fn encode(value: &HorizonDefinition) -> String {
-    value.datomize(vec![]).protosize().textualize()
+    value.datomize(vec![]).protosize().compact()
 }
 fn hardware() -> Hardware {
     Hardware {

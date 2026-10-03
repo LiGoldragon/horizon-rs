@@ -2,7 +2,7 @@ use std::process::Command;
 
 use datom_codec::Datomizable;
 use horizon_lib::*;
-use protos::{Protosizable, Textualizable};
+use protos::{Compactable, Protosizable};
 
 fn text(value: &str) -> String {
     value.to_owned()
@@ -36,12 +36,12 @@ fn composer_materializes_one_validated_definition_from_two_explicit_files() {
     };
     std::fs::write(
         &configuration_path,
-        configuration.datomize(vec![]).protosize().textualize(),
+        configuration.datomize(vec![]).protosize().compact(),
     )
     .expect("configuration fixture");
     std::fs::write(
         &cluster_path,
-        cluster.datomize(vec![]).protosize().textualize(),
+        cluster.datomize(vec![]).protosize().compact(),
     )
     .expect("cluster fixture");
 
@@ -66,7 +66,7 @@ fn composer_materializes_one_validated_definition_from_two_explicit_files() {
     }
     .datomize(vec![])
     .protosize()
-    .textualize();
+    .compact();
     assert_eq!(
         String::from_utf8(output.stdout).expect("utf8 output"),
         format!("{expected}\n")

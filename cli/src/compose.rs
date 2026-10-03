@@ -6,7 +6,7 @@ use datom_codec::Datomizable;
 use horizon_lib::{
     ClusterDefinition, Composing, CompositionCommand, DatomDecoding, HorizonConfiguration,
 };
-use protos::{Protosizable, Textualizable};
+use protos::{Compactable, Protosizable};
 
 fn main() -> ExitCode {
     let Some(request) = std::env::args().nth(1) else {
@@ -52,7 +52,7 @@ fn main() -> ExitCode {
         }
     };
     match configuration.compose(cluster) {
-        Ok(definition) => println!("{}", definition.datomize(vec![]).protosize().textualize()),
+        Ok(definition) => println!("{}", definition.datomize(vec![]).protosize().compact()),
         Err(error) => {
             eprintln!("error: compose HorizonDefinition: {error}");
             return ExitCode::from(1);

@@ -1,5 +1,29 @@
 # Upgrades
 
+## 0.13.0 to 0.14.0
+
+The producer chain repins to ethos-zero 16.0.0 and the 0.32.2 substrate:
+`ethos-zero` `c2653dd82adbdb1f1f2f654405c6620e0d06fd58` (16.0.0, was
+`4bf73cae…` / 10.0.0), `datom-codec` `4dff16b4f7412febc3b71aac8b49680cd20988cb`
+(0.32.2, was `09e2a9d5…` / 0.31.0, still with `rkyv`) and `protos`
+`15b41da8f2579e73ead59bc0c2b97529b8ac32d3` (0.32.2, was `1febca78…` / 0.31.0).
+`src/generated/horizon.rs` is regenerated: options are written
+`std::option::Option` and every item carries `#[rustfmt::skip]`. No field,
+variant or archived layout changed.
+
+What breaks is the trait identity under `datom`: every Horizon type now
+implements datom-codec 0.32.2's `Datomizable` and `Composing`, not 0.31's. A
+consumer that holds a Horizon type in a datomized position (signal-lojix,
+meta-signal-lojix, Lojix) must repin this revision together with datom-codec
+and protos 0.32.2 in one step; mixing the two leaves Cargo with two
+datom-codecs whose traits do not meet.
+
+protos 0.32 prints vertically through `Textualizable::textualize`.
+`horizon-compose` now prints through `Compactable::compact`, so
+`horizon-definition.datom` stays one line, as it was. The contract test
+requires the `datom` feature; a new `archive_roundtrip` test runs with and
+without it.
+
 ## 0.12.0 to 0.13.0
 
 This release carries three cluster-data additions, all breaking the text
