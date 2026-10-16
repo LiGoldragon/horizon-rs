@@ -121,7 +121,7 @@ impl NodeDeriving for Node {
     fn fill_viewpoint(&mut self, ex_nodes: &BTreeMap<String, Node>, users: &[User]) {
         self.builder_configs = ex_nodes
             .values()
-            .filter(|node| node.is_remote_nix_builder)
+            .filter(|node| node.behaves_as.center && node.is_remote_nix_builder)
             .map(NodeDeriving::builder_config)
             .collect();
         self.cache_urls = ex_nodes

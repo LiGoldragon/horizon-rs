@@ -275,10 +275,9 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
     );
     assert_eq!(graphical.node.system, "x86_64-linux");
     assert!(graphical.node.behaves_as.center);
-    assert_eq!(
-        graphical.node.builder_configs[0].host_name,
-        "zeus.goldragon.criome"
-    );
+    // The fixture's router is a receiver but not a center: it is no longer
+    // eligible as a build destination.
+    assert!(graphical.node.builder_configs.is_empty());
     assert_eq!(
         graphical.node.admin_ssh_public_keys,
         ["ssh-ed25519 AAAAuser"]
@@ -580,4 +579,84 @@ fn router_country_and_usb_downlink_project_for_consumers() {
             .iter()
             .all(|capability| !matches!(capability, Capability::UsbDownlink { .. }))
     );
+}
+
+#[test]
+fn builder_destinations_require_both_center_and_receiver_qualification() {
+    for (case, center, builder, online, trusted, keyed, expected) in [
+        (
+            "online edge with default slots",
+            false,
+            true,
+            true,
+            true,
+            true,
+            false,
+        ),
+        ("qualified center", true, true, true, true, true, true),
+        ("offline center", true, true, false, true, true, false),
+        ("untrusted center", true, true, true, false, true, false),
+        (
+            "center without cache key",
+            true,
+            true,
+            true,
+            true,
+            false,
+            false,
+        ),
+        (
+            "center without builder capability",
+            true,
+            false,
+            true,
+            true,
+            true,
+            false,
+        ),
+    ] {
+        let mut receiver = installation();
+        receiver.capabilities = if center {
+            vec![NodeCapability::Center(NoSettings {})]
+        } else {
+            vec![NodeCapability::Edge(NoSettings {})]
+        };
+        if builder {
+            // None means default slots, not an absent builder capability.
+            receiver.capabilities.push(NodeCapability::NixBuilder(None));
+        }
+        receiver.boolean_option = Some(online);
+        if !keyed {
+            receiver.node_keys.nix_pub_key_option = None;
+        }
+        let mut definition = definition(vec![text("live-install-minimal")], vec![receiver]);
+        if !trusted {
+            definition
+                .cluster_definition
+                .cluster_trust
+                .node_trust_entry_vector[0]
+                .magnitude = Magnitude::Min;
+        }
+        let receiver = definition.project("zeus").expect("receiver projects");
+        assert_eq!(
+            receiver.node.is_remote_nix_builder,
+            builder && online && trusted && keyed,
+            "{case}: existing receiver predicate"
+        );
+        let client = definition
+            .project("live-install-minimal")
+            .expect("client projects");
+        assert_eq!(
+            client.node.builder_configs.len(),
+            usize::from(expected),
+            "{case}"
+        );
+        if expected {
+            assert_eq!(
+                client.node.builder_configs[0].host_name, "zeus.goldragon.criome",
+                "selection depends on capability, not a Prometheus hostname"
+            );
+            assert_eq!(client.node.builder_configs[0].max_jobs, 1);
+        }
+    }
 }
