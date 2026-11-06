@@ -15,6 +15,21 @@ pub(crate) struct Viewpoint<'a> {
     pub size: &'a str,
 }
 
+/// A user's entry for one node, as the names a projection carries.
+pub(crate) trait UserPubKeyNaming {
+    /// The entry's capabilities, by variant name.
+    fn capability_names(&self) -> Vec<String>;
+}
+
+impl UserPubKeyNaming for UserPubKey {
+    fn capability_names(&self) -> Vec<String> {
+        self.user_capability_vector
+            .iter()
+            .map(|capability| capability.name().to_owned())
+            .collect()
+    }
+}
+
 /// An authored user seen from one node of the cluster.
 pub(crate) trait UserProjection {
     fn project_from(&self, trust: Magnitude, viewpoint: &Viewpoint<'_>) -> User;
@@ -75,6 +90,7 @@ impl UserProjection for UserDefinition {
                     node: key.node_name.clone(),
                     ssh: key.ssh_pub_key.clone(),
                     keygrip: key.keygrip.clone(),
+                    capabilities: key.capability_names(),
                 })
                 .collect(),
             editor: self
@@ -86,6 +102,7 @@ impl UserProjection for UserDefinition {
                 .as_ref()
                 .map(|size| size.name().to_owned()),
             has_public_key: viewpoint_key.is_some(),
+            capabilities: viewpoint_key.map_or_else(Vec::new, UserPubKeyNaming::capability_names),
             email_address: format!("{}@{}", self.user_name, viewpoint.public_domain),
             matrix_id: format!("@{}:{}", self.user_name, viewpoint.public_domain),
             git_signing_key: viewpoint_key.map(|key| format!("&{}", key.keygrip)),

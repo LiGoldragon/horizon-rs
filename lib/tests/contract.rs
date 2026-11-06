@@ -225,6 +225,7 @@ fn definition(selected: Vec<String>, local_nodes: Vec<NodeDefinition>) -> Horizo
                     node_name: text("zeus"),
                     ssh_pub_key: text("AAAAuser"),
                     keygrip: text("keygrip"),
+                    user_capability_vector: Vec::new(),
                 }],
                 editor_option: Some(Editor::Emacs),
                 text_size_option: Some(TextSize::Large),
@@ -349,6 +350,58 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
     assert!(minimal.node.is_live);
     assert_eq!(minimal.node.keyboard, "Qwerty");
     assert!(minimal.node.capabilities.is_empty());
+}
+
+#[test]
+fn user_capabilities_project_for_the_viewpoint_node_only() {
+    let mut definition = definition(Vec::new(), vec![installation(), local_vm()]);
+    definition.cluster_definition.users[0].user_pub_key_vector = vec![
+        UserPubKey {
+            node_name: text("zeus"),
+            ssh_pub_key: text("AAAAuser"),
+            keygrip: text("keygrip"),
+            user_capability_vector: vec![UserCapability::AgentStack],
+        },
+        UserPubKey {
+            node_name: text("mercury"),
+            ssh_pub_key: text("AAAAother"),
+            keygrip: text("other-keygrip"),
+            user_capability_vector: vec![UserCapability::CodexCandidate],
+        },
+    ];
+    let encoded = encode(&definition);
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("capabilities decode");
+    assert_eq!(encode(&decoded), encoded);
+
+    let zeus = decoded.project("zeus").expect("zeus projects");
+    let user = serde_json::to_value(&zeus.users[0]).expect("user serializes");
+    assert_eq!(user["capabilities"], serde_json::json!(["AgentStack"]));
+    assert_eq!(
+        user["publicKeys"][0]["capabilities"],
+        serde_json::json!(["AgentStack"])
+    );
+    assert_eq!(
+        user["publicKeys"][1]["capabilities"],
+        serde_json::json!(["CodexCandidate"])
+    );
+
+    let three_positions = encoded.replace("other-keygrip [ CodexCandidate ] }", "other-keygrip }");
+    assert_ne!(three_positions, encoded);
+    assert!(HorizonDefinition::decode(three_positions.as_ref()).is_err());
+
+    let mut unlisted = definition.clone();
+    unlisted.cluster_definition.users[0]
+        .user_pub_key_vector
+        .remove(0);
+    let zeus = unlisted
+        .project("zeus")
+        .expect("zeus projects without an entry");
+    assert!(!zeus.users[0].has_public_key);
+    assert!(zeus.users[0].capabilities.is_empty());
+    assert_eq!(
+        zeus.users[0].public_keys[0].capabilities,
+        ["CodexCandidate"]
+    );
 }
 
 #[test]

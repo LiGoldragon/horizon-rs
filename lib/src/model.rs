@@ -283,6 +283,10 @@ pub struct User {
     pub editor: Option<String>,
     pub text_size: Option<String>,
     pub has_public_key: bool,
+    /// What this user runs on the viewpoint node: the capabilities of the
+    /// entry whose node is the viewpoint, empty when there is none. Drives
+    /// the CriomOS agent stack and codex-next candidate server.
+    pub capabilities: Vec<String>,
     pub email_address: String,
     pub matrix_id: String,
     pub git_signing_key: Option<String>,
@@ -304,6 +308,8 @@ pub struct UserPubKeyView {
     pub node: String,
     pub ssh: String,
     pub keygrip: String,
+    /// What this user runs on this entry's node, by variant name.
+    pub capabilities: Vec<String>,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

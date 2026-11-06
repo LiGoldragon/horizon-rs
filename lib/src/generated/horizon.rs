@@ -475,10 +475,18 @@ pub type ClusterNodes = std::vec::Vec<NodeDefinition>;
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum UserCapability {
+    AgentStack,
+    CodexCandidate,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct UserPubKey {
     pub node_name: NodeName,
     pub ssh_pub_key: SshPubKey,
     pub keygrip: Keygrip,
+    pub user_capability_vector: std::vec::Vec<UserCapability>,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]

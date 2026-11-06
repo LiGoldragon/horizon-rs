@@ -1,5 +1,41 @@
 # Upgrades
 
+## 0.14.0 to 0.15.0
+
+A user's per-node entry gains a fourth position, the capabilities that user
+has on that node:
+
+```ethos
+UserCapability.[ AgentStack CodexCandidate ]
+UserPubKey.{ NodeName SshPubKey Keygrip Vector<UserCapability> }
+```
+
+`AgentStack` means the user runs the agent stack on that node (Curriculum,
+Flow Nexus, the Codex servers); `CodexCandidate` means the codex-next
+candidate server runs for that user on that node.
+
+Every `UserPubKey` record gains this fourth position, written `[]` when
+empty: `{ zeus AAAA… 9621… }` becomes `{ zeus AAAA… 9621… [] }`, or
+`{ zeus AAAA… 9621… [ AgentStack ] }`. The three-position form no longer
+decodes.
+
+The projection carries it in two places. Each `publicKeys` entry gains
+`capabilities`, the entry's variant names; the user gains `capabilities`,
+those of the entry whose node is the viewpoint node, `[]` when there is
+none (resolved the way `hasPublicKey` is):
+
+```json
+{ "publicKeys": [ { "node": "zeus", "ssh": "…", "keygrip": "…",
+                    "capabilities": [ "AgentStack" ] } ],
+  "hasPublicKey": true,
+  "capabilities": [ "AgentStack" ] }
+```
+
+Migration: append `[]` (or the node's capabilities) to every `UserPubKey`
+record in the cluster definition. Signal contracts that carry
+`HorizonDefinition` (signal-lojix, meta-signal-lojix) and Lojix must repin
+this revision before a cluster definition in the new form is submitted.
+
 ## 0.13.0 to 0.14.0
 
 The producer chain repins to ethos-zero 16.0.0 and the 0.32.2 substrate:

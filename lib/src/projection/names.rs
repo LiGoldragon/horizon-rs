@@ -149,6 +149,15 @@ impl Named for PersonaCapability {
     }
 }
 
+impl Named for UserCapability {
+    fn name(&self) -> &'static str {
+        match self {
+            UserCapability::AgentStack => "AgentStack",
+            UserCapability::CodexCandidate => "CodexCandidate",
+        }
+    }
+}
+
 impl Named for UserRole {
     fn name(&self) -> &'static str {
         match self {

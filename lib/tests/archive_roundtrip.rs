@@ -15,3 +15,16 @@ fn hardware_round_trips_through_the_rkyv_archive() {
     let restored = rkyv::from_bytes::<Hardware, rkyv::rancor::Error>(&bytes).expect("read back");
     assert_eq!(restored, hardware);
 }
+
+#[test]
+fn user_pub_key_capabilities_round_trip_through_the_rkyv_archive() {
+    let key = UserPubKey {
+        node_name: "zeus".to_owned(),
+        ssh_pub_key: "AAAAuser".to_owned(),
+        keygrip: "keygrip".to_owned(),
+        user_capability_vector: vec![UserCapability::AgentStack, UserCapability::CodexCandidate],
+    };
+    let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&key).expect("archive");
+    let restored = rkyv::from_bytes::<UserPubKey, rkyv::rancor::Error>(&bytes).expect("read back");
+    assert_eq!(restored, key);
+}
