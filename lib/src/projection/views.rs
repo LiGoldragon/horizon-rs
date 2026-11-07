@@ -150,7 +150,9 @@ impl Projection for NodeCapability {
                 maximum_jobs: *maximum_jobs,
             },
             NodeCapability::NixCache(_) => Capability::NixCache,
-            NodeCapability::OpenCodeTesting(_) => Capability::OpenCodeTesting,
+            NodeCapability::OpenCodeTesting(owner) => Capability::OpenCodeTesting {
+                owner: owner.clone(),
+            },
             NodeCapability::PersonaDevelopment(values) => Capability::PersonaDevelopment {
                 capabilities: values.iter().map(|value| value.name().to_owned()).collect(),
             },

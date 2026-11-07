@@ -123,8 +123,9 @@ Signal
   PersonaCapability.[ GitoliteServer ]
   ; a capability with nothing to configure
   NoSettings.{}
-  ; a role a node takes on, with the data it needs
-  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.SecretReference TailnetController.{ Option<CertificateAuthority> TlsCertificateReference TlsKeyReference } NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.NoSettings PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> UsbDownlink.{ Ipv4Cidr } ]
+  ; a role a node takes on, with the data it needs; OpenCodeTesting names
+  ; the user who runs the node's OpenCode server and owns its password
+  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.SecretReference TailnetController.{ Option<CertificateAuthority> TlsCertificateReference TlsKeyReference } NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.UserName PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> UsbDownlink.{ Ipv4Cidr } ]
   Capabilities.Vector<NodeCapability>
   ; a node: name, variant, size, trust, machine, environment, network,
   ; keys, whether it is online, capabilities, fixed location
@@ -134,8 +135,10 @@ Signal
   ClusterNodes.Vector<NodeDefinition>
   ; what a user runs on one node: AgentStack runs the agent stack
   ; (Curriculum, Flow Nexus, the Codex servers); CodexCandidate runs the
-  ; codex-next candidate server for that user
-  UserCapability.[ AgentStack CodexCandidate ]
+  ; codex-next candidate server for that user; StableCodex makes the
+  ; user's Codex client the stable core package, and the user's next
+  ; Codex home is never seeded from ~/.codex
+  UserCapability.[ AgentStack CodexCandidate StableCodex ]
   ; a user's entry for one node: the node, the user's SSH key and GPG
   ; keygrip there, and what the user runs there
   UserPubKey.{ NodeName SshPubKey Keygrip Vector<UserCapability> }

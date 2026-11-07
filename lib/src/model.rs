@@ -242,7 +242,9 @@ pub enum Capability {
         maximum_jobs: Option<i64>,
     },
     NixCache,
-    OpenCodeTesting,
+    /// The OpenCode testing server. `owner` is the user who runs the
+    /// node's OpenCode server and owns its password secret.
+    OpenCodeTesting { owner: String },
     PersonaDevelopment {
         capabilities: Vec<String>,
     },

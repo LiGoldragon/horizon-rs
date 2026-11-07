@@ -154,6 +154,7 @@ impl Named for UserCapability {
         match self {
             UserCapability::AgentStack => "AgentStack",
             UserCapability::CodexCandidate => "CodexCandidate",
+            UserCapability::StableCodex => "StableCodex",
         }
     }
 }

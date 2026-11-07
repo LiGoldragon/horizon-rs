@@ -442,7 +442,7 @@ pub enum NodeCapability {
     TailnetController(TailnetController_Data),
     NixBuilder(std::option::Option<i64>),
     NixCache(NoSettings),
-    OpenCodeTesting(NoSettings),
+    OpenCodeTesting(UserName),
     PersonaDevelopment(std::vec::Vec<PersonaCapability>),
     VmHost(VmHost_Data),
     WebHost(std::vec::Vec<HostedSite>),
@@ -478,6 +478,7 @@ pub type ClusterNodes = std::vec::Vec<NodeDefinition>;
 pub enum UserCapability {
     AgentStack,
     CodexCandidate,
+    StableCodex,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]

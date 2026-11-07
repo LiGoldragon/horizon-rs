@@ -101,7 +101,7 @@ fn graphical_live() -> NodeDefinition {
             NodeCapability::Graphical(NoSettings {}),
             NodeCapability::Center(NoSettings {}),
             NodeCapability::LargeAi(NoSettings {}),
-            NodeCapability::OpenCodeTesting(NoSettings {}),
+            NodeCapability::OpenCodeTesting(text("li")),
         ],
     )
 }
@@ -289,8 +289,8 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
             Capability::Graphical,
             Capability::Center,
             Capability::LargeAi,
-            Capability::OpenCodeTesting
-        ]
+            Capability::OpenCodeTesting { owner }
+        ] if owner == "li"
     ));
     assert_eq!(
         graphical.ex_nodes["zeus"]
@@ -401,6 +401,43 @@ fn user_capabilities_project_for_the_viewpoint_node_only() {
     assert_eq!(
         zeus.users[0].public_keys[0].capabilities,
         ["CodexCandidate"]
+    );
+}
+
+#[test]
+fn open_code_testing_owner_and_stable_codex_project_for_nix() {
+    let mut zeus = installation();
+    zeus.capabilities
+        .push(NodeCapability::OpenCodeTesting(text("li")));
+    let mut definition = definition(Vec::new(), vec![zeus, local_vm()]);
+    definition.cluster_definition.users[0].user_pub_key_vector[0].user_capability_vector =
+        vec![UserCapability::StableCodex];
+    let encoded = encode(&definition);
+    assert!(encoded.contains("OpenCodeTesting.li"), "{encoded}");
+    assert!(encoded.contains("[ StableCodex ]"), "{encoded}");
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("owner decodes");
+    assert_eq!(encode(&decoded), encoded);
+
+    let no_owner = encoded.replace("OpenCodeTesting.li", "OpenCodeTesting.{}");
+    assert_ne!(no_owner, encoded);
+    assert!(HorizonDefinition::decode(no_owner.as_ref()).is_err());
+
+    let horizon = decoded.project("zeus").expect("zeus projects");
+    let server = horizon
+        .node
+        .capabilities
+        .iter()
+        .find(|capability| matches!(capability, Capability::OpenCodeTesting { .. }))
+        .expect("OpenCode testing capability");
+    assert_eq!(
+        serde_json::to_value(server).expect("capability serializes"),
+        serde_json::json!({ "kind": "openCodeTesting", "owner": "li" })
+    );
+    let user = serde_json::to_value(&horizon.users[0]).expect("user serializes");
+    assert_eq!(user["capabilities"], serde_json::json!(["StableCodex"]));
+    assert_eq!(
+        user["publicKeys"][0]["capabilities"],
+        serde_json::json!(["StableCodex"])
     );
 }
 

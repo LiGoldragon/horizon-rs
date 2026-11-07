@@ -1,5 +1,41 @@
 # Upgrades
 
+## 0.15.0 to 0.16.0
+
+Two facts the Nix code hardwired move into the cluster definition.
+
+The OpenCode testing capability names its owner, the user who runs the
+node's OpenCode server and owns its password secret:
+
+```ethos
+NodeCapability.[ … OpenCodeTesting.UserName … ]
+```
+
+Every `OpenCodeTesting.{}` record gains the owner: `OpenCodeTesting.{}`
+becomes `OpenCodeTesting.li`. The empty form no longer decodes. The
+projected capability carries it:
+
+```json
+{ "kind": "openCodeTesting", "owner": "li" }
+```
+
+A user's capabilities gain a third variant:
+
+```ethos
+UserCapability.[ AgentStack CodexCandidate StableCodex ]
+```
+
+`StableCodex` means the user's Codex client on that node is the stable core
+package, and the user's next Codex home is never seeded from `~/.codex`. It
+projects by name, as the others do: `"capabilities": [ "StableCodex" ]`.
+Existing records decode unchanged.
+
+Migration: edit every `OpenCodeTesting.{}` in the cluster definition to name
+its owner, and add `StableCodex` to the entries of each user whose Codex is
+the stable core package. Signal contracts that carry `HorizonDefinition`
+(signal-lojix, meta-signal-lojix) and Lojix must repin this revision before a
+cluster definition in the new form is submitted.
+
 ## 0.14.0 to 0.15.0
 
 A user's per-node entry gains a fourth position, the capabilities that user
