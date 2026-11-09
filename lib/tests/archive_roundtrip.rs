@@ -41,3 +41,12 @@ fn open_code_testing_owner_round_trips_through_the_rkyv_archive() {
         rkyv::from_bytes::<NodeCapability, rkyv::rancor::Error>(&bytes).expect("read back");
     assert_eq!(restored, capability);
 }
+
+#[test]
+fn git_server_capability_round_trips_through_the_rkyv_archive() {
+    let capability = NodeCapability::GitServer(NoSettings {});
+    let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&capability).expect("archive");
+    let restored =
+        rkyv::from_bytes::<NodeCapability, rkyv::rancor::Error>(&bytes).expect("read back");
+    assert_eq!(restored, capability);
+}

@@ -83,6 +83,13 @@ impl NodeDeriving for Node {
             && online
             && self.is_fully_trusted
             && self.has_base_public_keys;
+        self.is_git_server = self
+            .capabilities
+            .iter()
+            .any(|capability| matches!(capability, Capability::GitServer))
+            && online
+            && self.is_fully_trusted
+            && self.has_base_public_keys;
         self.is_large_edge = matches!(self.size.as_str(), "Large" | "Max") && edge;
         self.enable_network_manager =
             !matches!(self.size.as_str(), "Zero") && !iso && !center && !router;
@@ -98,6 +105,9 @@ impl NodeDeriving for Node {
             .nix_cache_domain
             .as_ref()
             .map(|domain| format!("http://{domain}"));
+        self.git_server_domain = self
+            .is_git_server
+            .then(|| format!("git.{cluster}.{suffix}"));
         self.ssh_public_key_line = format!("ssh-ed25519 {}", self.keys.ssh);
     }
 

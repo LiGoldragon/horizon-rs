@@ -43,11 +43,15 @@ pub struct Node {
     pub is_remote_nix_builder: bool,
     pub is_dispatcher: bool,
     pub is_nix_cache: bool,
+    pub is_git_server: bool,
     pub is_large_edge: bool,
     pub enable_network_manager: bool,
     pub has_base_public_keys: bool,
     pub nix_public_key_line: Option<String>,
     pub nix_cache_domain: Option<String>,
+    /// The cluster's Git server name, `git.<cluster>.<suffix>`, on the node
+    /// that serves it.
+    pub git_server_domain: Option<String>,
     pub nix_url: Option<String>,
     pub behaves_as: BehavesAs,
     pub ssh_public_key_line: String,
@@ -261,6 +265,9 @@ pub enum Capability {
     /// and `ipv4Network` is the IPv4 network served on the downlinks.
     #[serde(rename_all = "camelCase")]
     UsbDownlink { ipv4_network: String },
+    /// The cluster's Git server: serves Git over SSH, and
+    /// `git.<cluster>.<suffix>` resolves to this node.
+    GitServer,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

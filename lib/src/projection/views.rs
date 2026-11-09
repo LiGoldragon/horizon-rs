@@ -150,6 +150,7 @@ impl Projection for NodeCapability {
                 maximum_jobs: *maximum_jobs,
             },
             NodeCapability::NixCache(_) => Capability::NixCache,
+            NodeCapability::GitServer(_) => Capability::GitServer,
             NodeCapability::OpenCodeTesting(owner) => Capability::OpenCodeTesting {
                 owner: owner.clone(),
             },

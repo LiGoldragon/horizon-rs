@@ -240,11 +240,13 @@ impl NodeProjection for NodeDefinition {
             is_remote_nix_builder: false,
             is_dispatcher: false,
             is_nix_cache: false,
+            is_git_server: false,
             is_large_edge: false,
             enable_network_manager: false,
             has_base_public_keys: false,
             nix_public_key_line: None,
             nix_cache_domain: None,
+            git_server_domain: None,
             nix_url: None,
             behaves_as: BehavesAs {
                 center: false,

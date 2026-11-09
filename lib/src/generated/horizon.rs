@@ -447,6 +447,7 @@ pub enum NodeCapability {
     VmHost(VmHost_Data),
     WebHost(std::vec::Vec<HostedSite>),
     UsbDownlink(UsbDownlink_Data),
+    GitServer(NoSettings),
 }
 #[rustfmt::skip]
 pub type Capabilities = std::vec::Vec<NodeCapability>;

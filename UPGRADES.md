@@ -1,5 +1,25 @@
 # Upgrades
 
+## 0.16.0 to 0.17.0
+
+A node capability names the cluster's own Git server:
+
+```ethos
+NodeCapability.[ … UsbDownlink.{ Ipv4Cidr } GitServer.NoSettings ]
+```
+
+A node carries it as `GitServer.{}`. It projects as
+`{ "kind": "gitServer" }`, and the node gains two derived fields:
+`isGitServer`, true when the capability is present and the node is online,
+fully trusted and holds its base public keys (the gate `isNixCache` uses),
+and `gitServerDomain`, `git.<cluster>.<suffix>` on that node and `null`
+elsewhere. The name is the cluster's, not the node's, since one node serves
+it. Existing records decode unchanged.
+
+Migration: none for existing definitions. Signal contracts that carry
+`HorizonDefinition` (signal-lojix, meta-signal-lojix) and Lojix must repin
+this revision before a cluster definition naming `GitServer` is submitted.
+
 ## 0.15.0 to 0.16.0
 
 Two facts the Nix code hardwired move into the cluster definition.

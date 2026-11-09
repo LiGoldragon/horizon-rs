@@ -750,3 +750,82 @@ fn builder_destinations_require_both_center_and_receiver_qualification() {
         }
     }
 }
+
+#[test]
+fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
+    for (case, capability, online, trusted, keyed, expected) in [
+        ("qualified git server", true, true, true, true, true),
+        ("offline git server", true, false, true, true, false),
+        ("untrusted git server", true, true, false, true, false),
+        ("git server without cache key", true, true, true, false, false),
+        ("node without the capability", false, true, true, true, false),
+    ] {
+        let mut server = installation();
+        if capability {
+            server
+                .capabilities
+                .push(NodeCapability::GitServer(NoSettings {}));
+        }
+        server.boolean_option = Some(online);
+        if !keyed {
+            server.node_keys.nix_pub_key_option = None;
+        }
+        let mut definition = definition(vec![text("live-install-minimal")], vec![server]);
+        if !trusted {
+            definition
+                .cluster_definition
+                .cluster_trust
+                .node_trust_entry_vector[0]
+                .magnitude = Magnitude::Min;
+        }
+        let encoded = encode(&definition);
+        assert_eq!(encoded.contains("GitServer.{}"), capability, "{case}");
+        let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("git server decodes");
+        assert_eq!(encode(&decoded), encoded, "{case}");
+
+        let horizon = decoded.project("zeus").expect("server projects");
+        assert_eq!(horizon.node.is_git_server, expected, "{case}");
+        assert_eq!(
+            horizon.node.git_server_domain.as_deref(),
+            expected.then_some("git.goldragon.criome"),
+            "{case}"
+        );
+        let node_json = serde_json::to_value(&horizon.node).expect("node serializes");
+        assert_eq!(node_json["isGitServer"], expected, "{case}");
+        assert_eq!(
+            node_json["gitServerDomain"],
+            if expected {
+                serde_json::json!("git.goldragon.criome")
+            } else {
+                serde_json::Value::Null
+            },
+            "{case}"
+        );
+
+        let client = decoded
+            .project("live-install-minimal")
+            .expect("client projects");
+        assert!(!client.node.is_git_server, "{case}");
+        assert_eq!(client.node.git_server_domain, None, "{case}");
+        if expected {
+            assert_eq!(
+                client.ex_nodes["zeus"].git_server_domain.as_deref(),
+                Some("git.goldragon.criome"),
+                "{case}: a peer sees the cluster git server"
+            );
+        }
+        if capability {
+            let projected = horizon
+                .node
+                .capabilities
+                .iter()
+                .find(|capability| matches!(capability, Capability::GitServer))
+                .expect("git server capability");
+            assert_eq!(
+                serde_json::to_value(projected).expect("capability serializes"),
+                serde_json::json!({ "kind": "gitServer" }),
+                "{case}"
+            );
+        }
+    }
+}
