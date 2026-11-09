@@ -88,8 +88,7 @@ impl NodeDeriving for Node {
             .iter()
             .any(|capability| matches!(capability, Capability::GitServer))
             && online
-            && self.is_fully_trusted
-            && self.has_base_public_keys;
+            && self.is_fully_trusted;
         self.is_large_edge = matches!(self.size.as_str(), "Large" | "Max") && edge;
         self.enable_network_manager =
             !matches!(self.size.as_str(), "Zero") && !iso && !center && !router;

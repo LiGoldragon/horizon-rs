@@ -1,5 +1,18 @@
 # Upgrades
 
+## 0.17.0 to 0.17.1
+
+A revision; no type changes. The `isGitServer` gate drops its requirement
+that the node hold its base public keys. A Git server needs its SSH host
+key, which every node carries, and nothing of the nix signing key or the
+Yggdrasil key, so a `GitServer` node without them now projects
+`isGitServer` true, and `gitServerDomain` follows. The gate is the
+capability present on an online, fully trusted node. `isNixCache` and the
+other gates are unchanged.
+
+Migration: none. Consumers repin this revision to serve Git from a node that
+lacks the nix and Yggdrasil keys.
+
 ## 0.16.0 to 0.17.0
 
 A node capability names the cluster's own Git server:
@@ -10,9 +23,9 @@ NodeCapability.[ … UsbDownlink.{ Ipv4Cidr } GitServer.NoSettings ]
 
 A node carries it as `GitServer.{}`. It projects as
 `{ "kind": "gitServer" }`, and the node gains two derived fields:
-`isGitServer`, true when the capability is present and the node is online,
-fully trusted and holds its base public keys (the gate `isNixCache` uses),
-and `gitServerDomain`, `git.<cluster>.<suffix>` on that node and `null`
+`isGitServer`, true when the capability is present and the node is online
+and fully trusted (0.17.1 drops the base-public-keys requirement the gate first
+carried), and `gitServerDomain`, `git.<cluster>.<suffix>` on that node and `null`
 elsewhere. The name is the cluster's, not the node's, since one node serves
 it. Existing records decode unchanged.
 

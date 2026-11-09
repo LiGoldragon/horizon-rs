@@ -757,7 +757,7 @@ fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
         ("qualified git server", true, true, true, true, true),
         ("offline git server", true, false, true, true, false),
         ("untrusted git server", true, true, false, true, false),
-        ("git server without cache key", true, true, true, false, false),
+        ("git server without nix or yggdrasil keys", true, true, true, false, true),
         ("node without the capability", false, true, true, true, false),
     ] {
         let mut server = installation();
@@ -769,6 +769,7 @@ fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
         server.boolean_option = Some(online);
         if !keyed {
             server.node_keys.nix_pub_key_option = None;
+            server.node_keys.yggdrasil_key_option = None;
         }
         let mut definition = definition(vec![text("live-install-minimal")], vec![server]);
         if !trusted {
@@ -785,6 +786,7 @@ fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
 
         let horizon = decoded.project("zeus").expect("server projects");
         assert_eq!(horizon.node.is_git_server, expected, "{case}");
+        assert_eq!(horizon.node.has_base_public_keys, keyed, "{case}");
         assert_eq!(
             horizon.node.git_server_domain.as_deref(),
             expected.then_some("git.goldragon.criome"),
