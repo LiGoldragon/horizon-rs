@@ -1,5 +1,26 @@
 # Upgrades
 
+## 0.17.1 to 0.18.0
+
+The authored network contract now holds router access points once as
+`WirelessAccessPoint` values. Each access point carries its serving interface,
+SSID, band, channel, standard, and existing SAE `SecretReference` directly;
+`RouterInterfaces` retains the WAN interface and regulatory country and owns a
+vector of those access points. The former primary/backup radio fields are
+removed.
+
+Every `NodeNetwork` now carries the required `WirelessInterfaces` hardware
+inventory and an optional `LinkKindOrdering` override. `ClusterDefinition`
+adds the required default ordering. An ordering is the senior-to-junior
+permutation of `Wired`, `Wireless`, and `Tether`; decoding refuses a missing or
+doubled kind with a typed error naming the kind. Projections expose each node's
+effective ordering and the cluster's router-owned access points with owners, so
+consumers derive clients and monotone route metrics without repeated AP or
+credential declarations.
+
+This is a strict positional Datom migration. Producers and consumers must move
+with the schema; there is no legacy fallback.
+
 ## 0.17.0 to 0.17.1
 
 A revision; no type changes. The `isGitServer` gate drops its requirement

@@ -3,6 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::error::Error;
+use super::names::Named;
 use super::node::{NodeCatalogue, NodeDefinitions, NodeGraph, NodeProjection};
 use super::trust::TrustResolving;
 use super::user::{UserProjection, Viewpoint};
@@ -124,6 +125,42 @@ impl Projecting for HorizonDefinition {
             internal_suffix,
             trust.node_trust(node, &definition.second_magnitude),
         );
+        let default_link_kind_ordering = self
+            .cluster_definition
+            .link_kind_ordering
+            .iter()
+            .map(|kind| kind.name().to_owned())
+            .collect::<Vec<_>>();
+        if projected_node.network.link_kind_ordering.is_empty() {
+            projected_node.network.link_kind_ordering = default_link_kind_ordering.clone();
+        }
+        for projected in ex_nodes.values_mut() {
+            if projected.network.link_kind_ordering.is_empty() {
+                projected.network.link_kind_ordering = default_link_kind_ordering.clone();
+            }
+        }
+        let wireless_access_points = std::iter::once((&projected_node.name, &projected_node))
+            .chain(ex_nodes.iter())
+            .flat_map(|(owner, node)| {
+                node.network
+                    .router_interfaces
+                    .iter()
+                    .flat_map(move |router| {
+                        router
+                            .wireless_access_points
+                            .iter()
+                            .map(move |access_point| ClusterWirelessAccessPoint {
+                                owner: owner.clone(),
+                                interface: access_point.interface.clone(),
+                                network_name: access_point.network_name.clone(),
+                                band: access_point.band.clone(),
+                                channel: access_point.channel,
+                                standard: access_point.standard.clone(),
+                                authentication: access_point.authentication.clone(),
+                            })
+                    })
+            })
+            .collect::<Vec<_>>();
         let trusted_build_public_keys = std::iter::once(&projected_node)
             .chain(ex_nodes.values())
             .filter_map(|node| node.nix_public_key_line.clone())
@@ -174,6 +211,7 @@ impl Projecting for HorizonDefinition {
                     .domain_name_vector
                     .to_vec(),
             },
+            wireless_access_points,
         })
     }
 }

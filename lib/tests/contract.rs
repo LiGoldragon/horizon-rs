@@ -54,26 +54,37 @@ fn node(
             node_ip: text("10.0.0.2"),
         }],
         router_interfaces_option: Some(RouterInterfaces {
-            first_interface: text("wan0"),
-            second_interface: text("wlan0"),
-            wlan_band: WlanBand::FiveG,
-            integer: 36,
-            wlan_standard: WlanStandard::Wifi6,
-            secret_reference_option: Some(SecretReference {
-                secret_name: text("router-wifi"),
-            }),
-            backup_wireless_option: Some(BackupWireless {
-                interface: text("wlan1"),
-                wireless_network_name: text("backup"),
-                wlan_band: WlanBand::TwoG,
-                integer: 1,
-                wlan_standard: WlanStandard::Wifi4,
-                secret_reference: SecretReference {
-                    secret_name: text("backup-wifi"),
+            interface: text("wan0"),
+            wireless_access_point_vector: vec![
+                WirelessAccessPoint {
+                    interface: text("wlan0"),
+                    wireless_network_name: text("primary"),
+                    wlan_band: WlanBand::FiveG,
+                    integer: 36,
+                    wlan_standard: WlanStandard::Wifi6,
+                    secret_reference: SecretReference {
+                        secret_name: text("router-wifi"),
+                    },
                 },
-            }),
+                WirelessAccessPoint {
+                    interface: text("wlan1"),
+                    wireless_network_name: text("backup"),
+                    wlan_band: WlanBand::TwoG,
+                    integer: 1,
+                    wlan_standard: WlanStandard::Wifi4,
+                    secret_reference: SecretReference {
+                        secret_name: text("backup-wifi"),
+                    },
+                },
+            ],
             country_code: text("MX"),
         }),
+        wireless_interfaces: vec![text("wlan0"), text("wlan1")],
+        link_kind_ordering_option: Some(vec![
+            LinkKind::Wired,
+            LinkKind::Tether,
+            LinkKind::Wireless,
+        ]),
     };
     NodeDefinition {
         node_name: text(name),
@@ -122,6 +133,8 @@ fn minimal_live() -> NodeDefinition {
             wireguard_pub_key_option: None,
             wireguard_proxy_vector: vec![],
             router_interfaces_option: None,
+            wireless_interfaces: vec![],
+            link_kind_ordering_option: None,
         },
         node_keys: keys(),
         boolean_option: Some(true),
@@ -211,6 +224,7 @@ fn definition(selected: Vec<String>, local_nodes: Vec<NodeDefinition>) -> Horizo
         },
         cluster_definition: ClusterDefinition {
             cluster_name: text("goldragon"),
+            link_kind_ordering: vec![LinkKind::Tether, LinkKind::Wired, LinkKind::Wireless],
             cluster_nodes: local_nodes,
             generic_node_names: selected,
             users: vec![UserDefinition {
@@ -322,9 +336,7 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
             .router_interfaces
             .as_ref()
             .expect("router")
-            .backup_wireless
-            .as_ref()
-            .expect("backup")
+            .wireless_access_points[1]
             .network_name,
         "backup"
     );
@@ -558,9 +570,11 @@ fn local_vm_architecture_inference_is_single_hop() {
 #[test]
 fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
     let mut controller = installation();
-    controller.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyZeus"),
-    }));
+    controller
+        .capabilities
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: text("tailnetPreauthKeyZeus"),
+        }));
     controller
         .capabilities
         .push(NodeCapability::TailnetController(TailnetController_Data {
@@ -573,9 +587,11 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             },
         }));
     let mut client = local_vm();
-    client.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyMercury"),
-    }));
+    client
+        .capabilities
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: text("tailnetPreauthKeyMercury"),
+        }));
     let definition = definition(Vec::new(), vec![controller, client]);
     let encoded = encode(&definition);
     assert!(encoded.contains("TailnetClient.{ tailnetPreauthKeyMercury }"));
@@ -604,7 +620,10 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             tls_key_reference: text("headscaleTlsKey"),
         }
     );
-    assert_eq!(horizon.ex_nodes["zeus"].criome_domain_name, "zeus.goldragon.criome");
+    assert_eq!(
+        horizon.ex_nodes["zeus"].criome_domain_name,
+        "zeus.goldragon.criome"
+    );
 
     let json = serde_json::to_value(controller_view).expect("capability serializes");
     assert_eq!(
@@ -638,7 +657,7 @@ fn router_country_and_usb_downlink_project_for_consumers() {
     let definition = definition(Vec::new(), vec![gateway, local_vm()]);
     let encoded = encode(&definition);
     assert!(encoded.contains("UsbDownlink.{ 10.44.0.0/24 }"));
-    assert!(encoded.contains("{ backup-wifi } } MX }"));
+    assert!(encoded.contains("{ backup-wifi } } ] MX }"));
     let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("router country decodes");
     assert_eq!(encode(&decoded), encoded);
 
@@ -650,6 +669,16 @@ fn router_country_and_usb_downlink_project_for_consumers() {
         .as_ref()
         .expect("router interfaces");
     assert_eq!(router.country, "MX");
+    assert_eq!(
+        horizon.node.network.link_kind_ordering,
+        ["Wired", "Tether", "Wireless"]
+    );
+    assert_eq!(horizon.wireless_access_points.len(), 4);
+    assert!(horizon.wireless_access_points.iter().any(|access_point| {
+        access_point.owner == "zeus"
+            && access_point.network_name == "primary"
+            && access_point.authentication == "router-wifi"
+    }));
     let router_json = serde_json::to_value(router).expect("router serializes");
     assert_eq!(router_json["country"], "MX");
 
@@ -669,6 +698,24 @@ fn router_country_and_usb_downlink_project_for_consumers() {
             .iter()
             .all(|capability| !matches!(capability, Capability::UsbDownlink { .. }))
     );
+}
+
+#[test]
+fn link_kind_ordering_is_a_checked_permutation_at_datom_read() {
+    let mut missing = definition(Vec::new(), vec![installation()]);
+    missing.cluster_definition.link_kind_ordering = vec![LinkKind::Tether, LinkKind::Wired];
+    assert!(matches!(
+        HorizonDefinition::decode(&encode(&missing)),
+        Err(Error::MissingLinkKind { kind, .. }) if kind == "Wireless"
+    ));
+
+    let mut doubled = definition(Vec::new(), vec![installation()]);
+    doubled.cluster_definition.link_kind_ordering =
+        vec![LinkKind::Tether, LinkKind::Wired, LinkKind::Wired];
+    assert!(matches!(
+        HorizonDefinition::decode(&encode(&doubled)),
+        Err(Error::DoubledLinkKind { kind, .. }) if kind == "Wired"
+    ));
 }
 
 #[test]
@@ -757,8 +804,22 @@ fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
         ("qualified git server", true, true, true, true, true),
         ("offline git server", true, false, true, true, false),
         ("untrusted git server", true, true, false, true, false),
-        ("git server without nix or yggdrasil keys", true, true, true, false, true),
-        ("node without the capability", false, true, true, true, false),
+        (
+            "git server without nix or yggdrasil keys",
+            true,
+            true,
+            true,
+            false,
+            true,
+        ),
+        (
+            "node without the capability",
+            false,
+            true,
+            true,
+            true,
+            false,
+        ),
     ] {
         let mut server = installation();
         if capability {

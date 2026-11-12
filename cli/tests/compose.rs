@@ -23,6 +23,7 @@ fn composer_materializes_one_validated_definition_from_two_explicit_files() {
     };
     let cluster = ClusterDefinition {
         cluster_name: text("goldragon"),
+        link_kind_ordering: vec![LinkKind::Tether, LinkKind::Wired, LinkKind::Wireless],
         cluster_nodes: Vec::new(),
         generic_node_names: Vec::new(),
         users: Vec::new(),

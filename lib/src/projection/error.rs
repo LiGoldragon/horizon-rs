@@ -31,4 +31,8 @@ pub enum Error {
     VmHostCycle(String),
     #[error("trusted cluster has more than one TailnetController: {first:?}, {second:?}")]
     MultipleTailnetControllers { first: String, second: String },
+    #[error("{scope} link-kind ordering is missing {kind}")]
+    MissingLinkKind { scope: String, kind: String },
+    #[error("{scope} link-kind ordering doubles {kind}")]
+    DoubledLinkKind { scope: String, kind: String },
 }

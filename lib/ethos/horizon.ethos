@@ -108,15 +108,21 @@ Signal
   NodeKeys.{ SshPubKey Option<NixPubKey> Option<YggdrasilKey> }
   ; a WireGuard proxy: its public key, endpoint and interface address
   WireguardProxy.{ WireguardPubKey String NodeIp }
-  ; a router's backup wireless: interface, network name, band, channel,
-  ; standard, and the secret holding its password
-  BackupWireless.{ Interface WirelessNetworkName WlanBand Integer WlanStandard SecretReference }
-  ; a router's WAN and WLAN interfaces, band, channel, standard, WPA3
-  ; password secret, backup wireless, and regulatory country
-  RouterInterfaces.{ Interface Interface WlanBand Integer WlanStandard Option<SecretReference> Option<BackupWireless> CountryCode }
+  ; a router-owned access point: its serving interface, network name, radio
+  ; band, channel and standard, and the SAE password secret reference
+  WirelessAccessPoint.{ Interface WirelessNetworkName WlanBand Integer WlanStandard SecretReference }
+  ; the kinds of links whose relative seniority a cluster configures
+  LinkKind.[ Wired Wireless Tether ]
+  ; every link kind, senior to junior
+  LinkKindOrdering.Vector<LinkKind>
+  ; the node's wireless interface inventory; empty means none
+  WirelessInterfaces.Vector<Interface>
+  ; a router's WAN interface, owned access points, and regulatory country
+  RouterInterfaces.{ Interface Vector<WirelessAccessPoint> CountryCode }
   ; a node's link-local addresses, node address, WireGuard key, WireGuard
-  ; proxies and router interfaces
-  NodeNetwork.{ Vector<LinkLocalIp> Option<NodeIp> Option<WireguardPubKey> Vector<WireguardProxy> Option<RouterInterfaces> }
+  ; proxies, router interfaces, wireless hardware, and optional link-ordering
+  ; override
+  NodeNetwork.{ Vector<LinkLocalIp> Option<NodeIp> Option<WireguardPubKey> Vector<WireguardProxy> Option<RouterInterfaces> WirelessInterfaces Option<LinkKindOrdering> }
   ; a site a node serves: its domain, source and renderer
   HostedSite.{ ServedDomain SiteSource SiteRenderer }
   ; what a Persona development node serves
@@ -160,9 +166,9 @@ Signal
   ClusterTrust.{ Magnitude Vector<ClusterTrustEntry> Vector<NodeTrustEntry> Vector<UserTrustEntry> }
   ; the internal domain suffix and the public domains
   DomainConfiguration.{ String Vector<DomainName> }
-  ; a cluster: name, local nodes, selected generic node names, users,
-  ; domains, trust
-  ClusterDefinition.{ ClusterName ClusterNodes GenericNodeNames Users Domains ClusterTrust }
+  ; a cluster: name, default link ordering, local nodes, selected generic node
+  ; names, users, domains, trust
+  ClusterDefinition.{ ClusterName LinkKindOrdering ClusterNodes GenericNodeNames Users Domains ClusterTrust }
   ; the generic node catalogue and the domain settings
   HorizonConfiguration.{ GenericNodes DomainConfiguration }
   ; the composed definition: configuration and cluster

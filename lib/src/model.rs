@@ -15,6 +15,8 @@ pub struct Horizon {
     pub domains: Vec<Domain>,
     pub trust: Trust,
     pub domain_configuration: DomainConfigurationView,
+    /// Every router-owned access point in the cluster, with its owner.
+    pub wireless_access_points: Vec<ClusterWirelessAccessPoint>,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
@@ -156,6 +158,9 @@ pub struct Network {
     pub wireguard_public_key: Option<String>,
     pub wireguard_proxies: Vec<WireguardProxyView>,
     pub router_interfaces: Option<RouterInterfacesView>,
+    pub wireless_interfaces: Vec<String>,
+    /// Effective senior-to-junior ordering (the node override or cluster default).
+    pub link_kind_ordering: Vec<String>,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
@@ -170,25 +175,32 @@ pub struct WireguardProxyView {
 #[serde(rename_all = "camelCase")]
 pub struct RouterInterfacesView {
     pub wan: String,
-    pub wlan: String,
-    pub wlan_band: String,
-    pub wlan_channel: i64,
-    pub wlan_standard: String,
-    pub wpa3_sae_password_reference: Option<String>,
-    pub backup_wireless: Option<BackupWirelessView>,
+    pub wireless_access_points: Vec<WirelessAccessPointView>,
     /// ISO 3166-1 alpha-2 regulatory country for the node's radios.
     pub country: String,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct BackupWirelessView {
+pub struct WirelessAccessPointView {
     pub interface: String,
     pub network_name: String,
     pub band: String,
     pub channel: i64,
     pub standard: String,
-    pub password_reference: String,
+    pub authentication: String,
+}
+
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClusterWirelessAccessPoint {
+    pub owner: String,
+    pub interface: String,
+    pub network_name: String,
+    pub band: String,
+    pub channel: i64,
+    pub standard: String,
+    pub authentication: String,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
@@ -231,7 +243,9 @@ pub enum Capability {
     /// A tailnet member. `preauthKeyReference` names the sops secret holding
     /// this node's reusable Headscale preauth key.
     #[serde(rename_all = "camelCase")]
-    TailnetClient { preauth_key_reference: String },
+    TailnetClient {
+        preauth_key_reference: String,
+    },
     /// The tailnet control server. `certificateAuthority` is the base64 DER
     /// of the public cluster CA certificate every tailnet member trusts
     /// (absent until minted); the two references name the sops secrets
@@ -248,7 +262,9 @@ pub enum Capability {
     NixCache,
     /// The OpenCode testing server. `owner` is the user who runs the
     /// node's OpenCode server and owns its password secret.
-    OpenCodeTesting { owner: String },
+    OpenCodeTesting {
+        owner: String,
+    },
     PersonaDevelopment {
         capabilities: Vec<String>,
     },
@@ -264,7 +280,9 @@ pub enum Capability {
     /// integrated NIC is the uplink, every USB Ethernet NIC is a downlink,
     /// and `ipv4Network` is the IPv4 network served on the downlinks.
     #[serde(rename_all = "camelCase")]
-    UsbDownlink { ipv4_network: String },
+    UsbDownlink {
+        ipv4_network: String,
+    },
     /// The cluster's Git server: serves Git over SSH, and
     /// `git.<cluster>.<suffix>` resolves to this node.
     GitServer,

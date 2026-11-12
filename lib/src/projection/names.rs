@@ -124,6 +124,16 @@ impl Named for WlanStandard {
     }
 }
 
+impl Named for LinkKind {
+    fn name(&self) -> &'static str {
+        match self {
+            LinkKind::Wired => "Wired",
+            LinkKind::Wireless => "Wireless",
+            LinkKind::Tether => "Tether",
+        }
+    }
+}
+
 impl Named for KvmAvailability {
     fn name(&self) -> &'static str {
         match self {

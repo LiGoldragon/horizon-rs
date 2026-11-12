@@ -341,7 +341,7 @@ pub struct WireguardProxy {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
-pub struct BackupWireless {
+pub struct WirelessAccessPoint {
     pub interface: Interface,
     pub wireless_network_name: WirelessNetworkName,
     pub wlan_band: WlanBand,
@@ -352,14 +352,21 @@ pub struct BackupWireless {
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum LinkKind {
+    Wired,
+    Wireless,
+    Tether,
+}
+#[rustfmt::skip]
+pub type LinkKindOrdering = std::vec::Vec<LinkKind>;
+#[rustfmt::skip]
+pub type WirelessInterfaces = std::vec::Vec<Interface>;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct RouterInterfaces {
-    pub first_interface: Interface,
-    pub second_interface: Interface,
-    pub wlan_band: WlanBand,
-    pub integer: i64,
-    pub wlan_standard: WlanStandard,
-    pub secret_reference_option: std::option::Option<SecretReference>,
-    pub backup_wireless_option: std::option::Option<BackupWireless>,
+    pub interface: Interface,
+    pub wireless_access_point_vector: std::vec::Vec<WirelessAccessPoint>,
     pub country_code: CountryCode,
 }
 #[rustfmt::skip]
@@ -371,6 +378,8 @@ pub struct NodeNetwork {
     pub wireguard_pub_key_option: std::option::Option<WireguardPubKey>,
     pub wireguard_proxy_vector: std::vec::Vec<WireguardProxy>,
     pub router_interfaces_option: std::option::Option<RouterInterfaces>,
+    pub wireless_interfaces: WirelessInterfaces,
+    pub link_kind_ordering_option: std::option::Option<LinkKindOrdering>,
 }
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -558,6 +567,7 @@ pub struct DomainConfiguration {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct ClusterDefinition {
     pub cluster_name: ClusterName,
+    pub link_kind_ordering: LinkKindOrdering,
     pub cluster_nodes: ClusterNodes,
     pub generic_node_names: GenericNodeNames,
     pub users: Users,

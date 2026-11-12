@@ -63,6 +63,12 @@ impl Projection for NodeNetwork {
                 .router_interfaces_option
                 .as_ref()
                 .map(Projection::project),
+            wireless_interfaces: self.wireless_interfaces.clone(),
+            link_kind_ordering: self
+                .link_kind_ordering_option
+                .as_ref()
+                .map(|ordering| ordering.iter().map(|kind| kind.name().to_owned()).collect())
+                .unwrap_or_default(),
         }
     }
 }
@@ -72,26 +78,28 @@ impl Projection for RouterInterfaces {
 
     fn project(&self) -> RouterInterfacesView {
         RouterInterfacesView {
-            wan: self.first_interface.clone(),
-            wlan: self.second_interface.clone(),
-            wlan_band: self.wlan_band.name().into(),
-            wlan_channel: self.integer,
-            wlan_standard: self.wlan_standard.name().into(),
-            wpa3_sae_password_reference: self
-                .secret_reference_option
-                .as_ref()
-                .map(|reference| reference.secret_name.clone()),
-            backup_wireless: self.backup_wireless_option.as_ref().map(|backup| {
-                BackupWirelessView {
-                    interface: backup.interface.clone(),
-                    network_name: backup.wireless_network_name.clone(),
-                    band: backup.wlan_band.name().into(),
-                    channel: backup.integer,
-                    standard: backup.wlan_standard.name().into(),
-                    password_reference: backup.secret_reference.secret_name.clone(),
-                }
-            }),
+            wan: self.interface.clone(),
+            wireless_access_points: self
+                .wireless_access_point_vector
+                .iter()
+                .map(Projection::project)
+                .collect(),
             country: self.country_code.clone(),
+        }
+    }
+}
+
+impl Projection for WirelessAccessPoint {
+    type View = WirelessAccessPointView;
+
+    fn project(&self) -> WirelessAccessPointView {
+        WirelessAccessPointView {
+            interface: self.interface.clone(),
+            network_name: self.wireless_network_name.clone(),
+            band: self.wlan_band.name().into(),
+            channel: self.integer,
+            standard: self.wlan_standard.name().into(),
+            authentication: self.secret_reference.secret_name.clone(),
         }
     }
 }

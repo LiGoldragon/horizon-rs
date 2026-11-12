@@ -24,6 +24,7 @@ mod portable_tests {
             },
             cluster_definition: ClusterDefinition {
                 cluster_name: "fixture-cluster".into(),
+                link_kind_ordering: vec![LinkKind::Tether, LinkKind::Wired, LinkKind::Wireless],
                 cluster_nodes: vec![],
                 generic_node_names: vec![],
                 users: vec![],
