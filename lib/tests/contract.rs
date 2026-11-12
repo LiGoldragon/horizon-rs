@@ -650,6 +650,10 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
 fn router_country_and_usb_downlink_project_for_consumers() {
     let mut gateway = installation();
     gateway
+        .node_network
+        .wireless_interfaces
+        .push(text("wlan-spare"));
+    gateway
         .capabilities
         .push(NodeCapability::UsbDownlink(UsbDownlink_Data {
             ipv4_cidr: text("10.44.0.0/24"),
@@ -669,6 +673,7 @@ fn router_country_and_usb_downlink_project_for_consumers() {
         .as_ref()
         .expect("router interfaces");
     assert_eq!(router.country, "MX");
+    assert!(horizon.node.enable_network_manager);
     assert_eq!(
         horizon.node.network.link_kind_ordering,
         ["Wired", "Tether", "Wireless"]

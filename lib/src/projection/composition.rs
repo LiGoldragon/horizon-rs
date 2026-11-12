@@ -161,6 +161,24 @@ impl Projecting for HorizonDefinition {
                     })
             })
             .collect::<Vec<_>>();
+        let enable_wireless_clients = |node: &mut Node| {
+            let serving_interfaces = wireless_access_points
+                .iter()
+                .filter(|access_point| access_point.owner == node.name)
+                .map(|access_point| access_point.interface.as_str())
+                .collect::<BTreeSet<_>>();
+            let has_client_interface = node
+                .network
+                .wireless_interfaces
+                .iter()
+                .any(|interface| !serving_interfaces.contains(interface.as_str()));
+            let has_foreign_access_point = wireless_access_points
+                .iter()
+                .any(|access_point| access_point.owner != node.name);
+            node.enable_network_manager |= has_client_interface && has_foreign_access_point;
+        };
+        enable_wireless_clients(&mut projected_node);
+        ex_nodes.values_mut().for_each(enable_wireless_clients);
         let trusted_build_public_keys = std::iter::once(&projected_node)
             .chain(ex_nodes.values())
             .filter_map(|node| node.nix_public_key_line.clone())
