@@ -23,7 +23,7 @@ impl NodeCatalogue for [NodeDefinition] {
     fn catalogue(&self, duplicate: fn(String) -> Error) -> Result<NodeDefinitions, Error> {
         let mut nodes = NodeDefinitions::new();
         for definition in self {
-            let name = definition.node_name.clone();
+            let name = definition.node_name.0.clone();
             if nodes.insert(name.clone(), definition.clone()).is_some() {
                 return Err(duplicate(name));
             }
@@ -62,8 +62,8 @@ impl NodeGraph for NodeDefinitions {
                 VirtualMachineHost::Cluster(cluster) => cluster,
             },
         };
-        let mut hosts = vec![cluster.node_name.clone()];
-        hosts.extend(cluster.node_name_vector.iter().cloned());
+        let mut hosts = vec![cluster.node_name.0.clone()];
+        hosts.extend(cluster.node_name_vector.iter().map(|host| host.0.clone()));
         let mut host_architecture = None;
         for host in hosts {
             let Some(host_definition) = self.get(&host) else {
@@ -117,6 +117,7 @@ impl NodeGraph for NodeDefinitions {
     fn validate_tailnet_controller(&self) -> Result<(), Error> {
         let mut controllers = self.iter().filter(|(_, node)| {
             node.capabilities
+                .0
                 .iter()
                 .any(|capability| matches!(capability, NodeCapability::TailnetController(_)))
         });
@@ -156,9 +157,13 @@ impl MachineProjection for MachineDefinition {
             MachineDefinition::VirtualMachine(data) => {
                 let (host, additional_hosts, user) = match &data.virtual_machine_host {
                     VirtualMachineHost::Cluster(cluster) => (
-                        Some(cluster.node_name.clone()),
-                        cluster.node_name_vector.clone(),
-                        cluster.user_name_option.clone(),
+                        Some(cluster.node_name.0.clone()),
+                        cluster
+                            .node_name_vector
+                            .iter()
+                            .map(|host| host.0.clone())
+                            .collect(),
+                        cluster.user_name_option.as_ref().map(|user| user.0.clone()),
                     ),
                     VirtualMachineHost::External(external) => {
                         (Some(external.string.clone()), Vec::new(), None)
@@ -202,7 +207,7 @@ impl NodeProjection for NodeDefinition {
                         .swap_device_vector
                         .iter()
                         .map(|swap| SwapDeviceView {
-                            device: swap.device_path.clone(),
+                            device: swap.device_path.0.clone(),
                             size_mebibytes: swap.integer_option,
                         })
                         .collect(),
@@ -213,7 +218,7 @@ impl NodeProjection for NodeDefinition {
             .as_ref()
             .map_or_else(Vec::new, |value| value.disks.clone());
         Ok(Node {
-            name: self.node_name.clone(),
+            name: self.node_name.0.clone(),
             is_live: installation.is_none(),
             is_installation: installation.is_some(),
             variant,
@@ -228,10 +233,17 @@ impl NodeProjection for NodeDefinition {
                 .compressed_swap_option
                 .as_ref()
                 .map(|value| value.integer),
-            machine: self.machine_definition.project_in(&self.node_name, nodes)?,
+            machine: self
+                .machine_definition
+                .project_in(&self.node_name.0, nodes)?,
             network: self.node_network.project(),
             keys: self.node_keys.project(),
-            capabilities: self.capabilities.iter().map(Projection::project).collect(),
+            capabilities: self
+                .capabilities
+                .0
+                .iter()
+                .map(Projection::project)
+                .collect(),
             criome_domain_name: String::new(),
             system: String::new(),
             max_jobs: 0,

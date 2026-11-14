@@ -11,7 +11,7 @@ horizon-lib = { path = "lib" }
 serde      = { version = "1", features = ["derive"] }
 serde_json = "1"
 protos = { git = "https://github.com/LiGoldragon/protos", rev = "15b41da8f2579e73ead59bc0c2b97529b8ac32d3" }
-datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "4dff16b4f7412febc3b71aac8b49680cd20988cb", features = ["rkyv"] }
-ethos-zero = { git = "https://github.com/LiGoldragon/ethos-zero", rev = "c2653dd82adbdb1f1f2f654405c6620e0d06fd58" }
+datom-codec = { git = "https://github.com/LiGoldragon/datom-codec", rev = "eb792265a67b2c6865f9b8c9ed9d2e5ae5a7174c", features = ["rkyv"] }
+ethos-zero = { git = "https://github.com/LiGoldragon/ethos-zero", rev = "970459d100ddee5f62a76c05642ecfabefba6329" }
 thiserror  = "2"
 clap       = { version = "4", features = ["derive"] }

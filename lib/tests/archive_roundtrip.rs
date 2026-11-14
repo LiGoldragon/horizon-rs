@@ -5,11 +5,11 @@ use horizon_lib::*;
 fn hardware_round_trips_through_the_rkyv_archive() {
     let hardware = Hardware {
         integer: 16,
-        model_name_option: Some("ThinkPadT14Gen5Intel".to_owned()),
+        model_name_option: Some(ModelName("ThinkPadT14Gen5Intel".to_owned())),
         mother_board_option: Some(MotherBoard::Ondyfaind),
         first_integer_option: Some(12),
         second_integer_option: None,
-        location_option: Some("home-lab".to_owned()),
+        location_option: Some(Location("home-lab".to_owned())),
     };
     let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&hardware).expect("archive");
     let restored = rkyv::from_bytes::<Hardware, rkyv::rancor::Error>(&bytes).expect("read back");
@@ -19,9 +19,9 @@ fn hardware_round_trips_through_the_rkyv_archive() {
 #[test]
 fn user_pub_key_capabilities_round_trip_through_the_rkyv_archive() {
     let key = UserPubKey {
-        node_name: "zeus".to_owned(),
-        ssh_pub_key: "AAAAuser".to_owned(),
-        keygrip: "keygrip".to_owned(),
+        node_name: NodeName("zeus".to_owned()),
+        ssh_pub_key: SshPubKey("AAAAuser".to_owned()),
+        keygrip: Keygrip("keygrip".to_owned()),
         user_capability_vector: vec![
             UserCapability::AgentStack,
             UserCapability::CodexCandidate,
@@ -35,7 +35,7 @@ fn user_pub_key_capabilities_round_trip_through_the_rkyv_archive() {
 
 #[test]
 fn open_code_testing_owner_round_trips_through_the_rkyv_archive() {
-    let capability = NodeCapability::OpenCodeTesting("li".to_owned());
+    let capability = NodeCapability::OpenCodeTesting(UserName("li".to_owned()));
     let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&capability).expect("archive");
     let restored =
         rkyv::from_bytes::<NodeCapability, rkyv::rancor::Error>(&bytes).expect("read back");

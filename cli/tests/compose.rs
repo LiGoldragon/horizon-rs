@@ -15,18 +15,18 @@ fn composer_materializes_one_validated_definition_from_two_explicit_files() {
     let configuration_path = directory.join("configuration.datom");
     let cluster_path = directory.join("cluster-definition.datom");
     let configuration = HorizonConfiguration {
-        generic_nodes: Vec::new(),
+        generic_nodes: GenericNodes(Vec::new()),
         domain_configuration: DomainConfiguration {
             string: text("criome"),
-            domain_name_vector: vec![text("goldragon.criome.net")],
+            domain_name_vector: vec![DomainName(text("goldragon.criome.net"))],
         },
     };
     let cluster = ClusterDefinition {
-        cluster_name: text("goldragon"),
-        cluster_nodes: Vec::new(),
-        generic_node_names: Vec::new(),
-        users: Vec::new(),
-        domains: Vec::new(),
+        cluster_name: ClusterName(text("goldragon")),
+        cluster_nodes: ClusterNodes(Vec::new()),
+        generic_node_names: GenericNodeNames(Vec::new()),
+        users: Users(Vec::new()),
+        domains: Domains(Vec::new()),
         cluster_trust: ClusterTrust {
             magnitude: Magnitude::Max,
             cluster_trust_entry_vector: Vec::new(),

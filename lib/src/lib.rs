@@ -16,18 +16,18 @@ mod portable_tests {
     fn horizon_definition_crosses_a_portable_archive_without_datom() {
         let definition = HorizonDefinition {
             horizon_configuration: HorizonConfiguration {
-                generic_nodes: vec![],
+                generic_nodes: GenericNodes(vec![]),
                 domain_configuration: DomainConfiguration {
                     string: "internal.invalid".into(),
                     domain_name_vector: vec![],
                 },
             },
             cluster_definition: ClusterDefinition {
-                cluster_name: "fixture-cluster".into(),
-                cluster_nodes: vec![],
-                generic_node_names: vec![],
-                users: vec![],
-                domains: vec![],
+                cluster_name: ClusterName("fixture-cluster".into()),
+                cluster_nodes: ClusterNodes(vec![]),
+                generic_node_names: GenericNodeNames(vec![]),
+                users: Users(vec![]),
+                domains: Domains(vec![]),
                 cluster_trust: ClusterTrust {
                     magnitude: Magnitude::Zero,
                     cluster_trust_entry_vector: vec![],

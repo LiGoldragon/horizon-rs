@@ -14,11 +14,11 @@ fn encode(value: &HorizonDefinition) -> String {
 fn hardware() -> Hardware {
     Hardware {
         integer: 16,
-        model_name_option: Some(text("ThinkPadT14Gen5Intel")),
+        model_name_option: Some(ModelName(text("ThinkPadT14Gen5Intel"))),
         mother_board_option: Some(MotherBoard::Ondyfaind),
         first_integer_option: Some(12),
         second_integer_option: Some(32),
-        location_option: Some(text("home-lab")),
+        location_option: Some(Location(text("home-lab"))),
     }
 }
 fn metal() -> MachineDefinition {
@@ -29,12 +29,12 @@ fn metal() -> MachineDefinition {
 }
 fn keys() -> NodeKeys {
     NodeKeys {
-        ssh_pub_key: text("ssh-ed25519 AAAAfixture"),
-        nix_pub_key_option: Some(text("cache-key:fixture")),
+        ssh_pub_key: SshPubKey(text("ssh-ed25519 AAAAfixture")),
+        nix_pub_key_option: Some(NixPubKey(text("cache-key:fixture"))),
         yggdrasil_key_option: Some(YggdrasilKey {
-            ygg_pub_key: text("ygg-key"),
-            ygg_address: text("200:1::1"),
-            ygg_subnet: text("200:1::/64"),
+            ygg_pub_key: YggPubKey(text("ygg-key")),
+            ygg_address: YggAddress(text("200:1::1")),
+            ygg_subnet: YggSubnet(text("200:1::/64")),
         }),
     }
 }
@@ -45,38 +45,38 @@ fn node(
     capabilities: Vec<NodeCapability>,
 ) -> NodeDefinition {
     let network = NodeNetwork {
-        link_local_ip_vector: vec![text("fe80::1")],
-        node_ip_option: Some(text("10.18.0.2")),
-        wireguard_pub_key_option: Some(text("wireguard-key")),
+        link_local_ip_vector: vec![LinkLocalIp(text("fe80::1"))],
+        node_ip_option: Some(NodeIp(text("10.18.0.2"))),
+        wireguard_pub_key_option: Some(WireguardPubKey(text("wireguard-key"))),
         wireguard_proxy_vector: vec![WireguardProxy {
-            wireguard_pub_key: text("proxy-key"),
+            wireguard_pub_key: WireguardPubKey(text("proxy-key")),
             string: text("vpn.example:51820"),
-            node_ip: text("10.0.0.2"),
+            node_ip: NodeIp(text("10.0.0.2")),
         }],
         router_interfaces_option: Some(RouterInterfaces {
-            first_interface: text("wan0"),
-            second_interface: text("wlan0"),
+            first_interface: Interface(text("wan0")),
+            second_interface: Interface(text("wlan0")),
             wlan_band: WlanBand::FiveG,
             integer: 36,
             wlan_standard: WlanStandard::Wifi6,
             secret_reference_option: Some(SecretReference {
-                secret_name: text("router-wifi"),
+                secret_name: SecretName(text("router-wifi")),
             }),
             backup_wireless_option: Some(BackupWireless {
-                interface: text("wlan1"),
-                wireless_network_name: text("backup"),
+                interface: Interface(text("wlan1")),
+                wireless_network_name: WirelessNetworkName(text("backup")),
                 wlan_band: WlanBand::TwoG,
                 integer: 1,
                 wlan_standard: WlanStandard::Wifi4,
                 secret_reference: SecretReference {
-                    secret_name: text("backup-wifi"),
+                    secret_name: SecretName(text("backup-wifi")),
                 },
             }),
-            country_code: text("MX"),
+            country_code: CountryCode(text("MX")),
         }),
     };
     NodeDefinition {
-        node_name: text(name),
+        node_name: NodeName(text(name)),
         node_variant: variant,
         first_magnitude: Magnitude::Max,
         second_magnitude: Magnitude::Max,
@@ -88,7 +88,7 @@ fn node(
         node_network: network,
         node_keys: keys(),
         boolean_option: Some(true),
-        capabilities,
+        capabilities: Capabilities(capabilities),
         fixed_location_option: None,
     }
 }
@@ -101,13 +101,13 @@ fn graphical_live() -> NodeDefinition {
             NodeCapability::Graphical(NoSettings {}),
             NodeCapability::Center(NoSettings {}),
             NodeCapability::LargeAi(NoSettings {}),
-            NodeCapability::OpenCodeTesting(text("li")),
+            NodeCapability::OpenCodeTesting(UserName(text("li"))),
         ],
     )
 }
 fn minimal_live() -> NodeDefinition {
     NodeDefinition {
-        node_name: text("live-install-minimal"),
+        node_name: NodeName(text("live-install-minimal")),
         node_variant: NodeVariant::Live(LiveDefinition {}),
         first_magnitude: Magnitude::Min,
         second_magnitude: Magnitude::Min,
@@ -125,7 +125,7 @@ fn minimal_live() -> NodeDefinition {
         },
         node_keys: keys(),
         boolean_option: Some(true),
-        capabilities: vec![],
+        capabilities: Capabilities(vec![]),
         fixed_location_option: None,
     }
 }
@@ -135,13 +135,13 @@ fn installation() -> NodeDefinition {
         NodeVariant::Installation(Installation {
             bootloader: Bootloader::Uefi,
             disk_layout_vector: vec![DiskLayout {
-                device_path: text("/dev/nvme0n1p1"),
-                mount_path: text("/"),
+                device_path: DevicePath(text("/dev/nvme0n1p1")),
+                mount_path: MountPath(text("/")),
                 fs_type: FsType::Btrfs,
                 string_vector: vec![text("compress=zstd")],
             }],
             swap_device_vector: vec![SwapDevice {
-                device_path: text("/swapfile"),
+                device_path: DevicePath(text("/swapfile")),
                 integer_option: Some(4096),
             }],
         }),
@@ -150,7 +150,7 @@ fn installation() -> NodeDefinition {
             NodeCapability::Router(NoSettings {}),
             NodeCapability::NixBuilder(Some(6)),
             NodeCapability::VmHost(VmHost_Data {
-                tap_subnet: text("169.254.100.0/22"),
+                tap_subnet: TapSubnet(text("169.254.100.0/22")),
                 kvm_availability: KvmAvailability::Available,
                 integer_option: Some(4),
             }),
@@ -160,8 +160,8 @@ fn installation() -> NodeDefinition {
                 string_option: Some(text("1002:73bf")),
             }),
             NodeCapability::WebHost(vec![HostedSite {
-                served_domain: text("example.com"),
-                site_source: text("github:org/site/rev"),
+                served_domain: ServedDomain(text("example.com")),
+                site_source: SiteSource(text("github:org/site/rev")),
                 site_renderer: SiteRenderer::MarkdownStatic,
             }]),
         ],
@@ -173,9 +173,9 @@ fn local_vm() -> NodeDefinition {
         NodeVariant::Live(LiveDefinition {}),
         MachineDefinition::VirtualMachine(VirtualMachine_Data {
             virtual_machine_host: VirtualMachineHost::Cluster(Cluster_Data {
-                node_name: text("zeus"),
+                node_name: NodeName(text("zeus")),
                 node_name_vector: vec![],
-                user_name_option: Some(text("li")),
+                user_name_option: Some(UserName(text("li"))),
                 architecture_option: None,
             }),
             hardware: hardware(),
@@ -203,49 +203,49 @@ fn external_vm() -> NodeDefinition {
 fn definition(selected: Vec<String>, local_nodes: Vec<NodeDefinition>) -> HorizonDefinition {
     HorizonDefinition {
         horizon_configuration: HorizonConfiguration {
-            generic_nodes: vec![graphical_live(), minimal_live()],
+            generic_nodes: GenericNodes(vec![graphical_live(), minimal_live()]),
             domain_configuration: DomainConfiguration {
                 string: text("criome"),
-                domain_name_vector: vec![text("goldragon.criome.net")],
+                domain_name_vector: vec![DomainName(text("goldragon.criome.net"))],
             },
         },
         cluster_definition: ClusterDefinition {
-            cluster_name: text("goldragon"),
-            cluster_nodes: local_nodes,
-            generic_node_names: selected,
-            users: vec![UserDefinition {
-                user_name: text("li"),
+            cluster_name: ClusterName(text("goldragon")),
+            cluster_nodes: ClusterNodes(local_nodes),
+            generic_node_names: GenericNodeNames(selected.into_iter().map(NodeName).collect()),
+            users: Users(vec![UserDefinition {
+                user_name: UserName(text("li")),
                 user_role: UserRole::Code,
                 magnitude: Magnitude::Max,
                 keyboard: Keyboard::Colemak,
                 style: Style::Emacs,
-                github_id_option: Some(text("li")),
+                github_id_option: Some(GithubId(text("li"))),
                 boolean_option: Some(true),
                 user_pub_key_vector: vec![UserPubKey {
-                    node_name: text("zeus"),
-                    ssh_pub_key: text("AAAAuser"),
-                    keygrip: text("keygrip"),
+                    node_name: NodeName(text("zeus")),
+                    ssh_pub_key: SshPubKey(text("AAAAuser")),
+                    keygrip: Keygrip(text("keygrip")),
                     user_capability_vector: Vec::new(),
                 }],
                 editor_option: Some(Editor::Emacs),
                 text_size_option: Some(TextSize::Large),
-            }],
-            domains: vec![DomainDefinition {
-                domain_name: text("goldragon.criome.net"),
+            }]),
+            domains: Domains(vec![DomainDefinition {
+                domain_name: DomainName(text("goldragon.criome.net")),
                 domain_provider: DomainProvider::Cloudflare,
-            }],
+            }]),
             cluster_trust: ClusterTrust {
                 magnitude: Magnitude::Max,
                 cluster_trust_entry_vector: vec![ClusterTrustEntry {
-                    cluster_name: text("sibling"),
+                    cluster_name: ClusterName(text("sibling")),
                     magnitude: Magnitude::Medium,
                 }],
                 node_trust_entry_vector: vec![NodeTrustEntry {
-                    node_name: text("zeus"),
+                    node_name: NodeName(text("zeus")),
                     magnitude: Magnitude::Max,
                 }],
                 user_trust_entry_vector: vec![UserTrustEntry {
-                    user_name: text("li"),
+                    user_name: UserName(text("li")),
                     magnitude: Magnitude::Max,
                 }],
             },
@@ -355,17 +355,17 @@ fn complete_production_shape_round_trips_and_projects_both_selected_live_install
 #[test]
 fn user_capabilities_project_for_the_viewpoint_node_only() {
     let mut definition = definition(Vec::new(), vec![installation(), local_vm()]);
-    definition.cluster_definition.users[0].user_pub_key_vector = vec![
+    definition.cluster_definition.users.0[0].user_pub_key_vector = vec![
         UserPubKey {
-            node_name: text("zeus"),
-            ssh_pub_key: text("AAAAuser"),
-            keygrip: text("keygrip"),
+            node_name: NodeName(text("zeus")),
+            ssh_pub_key: SshPubKey(text("AAAAuser")),
+            keygrip: Keygrip(text("keygrip")),
             user_capability_vector: vec![UserCapability::AgentStack],
         },
         UserPubKey {
-            node_name: text("mercury"),
-            ssh_pub_key: text("AAAAother"),
-            keygrip: text("other-keygrip"),
+            node_name: NodeName(text("mercury")),
+            ssh_pub_key: SshPubKey(text("AAAAother")),
+            keygrip: Keygrip(text("other-keygrip")),
             user_capability_vector: vec![UserCapability::CodexCandidate],
         },
     ];
@@ -390,7 +390,7 @@ fn user_capabilities_project_for_the_viewpoint_node_only() {
     assert!(HorizonDefinition::decode(three_positions.as_ref()).is_err());
 
     let mut unlisted = definition.clone();
-    unlisted.cluster_definition.users[0]
+    unlisted.cluster_definition.users.0[0]
         .user_pub_key_vector
         .remove(0);
     let zeus = unlisted
@@ -408,9 +408,10 @@ fn user_capabilities_project_for_the_viewpoint_node_only() {
 fn open_code_testing_owner_and_stable_codex_project_for_nix() {
     let mut zeus = installation();
     zeus.capabilities
-        .push(NodeCapability::OpenCodeTesting(text("li")));
+        .0
+        .push(NodeCapability::OpenCodeTesting(UserName(text("li"))));
     let mut definition = definition(Vec::new(), vec![zeus, local_vm()]);
-    definition.cluster_definition.users[0].user_pub_key_vector[0].user_capability_vector =
+    definition.cluster_definition.users.0[0].user_pub_key_vector[0].user_capability_vector =
         vec![UserCapability::StableCodex];
     let encoded = encode(&definition);
     assert!(encoded.contains("OpenCodeTesting.li"), "{encoded}");
@@ -462,7 +463,7 @@ fn local_vm_requires_an_existing_cluster_host() {
     let mut vm = local_vm();
     vm.machine_definition = MachineDefinition::VirtualMachine(VirtualMachine_Data {
         virtual_machine_host: VirtualMachineHost::Cluster(Cluster_Data {
-            node_name: text("missing"),
+            node_name: NodeName(text("missing")),
             node_name_vector: Vec::new(),
             user_name_option: None,
             architecture_option: None,
@@ -484,7 +485,7 @@ fn domain_and_github_defaults_follow_the_selected_cluster() {
         .domain_configuration
         .domain_name_vector
         .clear();
-    definition.cluster_definition.users[0].github_id_option = None;
+    definition.cluster_definition.users.0[0].github_id_option = None;
     let horizon = definition
         .project("live-install")
         .expect("defaults project");
@@ -524,9 +525,9 @@ fn fixed_location_projects_without_changing_hardware_location() {
 #[test]
 fn ipv6_node_ip_round_trips() {
     let mut definition = definition(Vec::new(), vec![installation()]);
-    definition.cluster_definition.cluster_nodes[0]
+    definition.cluster_definition.cluster_nodes.0[0]
         .node_network
-        .node_ip_option = Some(text("5::7/128"));
+        .node_ip_option = Some(NodeIp(text("5::7/128")));
     let encoded = encode(&definition);
     let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("IPv6 node IP decodes");
     assert_eq!(encode(&decoded), encoded);
@@ -535,10 +536,10 @@ fn ipv6_node_ip_round_trips() {
 #[test]
 fn local_vm_architecture_inference_is_single_hop() {
     let mut chained = local_vm();
-    chained.node_name = text("chained");
+    chained.node_name = NodeName(text("chained"));
     chained.machine_definition = MachineDefinition::VirtualMachine(VirtualMachine_Data {
         virtual_machine_host: VirtualMachineHost::Cluster(Cluster_Data {
-            node_name: text("mercury"),
+            node_name: NodeName(text("mercury")),
             node_name_vector: Vec::new(),
             user_name_option: None,
             architecture_option: None,
@@ -558,24 +559,33 @@ fn local_vm_architecture_inference_is_single_hop() {
 #[test]
 fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
     let mut controller = installation();
-    controller.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyZeus"),
-    }));
     controller
         .capabilities
+        .0
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: SecretName(text("tailnetPreauthKeyZeus")),
+        }));
+    controller
+        .capabilities
+        .0
         .push(NodeCapability::TailnetController(TailnetController_Data {
-            certificate_authority_option: Some(text("MIIBfixtureCertificateAuthority==")),
+            certificate_authority_option: Some(CertificateAuthority(text(
+                "MIIBfixtureCertificateAuthority==",
+            ))),
             tls_certificate_reference: TlsCertificateReference {
-                secret_name: text("headscaleTlsCertificate"),
+                secret_name: SecretName(text("headscaleTlsCertificate")),
             },
             tls_key_reference: TlsKeyReference {
-                secret_name: text("headscaleTlsKey"),
+                secret_name: SecretName(text("headscaleTlsKey")),
             },
         }));
     let mut client = local_vm();
-    client.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyMercury"),
-    }));
+    client
+        .capabilities
+        .0
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: SecretName(text("tailnetPreauthKeyMercury")),
+        }));
     let definition = definition(Vec::new(), vec![controller, client]);
     let encoded = encode(&definition);
     assert!(encoded.contains("TailnetClient.{ tailnetPreauthKeyMercury }"));
@@ -604,7 +614,10 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             tls_key_reference: text("headscaleTlsKey"),
         }
     );
-    assert_eq!(horizon.ex_nodes["zeus"].criome_domain_name, "zeus.goldragon.criome");
+    assert_eq!(
+        horizon.ex_nodes["zeus"].criome_domain_name,
+        "zeus.goldragon.criome"
+    );
 
     let json = serde_json::to_value(controller_view).expect("capability serializes");
     assert_eq!(
@@ -632,8 +645,9 @@ fn router_country_and_usb_downlink_project_for_consumers() {
     let mut gateway = installation();
     gateway
         .capabilities
+        .0
         .push(NodeCapability::UsbDownlink(UsbDownlink_Data {
-            ipv4_cidr: text("10.44.0.0/24"),
+            ipv4_cidr: Ipv4Cidr(text("10.44.0.0/24")),
         }));
     let definition = definition(Vec::new(), vec![gateway, local_vm()]);
     let encoded = encode(&definition);
@@ -707,13 +721,16 @@ fn builder_destinations_require_both_center_and_receiver_qualification() {
     ] {
         let mut receiver = installation();
         receiver.capabilities = if center {
-            vec![NodeCapability::Center(NoSettings {})]
+            Capabilities(vec![NodeCapability::Center(NoSettings {})])
         } else {
-            vec![NodeCapability::Edge(NoSettings {})]
+            Capabilities(vec![NodeCapability::Edge(NoSettings {})])
         };
         if builder {
             // None means default slots, not an absent builder capability.
-            receiver.capabilities.push(NodeCapability::NixBuilder(None));
+            receiver
+                .capabilities
+                .0
+                .push(NodeCapability::NixBuilder(None));
         }
         receiver.boolean_option = Some(online);
         if !keyed {
@@ -757,13 +774,28 @@ fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
         ("qualified git server", true, true, true, true, true),
         ("offline git server", true, false, true, true, false),
         ("untrusted git server", true, true, false, true, false),
-        ("git server without nix or yggdrasil keys", true, true, true, false, true),
-        ("node without the capability", false, true, true, true, false),
+        (
+            "git server without nix or yggdrasil keys",
+            true,
+            true,
+            true,
+            false,
+            true,
+        ),
+        (
+            "node without the capability",
+            false,
+            true,
+            true,
+            true,
+            false,
+        ),
     ] {
         let mut server = installation();
         if capability {
             server
                 .capabilities
+                .0
                 .push(NodeCapability::GitServer(NoSettings {}));
         }
         server.boolean_option = Some(online);

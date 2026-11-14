@@ -16,8 +16,8 @@ impl Projection for DiskLayout {
 
     fn project(&self) -> Disk {
         Disk {
-            device: self.device_path.clone(),
-            mount: self.mount_path.clone(),
+            device: self.device_path.0.clone(),
+            mount: self.mount_path.0.clone(),
             fs_type: self.fs_type.name().to_owned(),
             options: self.string_vector.clone(),
         }
@@ -30,14 +30,17 @@ impl Projection for Hardware {
     fn project(&self) -> HardwareView {
         HardwareView {
             cores: self.integer,
-            model: self.model_name_option.clone(),
+            model: self.model_name_option.as_ref().map(|name| name.0.clone()),
             motherboard: self
                 .mother_board_option
                 .as_ref()
                 .map(|board| board.name().to_owned()),
             chip_generation: self.first_integer_option,
             ram_gib: self.second_integer_option,
-            location: self.location_option.clone(),
+            location: self
+                .location_option
+                .as_ref()
+                .map(|location| location.0.clone()),
         }
     }
 }
@@ -47,16 +50,23 @@ impl Projection for NodeNetwork {
 
     fn project(&self) -> Network {
         Network {
-            link_local_ips: self.link_local_ip_vector.clone(),
-            node_ip: self.node_ip_option.clone(),
-            wireguard_public_key: self.wireguard_pub_key_option.clone(),
+            link_local_ips: self
+                .link_local_ip_vector
+                .iter()
+                .map(|ip| ip.0.clone())
+                .collect(),
+            node_ip: self.node_ip_option.as_ref().map(|ip| ip.0.clone()),
+            wireguard_public_key: self
+                .wireguard_pub_key_option
+                .as_ref()
+                .map(|key| key.0.clone()),
             wireguard_proxies: self
                 .wireguard_proxy_vector
                 .iter()
                 .map(|proxy| WireguardProxyView {
-                    public_key: proxy.wireguard_pub_key.clone(),
+                    public_key: proxy.wireguard_pub_key.0.clone(),
                     endpoint: proxy.string.clone(),
-                    interface_ip: proxy.node_ip.clone(),
+                    interface_ip: proxy.node_ip.0.clone(),
                 })
                 .collect(),
             router_interfaces: self
@@ -72,26 +82,26 @@ impl Projection for RouterInterfaces {
 
     fn project(&self) -> RouterInterfacesView {
         RouterInterfacesView {
-            wan: self.first_interface.clone(),
-            wlan: self.second_interface.clone(),
+            wan: self.first_interface.0.clone(),
+            wlan: self.second_interface.0.clone(),
             wlan_band: self.wlan_band.name().into(),
             wlan_channel: self.integer,
             wlan_standard: self.wlan_standard.name().into(),
             wpa3_sae_password_reference: self
                 .secret_reference_option
                 .as_ref()
-                .map(|reference| reference.secret_name.clone()),
+                .map(|reference| reference.secret_name.0.clone()),
             backup_wireless: self.backup_wireless_option.as_ref().map(|backup| {
                 BackupWirelessView {
-                    interface: backup.interface.clone(),
-                    network_name: backup.wireless_network_name.clone(),
+                    interface: backup.interface.0.clone(),
+                    network_name: backup.wireless_network_name.0.clone(),
                     band: backup.wlan_band.name().into(),
                     channel: backup.integer,
                     standard: backup.wlan_standard.name().into(),
-                    password_reference: backup.secret_reference.secret_name.clone(),
+                    password_reference: backup.secret_reference.secret_name.0.clone(),
                 }
             }),
-            country: self.country_code.clone(),
+            country: self.country_code.0.clone(),
         }
     }
 }
@@ -101,15 +111,15 @@ impl Projection for NodeKeys {
 
     fn project(&self) -> Keys {
         Keys {
-            ssh: self.ssh_pub_key.clone(),
-            nix: self.nix_pub_key_option.clone(),
+            ssh: self.ssh_pub_key.0.clone(),
+            nix: self.nix_pub_key_option.as_ref().map(|key| key.0.clone()),
             yggdrasil: self
                 .yggdrasil_key_option
                 .as_ref()
                 .map(|key| YggdrasilKeyView {
-                    public_key: key.ygg_pub_key.clone(),
-                    address: key.ygg_address.clone(),
-                    subnet: key.ygg_subnet.clone(),
+                    public_key: key.ygg_pub_key.0.clone(),
+                    address: key.ygg_address.0.clone(),
+                    subnet: key.ygg_subnet.0.clone(),
                 }),
         }
     }
@@ -139,12 +149,15 @@ impl Projection for NodeCapability {
             NodeCapability::Nordvpn(_) => Capability::Nordvpn,
             NodeCapability::WifiCertificate(_) => Capability::WifiCertificate,
             NodeCapability::TailnetClient(preauth_key) => Capability::TailnetClient {
-                preauth_key_reference: preauth_key.secret_name.clone(),
+                preauth_key_reference: preauth_key.secret_name.0.clone(),
             },
             NodeCapability::TailnetController(data) => Capability::TailnetController {
-                certificate_authority: data.certificate_authority_option.clone(),
-                tls_certificate_reference: data.tls_certificate_reference.secret_name.clone(),
-                tls_key_reference: data.tls_key_reference.secret_name.clone(),
+                certificate_authority: data
+                    .certificate_authority_option
+                    .as_ref()
+                    .map(|authority| authority.0.clone()),
+                tls_certificate_reference: data.tls_certificate_reference.secret_name.0.clone(),
+                tls_key_reference: data.tls_key_reference.secret_name.0.clone(),
             },
             NodeCapability::NixBuilder(maximum_jobs) => Capability::NixBuilder {
                 maximum_jobs: *maximum_jobs,
@@ -152,13 +165,13 @@ impl Projection for NodeCapability {
             NodeCapability::NixCache(_) => Capability::NixCache,
             NodeCapability::GitServer(_) => Capability::GitServer,
             NodeCapability::OpenCodeTesting(owner) => Capability::OpenCodeTesting {
-                owner: owner.clone(),
+                owner: owner.0.clone(),
             },
             NodeCapability::PersonaDevelopment(values) => Capability::PersonaDevelopment {
                 capabilities: values.iter().map(|value| value.name().to_owned()).collect(),
             },
             NodeCapability::VmHost(data) => Capability::VmHost {
-                guest_subnet: data.tap_subnet.clone(),
+                guest_subnet: data.tap_subnet.0.clone(),
                 kvm: data.kvm_availability.name().into(),
                 maximum_guests: data.integer_option,
             },
@@ -166,14 +179,14 @@ impl Projection for NodeCapability {
                 sites: sites
                     .iter()
                     .map(|site| HostedSiteView {
-                        domain: site.served_domain.clone(),
-                        source: site.site_source.clone(),
+                        domain: site.served_domain.0.clone(),
+                        source: site.site_source.0.clone(),
                         renderer: site.site_renderer.name().into(),
                     })
                     .collect(),
             },
             NodeCapability::UsbDownlink(data) => Capability::UsbDownlink {
-                ipv4_network: data.ipv4_cidr.clone(),
+                ipv4_network: data.ipv4_cidr.0.clone(),
             },
         }
     }
@@ -184,7 +197,7 @@ impl Projection for DomainDefinition {
 
     fn project(&self) -> Domain {
         Domain {
-            name: self.domain_name.clone(),
+            name: self.domain_name.0.clone(),
             provider: self.domain_provider.name().into(),
         }
     }
@@ -200,7 +213,7 @@ impl Projection for ClusterTrust {
                 .cluster_trust_entry_vector
                 .iter()
                 .map(|entry| TrustEntry {
-                    name: entry.cluster_name.clone(),
+                    name: entry.cluster_name.0.clone(),
                     magnitude: entry.magnitude.name().into(),
                 })
                 .collect(),
@@ -208,7 +221,7 @@ impl Projection for ClusterTrust {
                 .node_trust_entry_vector
                 .iter()
                 .map(|entry| TrustEntry {
-                    name: entry.node_name.clone(),
+                    name: entry.node_name.0.clone(),
                     magnitude: entry.magnitude.name().into(),
                 })
                 .collect(),
@@ -216,7 +229,7 @@ impl Projection for ClusterTrust {
                 .user_trust_entry_vector
                 .iter()
                 .map(|entry| TrustEntry {
-                    name: entry.user_name.clone(),
+                    name: entry.user_name.0.clone(),
                     magnitude: entry.magnitude.name().into(),
                 })
                 .collect(),

@@ -52,14 +52,16 @@ impl Projecting for HorizonDefinition {
         let generic = self
             .horizon_configuration
             .generic_nodes
+            .0
             .catalogue(Error::DuplicateGenericNode)?;
         let mut nodes = self
             .cluster_definition
             .cluster_nodes
+            .0
             .catalogue(Error::DuplicateClusterNode)?;
         let mut selected = BTreeSet::new();
-        for name in &self.cluster_definition.generic_node_names {
-            let name = name.clone();
+        for name in &self.cluster_definition.generic_node_names.0 {
+            let name = name.0.clone();
             if !selected.insert(name.clone()) {
                 return Err(Error::DuplicateGenericSelection(name));
             }
@@ -80,7 +82,7 @@ impl Projecting for HorizonDefinition {
         nodes.validate_tailnet_controller()?;
         nodes.validate_machines()?;
         Ok(ResolvedCluster {
-            name: self.cluster_definition.cluster_name.clone(),
+            name: self.cluster_definition.cluster_name.0.clone(),
             nodes,
         })
     }
@@ -109,8 +111,10 @@ impl Projecting for HorizonDefinition {
             .domain_configuration
             .domain_name_vector
             .first()
-            .cloned()
-            .unwrap_or_else(|| format!("{}.criome.net", self.cluster_definition.cluster_name));
+            .map_or_else(
+                || format!("{}.criome.net", self.cluster_definition.cluster_name.0),
+                |domain| domain.0.clone(),
+            );
         for (name, projected) in &mut ex_nodes {
             let peer = resolved.nodes.get(name).expect("resolved node exists");
             projected.derive(
@@ -137,9 +141,10 @@ impl Projecting for HorizonDefinition {
         let users = self
             .cluster_definition
             .users
+            .0
             .iter()
             .filter_map(|user| {
-                let granted = trust.user_trust(&user.user_name);
+                let granted = trust.user_trust(&user.user_name.0);
                 (!matches!(granted, Magnitude::Zero))
                     .then(|| user.project_from(granted, &viewpoint))
             })
@@ -149,7 +154,7 @@ impl Projecting for HorizonDefinition {
             cluster: resolved.name,
             tailnet_base_domain: format!(
                 "tailnet.{}.{}",
-                self.cluster_definition.cluster_name, internal_suffix
+                self.cluster_definition.cluster_name.0, internal_suffix
             ),
             trusted_build_public_keys,
             node: projected_node,
@@ -158,6 +163,7 @@ impl Projecting for HorizonDefinition {
             domains: self
                 .cluster_definition
                 .domains
+                .0
                 .iter()
                 .map(Projection::project)
                 .collect(),
@@ -172,7 +178,9 @@ impl Projecting for HorizonDefinition {
                     .horizon_configuration
                     .domain_configuration
                     .domain_name_vector
-                    .to_vec(),
+                    .iter()
+                    .map(|domain| domain.0.clone())
+                    .collect(),
             },
         })
     }

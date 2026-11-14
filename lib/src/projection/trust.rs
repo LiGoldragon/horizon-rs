@@ -18,7 +18,7 @@ impl TrustResolving for ClusterTrust {
         let ceiling = self
             .node_trust_entry_vector
             .iter()
-            .find(|entry| entry.node_name == name)
+            .find(|entry| entry.node_name.0 == name)
             .map(|entry| &entry.magnitude)
             .unwrap_or(&Magnitude::Max);
         declared.minimum(&ceiling.minimum(&self.magnitude))
@@ -28,7 +28,7 @@ impl TrustResolving for ClusterTrust {
         let declared = self
             .user_trust_entry_vector
             .iter()
-            .find(|entry| entry.user_name == name)
+            .find(|entry| entry.user_name.0 == name)
             .map(|entry| &entry.magnitude)
             .unwrap_or(&Magnitude::Min);
         declared.minimum(&self.magnitude)

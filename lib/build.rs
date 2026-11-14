@@ -12,6 +12,7 @@ fn main() {
         .unwrap_or_else(|_| panic!("generate Library"));
     assert_eq!(
         generated,
-        std::fs::read_to_string(root.join("src/generated/horizon.rs")).expect("generated")
+        std::fs::read_to_string(root.join("src/generated/horizon.rs")).expect("generated"),
+        "src/generated/horizon.rs is stale; regenerate it from ethos/horizon.ethos"
     );
 }

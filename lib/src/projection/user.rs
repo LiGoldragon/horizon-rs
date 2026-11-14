@@ -40,7 +40,7 @@ impl UserProjection for UserDefinition {
         let viewpoint_key = self
             .user_pub_key_vector
             .iter()
-            .find(|key| key.node_name == viewpoint.node);
+            .find(|key| key.node_name.0 == viewpoint.node);
         let is_code_dev = matches!(self.user_role, UserRole::Code | UserRole::Unlimited);
         let is_multimedia_dev =
             matches!(self.user_role, UserRole::Multimedia | UserRole::Unlimited);
@@ -70,7 +70,7 @@ impl UserProjection for UserDefinition {
             viewpoint.size.to_owned()
         };
         User {
-            name: self.user_name.clone(),
+            name: self.user_name.0.clone(),
             role: self.user_role.name().into(),
             size,
             trust: trust.name().into(),
@@ -79,17 +79,16 @@ impl UserProjection for UserDefinition {
             github_id: Some(
                 self.github_id_option
                     .as_ref()
-                    .cloned()
-                    .unwrap_or_else(|| self.user_name.clone()),
+                    .map_or_else(|| self.user_name.0.clone(), |github| github.0.clone()),
             ),
             fast_repeat: self.boolean_option,
             public_keys: self
                 .user_pub_key_vector
                 .iter()
                 .map(|key| UserPubKeyView {
-                    node: key.node_name.clone(),
-                    ssh: key.ssh_pub_key.clone(),
-                    keygrip: key.keygrip.clone(),
+                    node: key.node_name.0.clone(),
+                    ssh: key.ssh_pub_key.0.clone(),
+                    keygrip: key.keygrip.0.clone(),
                     capabilities: key.capability_names(),
                 })
                 .collect(),
@@ -103,9 +102,9 @@ impl UserProjection for UserDefinition {
                 .map(|size| size.name().to_owned()),
             has_public_key: viewpoint_key.is_some(),
             capabilities: viewpoint_key.map_or_else(Vec::new, UserPubKeyNaming::capability_names),
-            email_address: format!("{}@{}", self.user_name, viewpoint.public_domain),
-            matrix_id: format!("@{}:{}", self.user_name, viewpoint.public_domain),
-            git_signing_key: viewpoint_key.map(|key| format!("&{}", key.keygrip)),
+            email_address: format!("{}@{}", self.user_name.0, viewpoint.public_domain),
+            matrix_id: format!("@{}:{}", self.user_name.0, viewpoint.public_domain),
+            git_signing_key: viewpoint_key.map(|key| format!("&{}", key.keygrip.0)),
             use_colemak: matches!(self.keyboard, Keyboard::Colemak),
             use_fast_repeat: self.boolean_option.unwrap_or(true),
             is_multimedia_dev,
@@ -125,9 +124,9 @@ impl UserProjection for UserDefinition {
             ssh_public_keys: self
                 .user_pub_key_vector
                 .iter()
-                .map(|key| format!("ssh-ed25519 {}", key.ssh_pub_key))
+                .map(|key| format!("ssh-ed25519 {}", key.ssh_pub_key.0))
                 .collect(),
-            ssh_public_key: viewpoint_key.map(|key| format!("ssh-ed25519 {}", key.ssh_pub_key)),
+            ssh_public_key: viewpoint_key.map(|key| format!("ssh-ed25519 {}", key.ssh_pub_key.0)),
             extra_groups,
             enable_linger: is_max_trusted && viewpoint.center,
         }

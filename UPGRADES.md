@@ -1,5 +1,40 @@
 # Upgrades
 
+## 0.17.1 to 0.18.0
+
+The build reads `lib/ethos/horizon.ethos` with ethos-zero 28.0.0
+(`970459d100ddee5f62a76c05642ecfabefba6329`, was `c2653dd8…` / 16.0.0), and
+`datom-codec` moves to 0.32.3 (`eb792265a67b2c6865f9b8c9ed9d2e5ae5a7174c`,
+was `4dff16b4…` / 0.32.2), whose derive writes and reads a one-field tuple
+struct as its inner value. `protos` stays 0.32.2 (`15b41da8…`). The Ethos file
+is unchanged.
+
+Each of the 37 declarations that was a type alias is now a newtype struct:
+the 27 strings (`NodeName`, `ClusterName`, `UserName`, `DomainName`,
+`ModelName`, `Location`, `Interface`, `WirelessNetworkName`, `CountryCode`,
+`Ipv4Cidr`, `SecretName`, `CertificateAuthority`, `GithubId`, `Keygrip`,
+`DevicePath`, `MountPath`, `SshPubKey`, `NixPubKey`, `WireguardPubKey`,
+`YggPubKey`, `YggAddress`, `YggSubnet`, `LinkLocalIp`, `NodeIp`, `TapSubnet`,
+`SiteSource`, `ServedDomain`), the four decimals (`Latitude`, `Longitude`,
+`Altitude`, `Accuracy`) and the six vectors (`Capabilities`,
+`GenericNodeNames`, `GenericNodes`, `ClusterNodes`, `Users`, `Domains`). A
+consumer wraps a value where it builds one, `NodeName("zeus".into())`,
+`Users(vec![…])`, and reads it from the field `.0`.
+
+The archived layout and the Datom text are unchanged, which
+`lib/tests/representation.rs` shows against two fixtures written by 0.17.1
+from one definition carrying every node capability, both virtual machine
+hosts, a fixed location and every user capability: the 0.17.1 rkyv archive
+reads and archives back to the same bytes, the 0.17.1 Datom text reads to a
+value that archives to those bytes, and the archive writes that text again.
+A `HorizonDefinition` stored by a 0.17.1 consumer reads unchanged.
+
+What breaks is compile-time, as with 0.14.0: under `datom` every Horizon
+type implements datom-codec 0.32.3's `Datomizable` and `Composing`. A
+consumer that holds a Horizon type in a datomized position (signal-lojix,
+meta-signal-lojix, Lojix) repins this revision together with datom-codec
+0.32.3 in one step.
+
 ## 0.17.0 to 0.17.1
 
 A revision; no type changes. The `isGitServer` gate drops its requirement

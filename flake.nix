@@ -32,7 +32,8 @@
             src = ./.;
             filter = path: type:
               (craneLib.filterCargoSources path type)
-              || pkgs.lib.hasInfix "/ethos/" (toString path);
+              || pkgs.lib.hasInfix "/ethos/" (toString path)
+              || pkgs.lib.hasInfix "/tests/fixtures/" (toString path);
           };
           # No `cargoVendorDir.outputHashes` — per
           # `~/primary/skills/nix-discipline.md` §"Cargo git deps in
@@ -42,7 +43,7 @@
           commonArgs = {
             inherit src;
             strictDeps = true;
-            version = "0.17.1";
+            version = "0.18.0";
           };
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in
