@@ -15,7 +15,7 @@ fn hardware() -> Hardware {
     Hardware {
         integer: 16,
         model_name_option: Some(text("ThinkPadT14Gen5Intel")),
-        mother_board_option: Some(MotherBoard::Ondyfaind),
+        mother_board_option: Some(MotherBoard::Undefined),
         first_integer_option: Some(12),
         second_integer_option: Some(32),
         location_option: Some(text("home-lab")),

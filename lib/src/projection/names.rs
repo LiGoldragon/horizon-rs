@@ -99,7 +99,7 @@ impl Named for FsType {
 impl Named for MotherBoard {
     fn name(&self) -> &'static str {
         match self {
-            MotherBoard::Ondyfaind => "Ondyfaind",
+            MotherBoard::Undefined => "Undefined",
         }
     }
 }
