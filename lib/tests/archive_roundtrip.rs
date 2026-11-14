@@ -6,7 +6,7 @@ fn hardware_round_trips_through_the_rkyv_archive() {
     let hardware = Hardware {
         integer: 16,
         model_name_option: Some(ModelName("ThinkPadT14Gen5Intel".to_owned())),
-        mother_board_option: Some(MotherBoard::Ondyfaind),
+        mother_board_option: Some(MotherBoard::Undefined),
         first_integer_option: Some(12),
         second_integer_option: None,
         location_option: Some(Location("home-lab".to_owned())),

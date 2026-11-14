@@ -64,7 +64,7 @@ Signal
   ; how an installed node boots
   Bootloader.[ Uefi Mbr Uboot ]
   ; a known motherboard
-  MotherBoard.[ Ondyfaind ]
+  MotherBoard.[ Undefined ]
   ; who serves a public domain's DNS
   DomainProvider.[ Cloudflare ]
   ; a wireless frequency band
