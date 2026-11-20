@@ -306,6 +306,7 @@ pub struct User {
     pub github_id: Option<String>,
     pub fast_repeat: Option<bool>,
     pub public_keys: Vec<UserPubKeyView>,
+    pub synchronizations: Vec<SynchronizationView>,
     pub editor: Option<String>,
     pub text_size: Option<String>,
     pub has_public_key: bool,
@@ -326,6 +327,14 @@ pub struct User {
     pub ssh_public_key: Option<String>,
     pub extra_groups: Vec<String>,
     pub enable_linger: bool,
+}
+
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SynchronizationView {
+    pub master: String,
+    pub replica: String,
+    pub tree: String,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

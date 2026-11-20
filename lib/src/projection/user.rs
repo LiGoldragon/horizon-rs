@@ -71,6 +71,11 @@ impl UserProjection for UserDefinition {
         };
         User {
             name: self.user_name.clone(),
+            synchronizations: self.synchronization_vector.iter().map(|synchronization| SynchronizationView {
+                master: synchronization.master.clone(),
+                replica: synchronization.replica.clone(),
+                tree: synchronization.tree.clone(),
+            }).collect(),
             role: self.user_role.name().into(),
             size,
             trust: trust.name().into(),

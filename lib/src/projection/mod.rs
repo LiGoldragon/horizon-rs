@@ -7,6 +7,7 @@ mod error;
 mod names;
 mod node;
 mod trust;
+mod synchronization;
 mod user;
 mod viewpoint;
 mod views;

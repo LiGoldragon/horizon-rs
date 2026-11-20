@@ -519,6 +519,20 @@ pub struct UserPubKey {
     pub user_capability_vector: std::vec::Vec<UserCapability>,
 }
 #[rustfmt::skip]
+pub type Tree = String;
+#[rustfmt::skip]
+pub type Master = NodeName;
+#[rustfmt::skip]
+pub type Replica = NodeName;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct Synchronization {
+    pub master: Master,
+    pub replica: Replica,
+    pub tree: Tree,
+}
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct UserDefinition {
@@ -532,6 +546,7 @@ pub struct UserDefinition {
     pub user_pub_key_vector: std::vec::Vec<UserPubKey>,
     pub editor_option: std::option::Option<Editor>,
     pub text_size_option: std::option::Option<TextSize>,
+    pub synchronization_vector: std::vec::Vec<Synchronization>,
 }
 #[rustfmt::skip]
 pub type Users = std::vec::Vec<UserDefinition>;

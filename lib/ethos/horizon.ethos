@@ -147,7 +147,9 @@ Signal
   UserPubKey.{ NodeName SshPubKey Keygrip Vector<UserCapability> }
   ; a user: name, role, size, keyboard, style, GitHub id, fast key repeat,
   ; per-node entries, editor, text size
-  UserDefinition.{ UserName UserRole Magnitude Keyboard Style Option<GithubId> Option<Boolean> Vector<UserPubKey> Option<Editor> Option<TextSize> }
+  Tree.String
+  Synchronization.{ Master.NodeName Replica.NodeName Tree }
+  UserDefinition.{ UserName UserRole Magnitude Keyboard Style Option<GithubId> Option<Boolean> Vector<UserPubKey> Option<Editor> Option<TextSize> Vector<Synchronization> }
   Users.Vector<UserDefinition>
   ; a public domain and who serves its DNS
   DomainDefinition.{ DomainName DomainProvider }

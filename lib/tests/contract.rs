@@ -229,6 +229,7 @@ fn definition(selected: Vec<String>, local_nodes: Vec<NodeDefinition>) -> Horizo
                 }],
                 editor_option: Some(Editor::Emacs),
                 text_size_option: Some(TextSize::Large),
+                synchronization_vector: vec![],
             }],
             domains: vec![DomainDefinition {
                 domain_name: text("goldragon.criome.net"),
@@ -919,4 +920,55 @@ fn battery_policy_requires_one_strictly_descending_bounded_record() {
             critical_power_action: CriticalPowerAction::HybridSleep,
         }));
     assert!(definition(vec![], vec![laptop]).resolve().is_ok());
+}
+
+#[test]
+fn user_synchronization_round_trips_and_projects() {
+    let mut source = definition(vec![text("live-install")], vec![installation()]);
+    let user = &mut source.cluster_definition.users[0];
+    let mut key = user.user_pub_key_vector[0].clone();
+    key.node_name = text("live-install");
+    user.user_pub_key_vector.push(key);
+    user.synchronization_vector.push(Synchronization {
+        master: text("live-install"), replica: text("zeus"), tree: text("code"),
+    });
+    let encoded = encode(&source);
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("new positional user record");
+    let projected = decoded.project("live-install").expect("synchronization");
+    assert_eq!(projected.users[0].synchronizations[0].tree, "code");
+    assert_eq!(projected.users[0].synchronizations[0].replica, "zeus");
+}
+
+#[test]
+fn synchronization_refuses_endpoint_and_tree_errors() {
+    let mut source = definition(vec![text("live-install")], vec![installation()]);
+    let user = &mut source.cluster_definition.users[0];
+    let mut key = user.user_pub_key_vector[0].clone();
+    key.node_name = text("live-install");
+    user.user_pub_key_vector.push(key);
+    user.synchronization_vector.push(Synchronization {
+        master: text("live-install"), replica: text("zeus"), tree: text("code"),
+    });
+    assert!(source.resolve().is_ok());
+    for tree in ["", "/code", ".", "..", "code/../private", "code\nroot = /", "code\0bad"] {
+        let mut invalid = source.clone();
+        invalid.cluster_definition.users[0].synchronization_vector[0].tree = text(tree);
+        assert!(matches!(invalid.resolve(), Err(Error::SynchronizationInvalidTree { .. })), "{tree:?}");
+    }
+    let mut invalid = source.clone();
+    invalid.cluster_definition.users[0].synchronization_vector[0].replica = text("absent");
+    assert!(matches!(invalid.resolve(), Err(Error::SynchronizationUnknownNode { .. })));
+    let mut invalid = source.clone();
+    invalid.cluster_definition.users[0].synchronization_vector[0].replica = text("live-install");
+    assert!(matches!(invalid.resolve(), Err(Error::SynchronizationSameNode { .. })));
+    let mut invalid = source.clone();
+    invalid.cluster_definition.users[0].user_pub_key_vector.clear();
+    assert!(matches!(invalid.resolve(), Err(Error::SynchronizationUserAbsent { .. })));
+    for tree in ["code", "code/nested"] {
+        let mut invalid = source.clone();
+        let mut duplicate = invalid.cluster_definition.users[0].synchronization_vector[0].clone();
+        duplicate.tree = text(tree);
+        invalid.cluster_definition.users[0].synchronization_vector.push(duplicate);
+        assert!(matches!(invalid.resolve(), Err(Error::SynchronizationOverlappingTrees { .. })));
+    }
 }
