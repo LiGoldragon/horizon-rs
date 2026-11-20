@@ -81,7 +81,7 @@ impl Projecting for HorizonDefinition {
         nodes.validate_tailnet_controller()?;
         nodes.validate_machines()?;
         nodes.validate_battery_power_policies()?;
-        self.cluster_definition.users.validate_synchronizations(&nodes)?;
+        self.cluster_definition.users.validate_synchronizations(&nodes, trust)?;
         Ok(ResolvedCluster {
             name: self.cluster_definition.cluster_name.clone(),
             nodes,

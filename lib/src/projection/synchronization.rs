@@ -1,14 +1,14 @@
 //! Cluster-level validation of a user's two-ended synchronizations.
 
-use super::{error::Error, node::NodeDefinitions};
-use crate::UserDefinition;
+use super::{error::Error, node::NodeDefinitions, trust::TrustResolving};
+use crate::{ClusterTrust, Magnitude, UserDefinition};
 
 pub(crate) trait SynchronizationsValidating {
-    fn validate_synchronizations(&self, nodes: &NodeDefinitions) -> Result<(), Error>;
+    fn validate_synchronizations(&self, nodes: &NodeDefinitions, trust: &ClusterTrust) -> Result<(), Error>;
 }
 
 impl SynchronizationsValidating for [UserDefinition] {
-    fn validate_synchronizations(&self, nodes: &NodeDefinitions) -> Result<(), Error> {
+    fn validate_synchronizations(&self, nodes: &NodeDefinitions, trust: &ClusterTrust) -> Result<(), Error> {
         for user in self {
             for synchronization in &user.synchronization_vector {
                 let master = &synchronization.master;
@@ -24,7 +24,8 @@ impl SynchronizationsValidating for [UserDefinition] {
                             user: user.user_name.clone(), node: node.clone(),
                         });
                     }
-                    if !user.user_pub_key_vector.iter().any(|key| &key.node_name == node) {
+                    if matches!(trust.user_trust(&user.user_name), Magnitude::Zero)
+                        || !user.user_pub_key_vector.iter().any(|key| &key.node_name == node) {
                         return Err(Error::SynchronizationUserAbsent {
                             user: user.user_name.clone(), node: node.clone(),
                         });
