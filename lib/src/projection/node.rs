@@ -43,6 +43,9 @@ pub(crate) trait NodeGraph {
     /// Refuses a cluster whose every node cannot be given an architecture.
     fn validate_machines(&self) -> Result<(), Error>;
 
+    /// Refuses duplicate policies or percentages outside their strict descending range.
+    fn validate_battery_power_policies(&self) -> Result<(), Error>;
+
     /// Refuses a cluster naming more than one tailnet controller.
     fn validate_tailnet_controller(&self) -> Result<(), Error>;
 }
@@ -105,6 +108,30 @@ impl NodeGraph for NodeDefinitions {
             });
         }
         Ok(cluster.architecture_option.clone().unwrap_or(inherited))
+    }
+
+    fn validate_battery_power_policies(&self) -> Result<(), Error> {
+        for (name, node) in self {
+            let mut policies = node
+                .capabilities
+                .iter()
+                .filter_map(|capability| match capability {
+                    NodeCapability::BatteryPowerPolicy(policy) => Some(policy),
+                    _ => None,
+                });
+            if let Some(policy) = policies.next() {
+                if policies.next().is_some()
+                    || !(0..=100).contains(&policy.low)
+                    || !(0..=100).contains(&policy.critical)
+                    || !(0..=100).contains(&policy.action)
+                    || policy.low <= policy.critical
+                    || policy.critical <= policy.action
+                {
+                    return Err(Error::InvalidBatteryPowerPolicy { node: name.clone() });
+                }
+            }
+        }
+        Ok(())
     }
 
     fn validate_machines(&self) -> Result<(), Error> {
@@ -228,6 +255,12 @@ impl NodeProjection for NodeDefinition {
                 .compressed_swap_option
                 .as_ref()
                 .map(|value| value.integer),
+            battery_power_policy: self.capabilities.iter().find_map(
+                |capability| match capability {
+                    NodeCapability::BatteryPowerPolicy(policy) => Some(policy.project()),
+                    _ => None,
+                },
+            ),
             machine: self.machine_definition.project_in(&self.node_name, nodes)?,
             network: self.node_network.project(),
             keys: self.node_keys.project(),

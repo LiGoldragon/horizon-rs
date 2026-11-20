@@ -558,9 +558,11 @@ fn local_vm_architecture_inference_is_single_hop() {
 #[test]
 fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
     let mut controller = installation();
-    controller.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyZeus"),
-    }));
+    controller
+        .capabilities
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: text("tailnetPreauthKeyZeus"),
+        }));
     controller
         .capabilities
         .push(NodeCapability::TailnetController(TailnetController_Data {
@@ -573,9 +575,11 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             },
         }));
     let mut client = local_vm();
-    client.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyMercury"),
-    }));
+    client
+        .capabilities
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: text("tailnetPreauthKeyMercury"),
+        }));
     let definition = definition(Vec::new(), vec![controller, client]);
     let encoded = encode(&definition);
     assert!(encoded.contains("TailnetClient.{ tailnetPreauthKeyMercury }"));
@@ -604,7 +608,10 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             tls_key_reference: text("headscaleTlsKey"),
         }
     );
-    assert_eq!(horizon.ex_nodes["zeus"].criome_domain_name, "zeus.goldragon.criome");
+    assert_eq!(
+        horizon.ex_nodes["zeus"].criome_domain_name,
+        "zeus.goldragon.criome"
+    );
 
     let json = serde_json::to_value(controller_view).expect("capability serializes");
     assert_eq!(
@@ -757,8 +764,22 @@ fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
         ("qualified git server", true, true, true, true, true),
         ("offline git server", true, false, true, true, false),
         ("untrusted git server", true, true, false, true, false),
-        ("git server without nix or yggdrasil keys", true, true, true, false, true),
-        ("node without the capability", false, true, true, true, false),
+        (
+            "git server without nix or yggdrasil keys",
+            true,
+            true,
+            true,
+            false,
+            true,
+        ),
+        (
+            "node without the capability",
+            false,
+            true,
+            true,
+            true,
+            false,
+        ),
     ] {
         let mut server = installation();
         if capability {
@@ -830,4 +851,72 @@ fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
             );
         }
     }
+}
+
+#[test]
+fn battery_policy_projects_and_preserves_absence() {
+    let mut laptop = minimal_live();
+    let name = laptop.node_name.clone();
+    let absent = definition(vec![], vec![laptop.clone()])
+        .project(&name)
+        .unwrap();
+    assert!(absent.node.battery_power_policy.is_none());
+    laptop
+        .capabilities
+        .push(NodeCapability::BatteryPowerPolicy(BatteryPowerPolicy {
+            low: 20,
+            critical: 10,
+            action: 5,
+            critical_power_action: CriticalPowerAction::HybridSleep,
+        }));
+    let authored = definition(vec![], vec![laptop]);
+    let encoded = encode(&authored);
+    let decoded = HorizonDefinition::decode(&encoded).unwrap();
+    let projected = decoded.project(&name).unwrap();
+    let policy = serde_json::to_value(projected.node.battery_power_policy).unwrap();
+    assert_eq!(
+        policy,
+        serde_json::json!({"low":20,"critical":10,"action":5,"criticalPowerAction":"HybridSleep"})
+    );
+}
+
+#[test]
+fn battery_policy_requires_one_strictly_descending_bounded_record() {
+    for values in [
+        [101, 10, 5],
+        [20, 10, -1],
+        [20, 20, 5],
+        [20, 10, 10],
+        [5, 10, 20],
+    ] {
+        let mut laptop = minimal_live();
+        laptop
+            .capabilities
+            .push(NodeCapability::BatteryPowerPolicy(BatteryPowerPolicy {
+                low: values[0],
+                critical: values[1],
+                action: values[2],
+                critical_power_action: CriticalPowerAction::HybridSleep,
+            }));
+        assert!(definition(vec![], vec![laptop]).resolve().is_err());
+    }
+    let mut laptop = minimal_live();
+    let policy = NodeCapability::BatteryPowerPolicy(BatteryPowerPolicy {
+        low: 20,
+        critical: 10,
+        action: 5,
+        critical_power_action: CriticalPowerAction::HybridSleep,
+    });
+    laptop.capabilities = vec![policy.clone(), policy];
+    assert!(definition(vec![], vec![laptop]).resolve().is_err());
+    let mut laptop = minimal_live();
+    laptop
+        .capabilities
+        .push(NodeCapability::BatteryPowerPolicy(BatteryPowerPolicy {
+            low: 100,
+            critical: 1,
+            action: 0,
+            critical_power_action: CriticalPowerAction::HybridSleep,
+        }));
+    assert!(definition(vec![], vec![laptop]).resolve().is_ok());
 }

@@ -391,6 +391,33 @@ pub enum PersonaCapability {
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct NoSettings {}
 #[rustfmt::skip]
+pub type Percent = i64;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub enum CriticalPowerAction {
+    HybridSleep,
+    Hibernate,
+    PowerOff,
+    Suspend,
+    Ignore,
+}
+#[rustfmt::skip]
+pub type Low = Percent;
+#[rustfmt::skip]
+pub type Critical = Percent;
+#[rustfmt::skip]
+pub type Action = Percent;
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct BatteryPowerPolicy {
+    pub low: Low,
+    pub critical: Critical,
+    pub action: Action,
+    pub critical_power_action: CriticalPowerAction,
+}
+#[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct VmTesting_Data {
@@ -424,6 +451,7 @@ pub struct UsbDownlink_Data {
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub enum NodeCapability {
+    BatteryPowerPolicy(BatteryPowerPolicy),
     Graphical(NoSettings),
     Center(NoSettings),
     LargeAi(NoSettings),

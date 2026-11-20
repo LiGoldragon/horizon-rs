@@ -11,6 +11,19 @@ pub(crate) trait Projection {
     fn project(&self) -> Self::View;
 }
 
+impl Projection for BatteryPowerPolicy {
+    type View = BatteryPowerPolicyView;
+
+    fn project(&self) -> BatteryPowerPolicyView {
+        BatteryPowerPolicyView {
+            low: self.low,
+            critical: self.critical,
+            action: self.action,
+            critical_power_action: self.critical_power_action.name().to_owned(),
+        }
+    }
+}
+
 impl Projection for DiskLayout {
     type View = Disk;
 
@@ -120,6 +133,9 @@ impl Projection for NodeCapability {
 
     fn project(&self) -> Capability {
         match self {
+            NodeCapability::BatteryPowerPolicy(policy) => {
+                Capability::BatteryPowerPolicy(policy.project())
+            }
             NodeCapability::Graphical(_) => Capability::Graphical,
             NodeCapability::Center(_) => Capability::Center,
             NodeCapability::LargeAi(_) => Capability::LargeAi,

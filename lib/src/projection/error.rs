@@ -4,6 +4,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error("node {node:?} requires one battery policy with 0 <= action < critical < low <= 100")]
+    InvalidBatteryPowerPolicy { node: String },
     #[cfg(feature = "datom")]
     #[error("datom: {0:?}")]
     Datom(datom_codec::Error),

@@ -220,3 +220,15 @@ impl MagnitudeName for str {
         }
     }
 }
+
+impl Named for CriticalPowerAction {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::HybridSleep => "HybridSleep",
+            Self::Hibernate => "Hibernate",
+            Self::PowerOff => "PowerOff",
+            Self::Suspend => "Suspend",
+            Self::Ignore => "Ignore",
+        }
+    }
+}
