@@ -8,12 +8,21 @@ pub enum Error {
     SynchronizationSameNode { user: String, node: String },
     #[error("user {user:?} synchronization names unknown node {node:?}")]
     SynchronizationUnknownNode { user: String, node: String },
-    #[error("user {user:?} synchronization has no user presence or declared SSH key on node {node:?}")]
+    #[error(
+        "user {user:?} synchronization has no user presence or declared SSH key on node {node:?}"
+    )]
     SynchronizationUserAbsent { user: String, node: String },
     #[error("user {user:?} synchronization has invalid home-relative tree {tree:?}")]
     SynchronizationInvalidTree { user: String, tree: String },
-    #[error("user {user:?} synchronizations on node {node:?} overlap trees {first:?} and {second:?}")]
-    SynchronizationOverlappingTrees { user: String, node: String, first: String, second: String },
+    #[error(
+        "user {user:?} synchronizations on node {node:?} overlap trees {first:?} and {second:?}"
+    )]
+    SynchronizationOverlappingTrees {
+        user: String,
+        node: String,
+        first: String,
+        second: String,
+    },
     #[error("node {node:?} requires one battery policy with 0 <= action < critical < low <= 100")]
     InvalidBatteryPowerPolicy { node: String },
     #[cfg(feature = "datom")]
