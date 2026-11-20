@@ -962,6 +962,11 @@ fn synchronization_refuses_endpoint_and_tree_errors() {
         "code/../private",
         "code\nroot = /",
         "code\0bad",
+        "code\rbad",
+        " code",
+        "code ",
+        "\tcode",
+        "code\t",
     ] {
         let mut invalid = source.clone();
         invalid.cluster_definition.users[0].synchronization_vector[0].tree = text(tree);

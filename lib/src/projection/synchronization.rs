@@ -49,7 +49,9 @@ impl SynchronizationsValidating for [UserDefinition] {
                 let tree = &synchronization.tree;
                 if tree.is_empty()
                     || tree.starts_with('/')
-                    || tree.contains(['\0', '\n'])
+                    || tree.contains(['\0', '\n', '\r'])
+                    || tree.starts_with([' ', '\t'])
+                    || tree.ends_with([' ', '\t'])
                     || tree.split('/').any(|component| {
                         component.is_empty() || component == "." || component == ".."
                     })
