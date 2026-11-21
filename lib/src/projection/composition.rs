@@ -16,6 +16,7 @@ use crate::*;
 pub struct ResolvedCluster {
     pub name: String,
     pub nodes: NodeDefinitions,
+    pub users_by_node: BTreeMap<String, Vec<User>>,
 }
 
 /// Combining the generic-node catalogue with one cluster's own definition.
@@ -81,17 +82,51 @@ impl Projecting for HorizonDefinition {
         nodes.validate_tailnet_controller()?;
         nodes.validate_machines()?;
         nodes.validate_battery_power_policies()?;
+        let public_domain = self
+            .horizon_configuration
+            .domain_configuration
+            .domain_name_vector
+            .first()
+            .cloned()
+            .unwrap_or_else(|| format!("{}.criome.net", self.cluster_definition.cluster_name));
+        let mut users_by_node = BTreeMap::new();
+        for (name, definition) in &nodes {
+            let mut node = definition.project_in(&nodes)?;
+            node.derive(
+                &self.cluster_definition.cluster_name,
+                &self.horizon_configuration.domain_configuration.string,
+                trust.node_trust(name, &definition.second_magnitude),
+            );
+            let viewpoint = Viewpoint {
+                node: name,
+                public_domain: &public_domain,
+                center: node.behaves_as.center,
+                size: &node.size,
+            };
+            let users = self
+                .cluster_definition
+                .users
+                .iter()
+                .filter_map(|user| {
+                    let granted = trust.user_trust(&user.user_name);
+                    (!matches!(granted, Magnitude::Zero))
+                        .then(|| user.project_from(granted, &viewpoint))
+                })
+                .collect::<Vec<User>>();
+            users_by_node.insert(name.clone(), users);
+        }
         self.cluster_definition
             .users
-            .validate_synchronizations(&nodes, trust)?;
+            .validate_synchronizations(&nodes, &users_by_node)?;
         Ok(ResolvedCluster {
             name: self.cluster_definition.cluster_name.clone(),
             nodes,
+            users_by_node,
         })
     }
 
     fn project(&self, node: &str) -> Result<Horizon, Error> {
-        let resolved = self.resolve()?;
+        let mut resolved = self.resolve()?;
         let trust = &self.cluster_definition.cluster_trust;
         let definition = resolved
             .nodes
@@ -109,13 +144,6 @@ impl Projecting for HorizonDefinition {
             .domain_configuration
             .string
             .as_str();
-        let public_domain = self
-            .horizon_configuration
-            .domain_configuration
-            .domain_name_vector
-            .first()
-            .cloned()
-            .unwrap_or_else(|| format!("{}.criome.net", self.cluster_definition.cluster_name));
         for (name, projected) in &mut ex_nodes {
             let peer = resolved.nodes.get(name).expect("resolved node exists");
             projected.derive(
@@ -133,22 +161,10 @@ impl Projecting for HorizonDefinition {
             .chain(ex_nodes.values())
             .filter_map(|node| node.nix_public_key_line.clone())
             .collect::<Vec<String>>();
-        let viewpoint = Viewpoint {
-            node,
-            public_domain: &public_domain,
-            center: projected_node.behaves_as.center,
-            size: &projected_node.size,
-        };
-        let users = self
-            .cluster_definition
-            .users
-            .iter()
-            .filter_map(|user| {
-                let granted = trust.user_trust(&user.user_name);
-                (!matches!(granted, Magnitude::Zero))
-                    .then(|| user.project_from(granted, &viewpoint))
-            })
-            .collect::<Vec<User>>();
+        let users = resolved
+            .users_by_node
+            .remove(node)
+            .expect("resolved node has projected users");
         projected_node.fill_viewpoint(&ex_nodes, &users);
         Ok(Horizon {
             cluster: resolved.name,

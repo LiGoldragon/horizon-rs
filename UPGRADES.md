@@ -1,3 +1,7 @@
+# 0.17.2 — replica account authorization
+
+Unison validates the master's declared identity against the exact projected replica account and its authorized SSH keys. Replicas need no viewpoint key or Home ownership. Home selection and wire schema are unchanged; unknown nodes, missing accounts/master identities, unauthorized keys and unsafe or overlapping trees remain refusals. Projected user accounts are produced once during resolution and are the same values used for validation and the emitted node projection.
+
 # Upgrades
 
 ## 0.17.0 to 0.17.1

@@ -9,9 +9,17 @@ pub enum Error {
     #[error("user {user:?} synchronization names unknown node {node:?}")]
     SynchronizationUnknownNode { user: String, node: String },
     #[error(
-        "user {user:?} synchronization has no user presence or declared SSH key on node {node:?}"
+        "user {user:?} synchronization has no declared account or required master identity on node {node:?}"
     )]
     SynchronizationUserAbsent { user: String, node: String },
+    #[error(
+        "user {user:?} synchronization master key from {master:?} is not authorized by the account on replica {replica:?}"
+    )]
+    SynchronizationMasterKeyUnauthorized {
+        user: String,
+        master: String,
+        replica: String,
+    },
     #[error("user {user:?} synchronization has invalid home-relative tree {tree:?}")]
     SynchronizationInvalidTree { user: String, tree: String },
     #[error(

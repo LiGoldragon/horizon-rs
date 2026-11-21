@@ -942,6 +942,28 @@ fn user_synchronization_round_trips_and_projects() {
 }
 
 #[test]
+fn synchronization_replica_authorizes_master_without_a_home_identity() {
+    let mut source = definition(vec![text("live-install")], vec![installation()]);
+    let user = &mut source.cluster_definition.users[0];
+    user.user_pub_key_vector[0].node_name = text("live-install");
+    user.synchronization_vector.push(Synchronization {
+        master: text("live-install"),
+        replica: text("zeus"),
+        tree: text("Code"),
+    });
+    let master = source.project("live-install").expect("master projection");
+    let replica = source.project("zeus").expect("replica account projection");
+    assert!(master.users[0].has_public_key);
+    assert!(!replica.users[0].has_public_key);
+    assert!(
+        replica.users[0]
+            .ssh_public_keys
+            .contains(master.users[0].ssh_public_key.as_ref().expect("master key"))
+    );
+    assert_eq!(replica.users[0].synchronizations[0].tree, "Code");
+}
+
+#[test]
 fn synchronization_refuses_endpoint_and_tree_errors() {
     let mut source = definition(vec![text("live-install")], vec![installation()]);
     let user = &mut source.cluster_definition.users[0];
