@@ -82,12 +82,12 @@ Signal
   ; where a virtual machine runs: on a cluster node (its host, further
   ; hosts, the user that runs it, an architecture other than the host's),
   ; or outside the cluster (the provider's place and the architecture)
-  VirtualMachineHost.[ Cluster.{ NodeName Vector<NodeName> Option<UserName> Option<Architecture> } External.{ String Architecture } ]
+  VirtualMachineHost.[ Cluster.{ NodeName ⟦ NodeName ⟧ Option<UserName> Option<Architecture> } External.{ String Architecture } ]
   ; a machine: metal (architecture and hardware) or a virtual machine
   ; (its host, hardware and disk size in GiB)
   MachineDefinition.[ Metal.{ Architecture Hardware } VirtualMachine.{ VirtualMachineHost Hardware Option<Integer> } ]
   ; a disk: device, mount point, filesystem, mount options
-  DiskLayout.{ DevicePath MountPath FsType Vector<String> }
+  DiskLayout.{ DevicePath MountPath FsType ⟦ String ⟧ }
   ; a swap device and its size in MiB
   SwapDevice.{ DevicePath Option<Integer> }
   ; compressed swap, as a percent of memory
@@ -97,7 +97,7 @@ Signal
   ; the node's keyboard and compressed swap
   NodeEnvironment.{ Keyboard Option<CompressedSwap> }
   ; an installed node's bootloader, disks and swap devices
-  Installation.{ Bootloader Vector<DiskLayout> Vector<SwapDevice> }
+  Installation.{ Bootloader ⟦ DiskLayout ⟧ ⟦ SwapDevice ⟧ }
   ; a live node carries no persistent layout
   LiveDefinition.{}
   ; whether a node runs live or installed
@@ -116,7 +116,7 @@ Signal
   RouterInterfaces.{ Interface Interface WlanBand Integer WlanStandard Option<SecretReference> Option<BackupWireless> CountryCode }
   ; a node's link-local addresses, node address, WireGuard key, WireGuard
   ; proxies and router interfaces
-  NodeNetwork.{ Vector<LinkLocalIp> Option<NodeIp> Option<WireguardPubKey> Vector<WireguardProxy> Option<RouterInterfaces> }
+  NodeNetwork.{ ⟦ LinkLocalIp ⟧ Option<NodeIp> Option<WireguardPubKey> ⟦ WireguardProxy ⟧ Option<RouterInterfaces> }
   ; a site a node serves: its domain, source and renderer
   HostedSite.{ ServedDomain SiteSource SiteRenderer }
   ; what a Persona development node serves
@@ -125,14 +125,14 @@ Signal
   NoSettings.{}
   ; a role a node takes on, with the data it needs; OpenCodeTesting names
   ; the user who runs the node's OpenCode server and owns its password
-  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.SecretReference TailnetController.{ Option<CertificateAuthority> TlsCertificateReference TlsKeyReference } NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.UserName PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> UsbDownlink.{ Ipv4Cidr } GitServer.NoSettings ]
-  Capabilities.Vector<NodeCapability>
+  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.SecretReference TailnetController.{ Option<CertificateAuthority> TlsCertificateReference TlsKeyReference } NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.UserName PersonaDevelopment.⟦ PersonaCapability ⟧ VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.⟦ HostedSite ⟧ UsbDownlink.{ Ipv4Cidr } GitServer.NoSettings ]
+  Capabilities.⟦ NodeCapability ⟧
   ; a node: name, variant, size, trust, machine, environment, network,
   ; keys, whether it is online, capabilities, fixed location
   NodeDefinition.{ NodeName NodeVariant Magnitude Magnitude MachineDefinition NodeEnvironment NodeNetwork NodeKeys Option<Boolean> Capabilities Option<FixedLocation> }
-  GenericNodeNames.Vector<NodeName>
-  GenericNodes.Vector<NodeDefinition>
-  ClusterNodes.Vector<NodeDefinition>
+  GenericNodeNames.⟦ NodeName ⟧
+  GenericNodes.⟦ NodeDefinition ⟧
+  ClusterNodes.⟦ NodeDefinition ⟧
   ; what a user runs on one node: AgentStack runs the agent stack
   ; (Curriculum, Flow Nexus, the Codex servers); CodexCandidate runs the
   ; codex-next candidate server for that user; StableCodex makes the
@@ -141,14 +141,14 @@ Signal
   UserCapability.[ AgentStack CodexCandidate StableCodex ]
   ; a user's entry for one node: the node, the user's SSH key and GPG
   ; keygrip there, and what the user runs there
-  UserPubKey.{ NodeName SshPubKey Keygrip Vector<UserCapability> }
+  UserPubKey.{ NodeName SshPubKey Keygrip ⟦ UserCapability ⟧ }
   ; a user: name, role, size, keyboard, style, GitHub id, fast key repeat,
   ; per-node entries, editor, text size
-  UserDefinition.{ UserName UserRole Magnitude Keyboard Style Option<GithubId> Option<Boolean> Vector<UserPubKey> Option<Editor> Option<TextSize> }
-  Users.Vector<UserDefinition>
+  UserDefinition.{ UserName UserRole Magnitude Keyboard Style Option<GithubId> Option<Boolean> ⟦ UserPubKey ⟧ Option<Editor> Option<TextSize> }
+  Users.⟦ UserDefinition ⟧
   ; a public domain and who serves its DNS
   DomainDefinition.{ DomainName DomainProvider }
-  Domains.Vector<DomainDefinition>
+  Domains.⟦ DomainDefinition ⟧
   ; the trust given to another cluster
   ClusterTrustEntry.{ ClusterName Magnitude }
   ; the trust given to a node
@@ -157,9 +157,9 @@ Signal
   UserTrustEntry.{ UserName Magnitude }
   ; the cluster's own trust, which caps every entry, and the entries for
   ; clusters, nodes and users
-  ClusterTrust.{ Magnitude Vector<ClusterTrustEntry> Vector<NodeTrustEntry> Vector<UserTrustEntry> }
+  ClusterTrust.{ Magnitude ⟦ ClusterTrustEntry ⟧ ⟦ NodeTrustEntry ⟧ ⟦ UserTrustEntry ⟧ }
   ; the internal domain suffix and the public domains
-  DomainConfiguration.{ String Vector<DomainName> }
+  DomainConfiguration.{ String ⟦ DomainName ⟧ }
   ; a cluster: name, local nodes, selected generic node names, users,
   ; domains, trust
   ClusterDefinition.{ ClusterName ClusterNodes GenericNodeNames Users Domains ClusterTrust }
