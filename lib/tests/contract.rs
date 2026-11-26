@@ -679,6 +679,105 @@ fn router_country_and_usb_downlink_project_for_consumers() {
     );
 }
 
+fn router_usb_parent_power_identity() -> RouterUsbParentPowerIdentity {
+    RouterUsbParentPowerIdentity {
+        pci_controller_address: text("0000:c7:00.0"),
+        integer: 2,
+        usb_vendor_id: text("0b95"),
+        usb_product_id: text("1790"),
+        usb_device_revision: text("0200"),
+        usb_serial_number: text("00000000009525"),
+    }
+}
+
+#[test]
+fn router_usb_parent_power_policy_round_trips_and_projects_exact_identity() {
+    let mut router = installation();
+    router
+        .capabilities
+        .push(NodeCapability::RouterUsbParentPowerOn(vec![
+            router_usb_parent_power_identity(),
+        ]));
+    let definition = definition(Vec::new(), vec![router, local_vm()]);
+    let encoded = encode(&definition);
+    assert!(
+        encoded.contains(
+            "RouterUsbParentPowerOn.[ { 0000:c7:00.0 2 0b95 1790 0200 00000000009525 } ]"
+        )
+    );
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("policy datom decodes");
+    assert_eq!(encode(&decoded), encoded);
+
+    let horizon = decoded.project("zeus").expect("policy projects");
+    let policy = horizon
+        .node
+        .capabilities
+        .iter()
+        .find(|capability| matches!(capability, Capability::RouterUsbParentPowerOn { .. }))
+        .expect("router USB parent policy");
+    assert_eq!(
+        serde_json::to_value(policy).expect("policy serializes"),
+        serde_json::json!({
+            "kind": "routerUsbParentPowerOn",
+            "devices": [{
+                "pciControllerAddress": "0000:c7:00.0",
+                "rootPort": 2,
+                "usbVendorId": "0b95",
+                "usbProductId": "1790",
+                "usbDeviceRevision": "0200",
+                "usbSerialNumber": "00000000009525",
+            }]
+        })
+    );
+    assert!(
+        horizon.ex_nodes["mercury"]
+            .capabilities
+            .iter()
+            .all(|capability| !matches!(capability, Capability::RouterUsbParentPowerOn { .. }))
+    );
+}
+
+#[test]
+fn router_usb_parent_power_policy_requires_canonical_scoped_identity() {
+    for (case, mutate) in [
+        ("uppercase vendor", 0),
+        ("unsafe serial", 1),
+        ("invalid root port", 2),
+        ("invalid PCI address", 3),
+    ] {
+        let mut identity = router_usb_parent_power_identity();
+        match mutate {
+            0 => identity.usb_vendor_id = text("0B95"),
+            1 => identity.usb_serial_number = text("serial\"wildcard"),
+            2 => identity.integer = 0,
+            3 => identity.pci_controller_address = text("0000:c7:00.*"),
+            _ => unreachable!(),
+        }
+        let mut router = installation();
+        router
+            .capabilities
+            .push(NodeCapability::RouterUsbParentPowerOn(vec![identity]));
+        let error = definition(Vec::new(), vec![router])
+            .project("zeus")
+            .expect_err(case);
+        assert!(matches!(
+            error,
+            Error::InvalidRouterUsbParentPowerOn { ref node } if node == "zeus"
+        ));
+    }
+
+    let mut non_router = local_vm();
+    non_router
+        .capabilities
+        .push(NodeCapability::RouterUsbParentPowerOn(vec![
+            router_usb_parent_power_identity(),
+        ]));
+    assert!(matches!(
+        definition(Vec::new(), vec![installation(), non_router]).project("zeus"),
+        Err(Error::InvalidRouterUsbParentPowerOn { node }) if node == "mercury"
+    ));
+}
+
 #[test]
 fn builder_destinations_require_both_center_and_receiver_qualification() {
     for (case, center, builder, online, trusted, keyed, expected) in [

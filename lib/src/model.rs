@@ -285,6 +285,24 @@ pub enum Capability {
     /// The cluster's Git server: serves Git over SSH, and
     /// `git.<cluster>.<suffix>` resolves to this node.
     GitServer,
+    /// Keep runtime power enabled for one exactly identified physical USB
+    /// parent on a router. Every string has passed Horizon's canonical value
+    /// validation before it reaches a consumer.
+    #[serde(rename_all = "camelCase")]
+    RouterUsbParentPowerOn {
+        devices: Vec<RouterUsbParentPowerIdentityView>,
+    },
+}
+
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RouterUsbParentPowerIdentityView {
+    pub pci_controller_address: String,
+    pub root_port: i64,
+    pub usb_vendor_id: String,
+    pub usb_product_id: String,
+    pub usb_device_revision: String,
+    pub usb_serial_number: String,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

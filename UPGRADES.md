@@ -1,3 +1,26 @@
+# 0.18.0 — router USB parent runtime-power identity
+
+Routers may declare the exact physical USB parents whose runtime power policy
+stays on:
+
+```ethos
+RouterUsbParentPowerIdentity.{ PciControllerAddress Integer UsbVendorId UsbProductId UsbDeviceRevision UsbSerialNumber }
+NodeCapability.[ … RouterUsbParentPowerOn.Vector<RouterUsbParentPowerIdentity> ]
+```
+
+The integer is the stable root-port `devpath`; the PCI controller address and
+USB identity strings are canonical literal values. Composition refuses an
+empty or repeated capability, use outside a router, noncanonical lowercase
+addresses and identifiers, root ports outside 1–255, and serials outside the
+literal-safe ASCII set. Projection emits the validated identities under the
+`routerUsbParentPowerOn` capability's `devices` field.
+
+The variant is appended and holds a vector, preserving both the in-memory and
+rkyv archived `NodeCapability` size and alignment from 0.17.2. An archive made
+by deployed revision `4d206ff` is a checked compatibility fixture. Existing
+Horizon definitions decode unchanged; a cluster opts in by adding the new
+capability to one router.
+
 # 0.17.2 — replica account authorization
 
 Unison validates the master's declared identity against the exact projected replica account and its authorized SSH keys. Replicas need no viewpoint key or Home ownership. Home selection and wire schema are unchanged; unknown nodes, missing accounts/master identities, unauthorized keys and unsafe or overlapping trees remain refusals. Projected user accounts are produced once during resolution and are the same values used for validation and the emitted node projection.
