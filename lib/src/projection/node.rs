@@ -45,6 +45,13 @@ pub(crate) trait NodeGraph {
 
     /// Refuses a cluster naming more than one tailnet controller.
     fn validate_tailnet_controller(&self) -> Result<(), Error>;
+
+    fn validate_router_usb_parent_power_on(&self) -> Result<(), Error>;
+    fn validate_preferred_wired_internet(&self) -> Result<(), Error>;
+    fn valid_lower_hex_word(value: &str) -> bool;
+    fn valid_pci_controller_address(value: &str) -> bool;
+    fn valid_usb_serial_number(value: &str) -> bool;
+    fn valid_linux_interface_name(value: &str) -> bool;
 }
 
 impl NodeGraph for NodeDefinitions {
@@ -130,6 +137,94 @@ impl NodeGraph for NodeDefinitions {
             });
         }
         Ok(())
+    }
+
+    fn validate_router_usb_parent_power_on(&self) -> Result<(), Error> {
+        for (name, node) in self {
+            let is_router = node
+                .capabilities
+                .iter()
+                .any(|capability| matches!(capability, NodeCapability::Router(_)));
+            let mut policies = node
+                .capabilities
+                .iter()
+                .filter_map(|capability| match capability {
+                    NodeCapability::RouterUsbParentPowerOn(policy) => Some(policy),
+                    _ => None,
+                });
+            let Some(policy) = policies.next() else {
+                continue;
+            };
+            let valid = is_router
+                && policies.next().is_none()
+                && !policy.is_empty()
+                && policy.iter().all(|identity| {
+                    Self::valid_pci_controller_address(&identity.pci_controller_address)
+                        && (1..=255).contains(&identity.integer)
+                        && Self::valid_lower_hex_word(&identity.usb_vendor_id)
+                        && Self::valid_lower_hex_word(&identity.usb_product_id)
+                        && Self::valid_lower_hex_word(&identity.usb_device_revision)
+                        && Self::valid_usb_serial_number(&identity.usb_serial_number)
+                });
+            if !valid {
+                return Err(Error::InvalidRouterUsbParentPowerOn { node: name.clone() });
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_preferred_wired_internet(&self) -> Result<(), Error> {
+        for (name, node) in self {
+            let mut interfaces =
+                node.capabilities
+                    .iter()
+                    .filter_map(|capability| match capability {
+                        NodeCapability::PreferredWiredInternet(interface) => Some(interface),
+                        _ => None,
+                    });
+            let Some(interface) = interfaces.next() else {
+                continue;
+            };
+            if interfaces.next().is_some() || !Self::valid_linux_interface_name(interface) {
+                return Err(Error::InvalidPreferredWiredInternet { node: name.clone() });
+            }
+        }
+        Ok(())
+    }
+
+    fn valid_lower_hex_word(value: &str) -> bool {
+        value.len() == 4
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    }
+
+    fn valid_pci_controller_address(value: &str) -> bool {
+        let bytes = value.as_bytes();
+        bytes.len() == 12
+            && bytes[4] == b':'
+            && bytes[7] == b':'
+            && bytes[10] == b'.'
+            && bytes.iter().enumerate().all(|(index, byte)| {
+                matches!(index, 4 | 7 | 10) || byte.is_ascii_digit() || (b'a'..=b'f').contains(byte)
+            })
+            && matches!(bytes[11], b'0'..=b'7')
+    }
+
+    fn valid_usb_serial_number(value: &str) -> bool {
+        !value.is_empty()
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+    }
+
+    fn valid_linux_interface_name(value: &str) -> bool {
+        !value.is_empty()
+            && value.len() <= 15
+            && !matches!(value, "." | "..")
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'))
     }
 }
 

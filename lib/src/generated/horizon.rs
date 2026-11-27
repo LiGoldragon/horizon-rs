@@ -28,6 +28,16 @@ pub type CountryCode = String;
 #[rustfmt::skip]
 pub type Ipv4Cidr = String;
 #[rustfmt::skip]
+pub type PciControllerAddress = String;
+#[rustfmt::skip]
+pub type UsbVendorId = String;
+#[rustfmt::skip]
+pub type UsbProductId = String;
+#[rustfmt::skip]
+pub type UsbDeviceRevision = String;
+#[rustfmt::skip]
+pub type UsbSerialNumber = String;
+#[rustfmt::skip]
 pub type SecretName = String;
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
@@ -393,6 +403,17 @@ pub struct NoSettings {}
 #[rustfmt::skip]
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
+pub struct RouterUsbParentPowerIdentity {
+    pub pci_controller_address: PciControllerAddress,
+    pub integer: i64,
+    pub usb_vendor_id: UsbVendorId,
+    pub usb_product_id: UsbProductId,
+    pub usb_device_revision: UsbDeviceRevision,
+    pub usb_serial_number: UsbSerialNumber,
+}
+#[rustfmt::skip]
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "datom", derive(datom_codec::Datomizable, datom_codec::Composing))]
 pub struct VmTesting_Data {
     pub boolean: bool,
     pub string: String,
@@ -448,6 +469,8 @@ pub enum NodeCapability {
     WebHost(std::vec::Vec<HostedSite>),
     UsbDownlink(UsbDownlink_Data),
     GitServer(NoSettings),
+    RouterUsbParentPowerOn(std::vec::Vec<RouterUsbParentPowerIdentity>),
+    PreferredWiredInternet(Interface),
 }
 #[rustfmt::skip]
 pub type Capabilities = std::vec::Vec<NodeCapability>;

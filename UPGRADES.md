@@ -1,3 +1,24 @@
+# 0.20.0 — forward-port the wired repair capabilities
+
+This current-main release forward-ports only the two additive capabilities
+from the live-compatible 0.18/0.19 producer line:
+
+```ethos
+RouterUsbParentPowerIdentity.{ PciControllerAddress Integer UsbVendorId UsbProductId UsbDeviceRevision UsbSerialNumber }
+NodeCapability.[ … RouterUsbParentPowerOn.Vector<RouterUsbParentPowerIdentity> PreferredWiredInternet.Interface ]
+```
+
+Both variants are appended to main's existing capability enum. The USB policy
+requires one router-scoped, nonempty vector of canonical physical identities;
+the wired preference requires at most one literal-safe Linux interface name.
+They project as `routerUsbParentPowerOn` and `preferredWiredInternet`.
+
+The vector and string payloads are smaller than main's existing largest
+variant, preserving `NodeCapability` and its rkyv archive size and alignment.
+Existing main definitions and archives decode unchanged. The version advances
+past the live-compatible 0.18/0.19 releases without importing their unrelated
+branch history.
+
 # Upgrades
 
 ## 0.17.0 to 0.17.1

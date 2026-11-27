@@ -175,6 +175,24 @@ impl Projection for NodeCapability {
             NodeCapability::UsbDownlink(data) => Capability::UsbDownlink {
                 ipv4_network: data.ipv4_cidr.clone(),
             },
+            NodeCapability::RouterUsbParentPowerOn(data) => Capability::RouterUsbParentPowerOn {
+                devices: data
+                    .iter()
+                    .map(|identity| RouterUsbParentPowerIdentityView {
+                        pci_controller_address: identity.pci_controller_address.clone(),
+                        root_port: identity.integer,
+                        usb_vendor_id: identity.usb_vendor_id.clone(),
+                        usb_product_id: identity.usb_product_id.clone(),
+                        usb_device_revision: identity.usb_device_revision.clone(),
+                        usb_serial_number: identity.usb_serial_number.clone(),
+                    })
+                    .collect(),
+            },
+            NodeCapability::PreferredWiredInternet(interface) => {
+                Capability::PreferredWiredInternet {
+                    interface: interface.clone(),
+                }
+            }
         }
     }
 }

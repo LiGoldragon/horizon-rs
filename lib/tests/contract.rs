@@ -558,9 +558,11 @@ fn local_vm_architecture_inference_is_single_hop() {
 #[test]
 fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
     let mut controller = installation();
-    controller.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyZeus"),
-    }));
+    controller
+        .capabilities
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: text("tailnetPreauthKeyZeus"),
+        }));
     controller
         .capabilities
         .push(NodeCapability::TailnetController(TailnetController_Data {
@@ -573,9 +575,11 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             },
         }));
     let mut client = local_vm();
-    client.capabilities.push(NodeCapability::TailnetClient(SecretReference {
-        secret_name: text("tailnetPreauthKeyMercury"),
-    }));
+    client
+        .capabilities
+        .push(NodeCapability::TailnetClient(SecretReference {
+            secret_name: text("tailnetPreauthKeyMercury"),
+        }));
     let definition = definition(Vec::new(), vec![controller, client]);
     let encoded = encode(&definition);
     assert!(encoded.contains("TailnetClient.{ tailnetPreauthKeyMercury }"));
@@ -604,7 +608,10 @@ fn tailnet_roles_carry_trust_anchor_and_secret_references_to_every_member() {
             tls_key_reference: text("headscaleTlsKey"),
         }
     );
-    assert_eq!(horizon.ex_nodes["zeus"].criome_domain_name, "zeus.goldragon.criome");
+    assert_eq!(
+        horizon.ex_nodes["zeus"].criome_domain_name,
+        "zeus.goldragon.criome"
+    );
 
     let json = serde_json::to_value(controller_view).expect("capability serializes");
     assert_eq!(
@@ -669,6 +676,107 @@ fn router_country_and_usb_downlink_project_for_consumers() {
             .iter()
             .all(|capability| !matches!(capability, Capability::UsbDownlink { .. }))
     );
+}
+
+fn router_usb_parent_power_identity() -> RouterUsbParentPowerIdentity {
+    RouterUsbParentPowerIdentity {
+        pci_controller_address: text("0000:c7:00.0"),
+        integer: 2,
+        usb_vendor_id: text("0b95"),
+        usb_product_id: text("1790"),
+        usb_device_revision: text("0200"),
+        usb_serial_number: text("00000000009525"),
+    }
+}
+
+#[test]
+fn wired_repair_capabilities_round_trip_project_and_preserve_absence() {
+    let mut router = installation();
+    router.capabilities.extend([
+        NodeCapability::RouterUsbParentPowerOn(vec![router_usb_parent_power_identity()]),
+        NodeCapability::PreferredWiredInternet(text("enp0s31f6")),
+    ]);
+    let definition = definition(Vec::new(), vec![router, local_vm()]);
+    let encoded = encode(&definition);
+    assert!(
+        encoded.contains(
+            "RouterUsbParentPowerOn.[ { 0000:c7:00.0 2 0b95 1790 0200 00000000009525 } ]"
+        )
+    );
+    assert!(encoded.contains("PreferredWiredInternet.enp0s31f6"));
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("repair datom decodes");
+    assert_eq!(encode(&decoded), encoded);
+
+    let horizon = decoded
+        .project("zeus")
+        .expect("repair capabilities project");
+    let usb = horizon
+        .node
+        .capabilities
+        .iter()
+        .find(|capability| matches!(capability, Capability::RouterUsbParentPowerOn { .. }))
+        .expect("USB parent policy");
+    assert_eq!(
+        serde_json::to_value(usb).expect("USB policy serializes"),
+        serde_json::json!({
+            "kind": "routerUsbParentPowerOn",
+            "devices": [{
+                "pciControllerAddress": "0000:c7:00.0",
+                "rootPort": 2,
+                "usbVendorId": "0b95",
+                "usbProductId": "1790",
+                "usbDeviceRevision": "0200",
+                "usbSerialNumber": "00000000009525",
+            }]
+        })
+    );
+    let wired = horizon
+        .node
+        .capabilities
+        .iter()
+        .find(|capability| matches!(capability, Capability::PreferredWiredInternet { .. }))
+        .expect("wired preference");
+    assert_eq!(
+        serde_json::to_value(wired).expect("wired policy serializes"),
+        serde_json::json!({ "kind": "preferredWiredInternet", "interface": "enp0s31f6" })
+    );
+    assert!(
+        horizon.ex_nodes["mercury"]
+            .capabilities
+            .iter()
+            .all(|capability| {
+                !matches!(
+                    capability,
+                    Capability::RouterUsbParentPowerOn { .. }
+                        | Capability::PreferredWiredInternet { .. }
+                )
+            })
+    );
+}
+
+#[test]
+fn wired_repair_capabilities_refuse_unscoped_or_unsafe_values() {
+    let mut non_router = local_vm();
+    non_router
+        .capabilities
+        .push(NodeCapability::RouterUsbParentPowerOn(vec![
+            router_usb_parent_power_identity(),
+        ]));
+    assert!(matches!(
+        definition(Vec::new(), vec![installation(), non_router]).project("zeus"),
+        Err(Error::InvalidRouterUsbParentPowerOn { node }) if node == "mercury"
+    ));
+
+    for interface in ["", "../enp0s31f6", "interface-name-over-15", "wired name"] {
+        let mut router = installation();
+        router
+            .capabilities
+            .push(NodeCapability::PreferredWiredInternet(text(interface)));
+        assert!(matches!(
+            definition(Vec::new(), vec![router]).project("zeus"),
+            Err(Error::InvalidPreferredWiredInternet { node }) if node == "zeus"
+        ));
+    }
 }
 
 #[test]
@@ -757,8 +865,22 @@ fn git_server_capability_names_the_cluster_git_domain_on_a_qualified_node() {
         ("qualified git server", true, true, true, true, true),
         ("offline git server", true, false, true, true, false),
         ("untrusted git server", true, true, false, true, false),
-        ("git server without nix or yggdrasil keys", true, true, true, false, true),
-        ("node without the capability", false, true, true, true, false),
+        (
+            "git server without nix or yggdrasil keys",
+            true,
+            true,
+            true,
+            false,
+            true,
+        ),
+        (
+            "node without the capability",
+            false,
+            true,
+            true,
+            true,
+            false,
+        ),
     ] {
         let mut server = installation();
         if capability {

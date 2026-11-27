@@ -31,4 +31,8 @@ pub enum Error {
     VmHostCycle(String),
     #[error("trusted cluster has more than one TailnetController: {first:?}, {second:?}")]
     MultipleTailnetControllers { first: String, second: String },
+    #[error("node {node:?} has an invalid RouterUsbParentPowerOn capability")]
+    InvalidRouterUsbParentPowerOn { node: String },
+    #[error("node {node:?} has an invalid PreferredWiredInternet capability")]
+    InvalidPreferredWiredInternet { node: String },
 }

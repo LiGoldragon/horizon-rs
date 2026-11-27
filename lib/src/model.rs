@@ -231,7 +231,9 @@ pub enum Capability {
     /// A tailnet member. `preauthKeyReference` names the sops secret holding
     /// this node's reusable Headscale preauth key.
     #[serde(rename_all = "camelCase")]
-    TailnetClient { preauth_key_reference: String },
+    TailnetClient {
+        preauth_key_reference: String,
+    },
     /// The tailnet control server. `certificateAuthority` is the base64 DER
     /// of the public cluster CA certificate every tailnet member trusts
     /// (absent until minted); the two references name the sops secrets
@@ -248,7 +250,9 @@ pub enum Capability {
     NixCache,
     /// The OpenCode testing server. `owner` is the user who runs the
     /// node's OpenCode server and owns its password secret.
-    OpenCodeTesting { owner: String },
+    OpenCodeTesting {
+        owner: String,
+    },
     PersonaDevelopment {
         capabilities: Vec<String>,
     },
@@ -264,10 +268,30 @@ pub enum Capability {
     /// integrated NIC is the uplink, every USB Ethernet NIC is a downlink,
     /// and `ipv4Network` is the IPv4 network served on the downlinks.
     #[serde(rename_all = "camelCase")]
-    UsbDownlink { ipv4_network: String },
+    UsbDownlink {
+        ipv4_network: String,
+    },
     /// The cluster's Git server: serves Git over SSH, and
     /// `git.<cluster>.<suffix>` resolves to this node.
     GitServer,
+    #[serde(rename_all = "camelCase")]
+    RouterUsbParentPowerOn {
+        devices: Vec<RouterUsbParentPowerIdentityView>,
+    },
+    PreferredWiredInternet {
+        interface: String,
+    },
+}
+
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RouterUsbParentPowerIdentityView {
+    pub pci_controller_address: String,
+    pub root_port: i64,
+    pub usb_vendor_id: String,
+    pub usb_product_id: String,
+    pub usb_device_revision: String,
+    pub usb_serial_number: String,
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

@@ -23,6 +23,11 @@ Signal
   WirelessNetworkName.String
   CountryCode.String
   Ipv4Cidr.String
+  PciControllerAddress.String
+  UsbVendorId.String
+  UsbProductId.String
+  UsbDeviceRevision.String
+  UsbSerialNumber.String
   SecretName.String
   ; a sops secret, named
   SecretReference.{ SecretName }
@@ -125,7 +130,8 @@ Signal
   NoSettings.{}
   ; a role a node takes on, with the data it needs; OpenCodeTesting names
   ; the user who runs the node's OpenCode server and owns its password
-  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.SecretReference TailnetController.{ Option<CertificateAuthority> TlsCertificateReference TlsKeyReference } NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.UserName PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> UsbDownlink.{ Ipv4Cidr } GitServer.NoSettings ]
+  RouterUsbParentPowerIdentity.{ PciControllerAddress Integer UsbVendorId UsbProductId UsbDeviceRevision UsbSerialNumber }
+  NodeCapability.[ Graphical.NoSettings Center.NoSettings LargeAi.NoSettings Router.NoSettings Edge.NoSettings NextGeneration.NoSettings LowPower.NoSettings TestVm.NoSettings VmTesting.{ Boolean String Option<String> } CloudNode.NoSettings Printing.NoSettings HardwareVideo.NoSettings Nordvpn.NoSettings WifiCertificate.NoSettings TailnetClient.SecretReference TailnetController.{ Option<CertificateAuthority> TlsCertificateReference TlsKeyReference } NixBuilder.Option<Integer> NixCache.NoSettings OpenCodeTesting.UserName PersonaDevelopment.Vector<PersonaCapability> VmHost.{ TapSubnet KvmAvailability Option<Integer> } WebHost.Vector<HostedSite> UsbDownlink.{ Ipv4Cidr } GitServer.NoSettings RouterUsbParentPowerOn.Vector<RouterUsbParentPowerIdentity> PreferredWiredInternet.Interface ]
   Capabilities.Vector<NodeCapability>
   ; a node: name, variant, size, trust, machine, environment, network,
   ; keys, whether it is online, capabilities, fixed location
