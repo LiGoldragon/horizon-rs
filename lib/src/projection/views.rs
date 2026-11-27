@@ -204,6 +204,11 @@ impl Projection for NodeCapability {
                     })
                     .collect(),
             },
+            NodeCapability::PreferredWiredInternet(interface) => {
+                Capability::PreferredWiredInternet {
+                    interface: interface.clone(),
+                }
+            }
         }
     }
 }

@@ -1,3 +1,23 @@
+# 0.19.0 — preferred wired Internet
+
+A node may name the wired interface that owns its preferred default Internet
+routes and default DNS while other active links remain available for
+management and fallback:
+
+```ethos
+NodeCapability.[ … PreferredWiredInternet.Interface ]
+```
+
+It is authored as `PreferredWiredInternet.enp0s31f6` and projects as
+`{ "kind": "preferredWiredInternet", "interface": "enp0s31f6" }`.
+Composition accepts at most one such capability per node and requires a
+literal-safe Linux interface name of at most fifteen bytes.
+
+The variant is appended, its string payload is smaller than the existing
+largest `NodeCapability` payload, and both the in-memory and rkyv archived
+size and alignment remain those checked against deployed revision `4d206ff`.
+Existing definitions and archives decode unchanged.
+
 # 0.18.0 — router USB parent runtime-power identity
 
 Routers may declare the exact physical USB parents whose runtime power policy

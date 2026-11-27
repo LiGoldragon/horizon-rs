@@ -498,6 +498,7 @@ pub enum NodeCapability {
     UsbDownlink(UsbDownlink_Data),
     GitServer(NoSettings),
     RouterUsbParentPowerOn(std::vec::Vec<RouterUsbParentPowerIdentity>),
+    PreferredWiredInternet(Interface),
 }
 #[rustfmt::skip]
 pub type Capabilities = std::vec::Vec<NodeCapability>;

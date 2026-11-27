@@ -83,6 +83,7 @@ impl Projecting for HorizonDefinition {
         nodes.validate_machines()?;
         nodes.validate_battery_power_policies()?;
         nodes.validate_router_usb_parent_power_on()?;
+        nodes.validate_preferred_wired_internet()?;
         let public_domain = self
             .horizon_configuration
             .domain_configuration

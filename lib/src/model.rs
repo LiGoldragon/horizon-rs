@@ -292,6 +292,11 @@ pub enum Capability {
     RouterUsbParentPowerOn {
         devices: Vec<RouterUsbParentPowerIdentityView>,
     },
+    /// Prefer this wired interface for default Internet routes and default
+    /// DNS while retaining other active links as management and fallback.
+    PreferredWiredInternet {
+        interface: String,
+    },
 }
 
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize, Clone, Debug, PartialEq, Serialize)]

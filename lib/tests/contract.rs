@@ -779,6 +779,62 @@ fn router_usb_parent_power_policy_requires_canonical_scoped_identity() {
 }
 
 #[test]
+fn preferred_wired_internet_round_trips_and_projects_for_one_node() {
+    let mut zeus = installation();
+    zeus.capabilities
+        .push(NodeCapability::PreferredWiredInternet(text("enp0s31f6")));
+    let definition = definition(Vec::new(), vec![zeus, local_vm()]);
+    let encoded = encode(&definition);
+    assert!(encoded.contains("PreferredWiredInternet.enp0s31f6"));
+    let decoded = HorizonDefinition::decode(encoded.as_ref()).expect("wired policy decodes");
+    assert_eq!(encode(&decoded), encoded);
+
+    let horizon = decoded.project("zeus").expect("wired policy projects");
+    let policy = horizon
+        .node
+        .capabilities
+        .iter()
+        .find(|capability| matches!(capability, Capability::PreferredWiredInternet { .. }))
+        .expect("preferred wired policy");
+    assert_eq!(
+        serde_json::to_value(policy).expect("policy serializes"),
+        serde_json::json!({
+            "kind": "preferredWiredInternet",
+            "interface": "enp0s31f6",
+        })
+    );
+    assert!(
+        horizon.ex_nodes["mercury"]
+            .capabilities
+            .iter()
+            .all(|capability| !matches!(capability, Capability::PreferredWiredInternet { .. }))
+    );
+}
+
+#[test]
+fn preferred_wired_internet_requires_one_safe_linux_interface_name() {
+    for interface in ["", "../enp0s31f6", "interface-name-over-15", "wired name"] {
+        let mut zeus = installation();
+        zeus.capabilities
+            .push(NodeCapability::PreferredWiredInternet(text(interface)));
+        assert!(matches!(
+            definition(Vec::new(), vec![zeus]).project("zeus"),
+            Err(Error::InvalidPreferredWiredInternet { node }) if node == "zeus"
+        ));
+    }
+
+    let mut zeus = installation();
+    zeus.capabilities.extend([
+        NodeCapability::PreferredWiredInternet(text("enp0s31f6")),
+        NodeCapability::PreferredWiredInternet(text("enp1s0")),
+    ]);
+    assert!(matches!(
+        definition(Vec::new(), vec![zeus]).project("zeus"),
+        Err(Error::InvalidPreferredWiredInternet { node }) if node == "zeus"
+    ));
+}
+
+#[test]
 fn builder_destinations_require_both_center_and_receiver_qualification() {
     for (case, center, builder, online, trusted, keyed, expected) in [
         (

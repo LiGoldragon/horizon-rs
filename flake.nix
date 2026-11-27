@@ -42,7 +42,7 @@
           commonArgs = {
             inherit src;
             strictDeps = true;
-            version = "0.18.0";
+            version = "0.19.0";
           };
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in

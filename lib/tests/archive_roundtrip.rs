@@ -68,6 +68,15 @@ fn router_usb_parent_power_identity_round_trips_through_the_rkyv_archive() {
 }
 
 #[test]
+fn preferred_wired_internet_round_trips_through_the_rkyv_archive() {
+    let capability = NodeCapability::PreferredWiredInternet("enp0s31f6".to_owned());
+    let bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&capability).expect("archive");
+    let restored =
+        rkyv::from_bytes::<NodeCapability, rkyv::rancor::Error>(&bytes).expect("read back");
+    assert_eq!(restored, capability);
+}
+
+#[test]
 fn append_only_capability_keeps_deployed_archive_layout_and_reads_legacy_bytes() {
     assert_eq!(std::mem::size_of::<NodeCapability>(), 72);
     assert_eq!(std::mem::align_of::<NodeCapability>(), 8);

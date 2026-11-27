@@ -35,6 +35,8 @@ pub enum Error {
     InvalidBatteryPowerPolicy { node: String },
     #[error("node {node:?} has an invalid RouterUsbParentPowerOn capability")]
     InvalidRouterUsbParentPowerOn { node: String },
+    #[error("node {node:?} has an invalid PreferredWiredInternet capability")]
+    InvalidPreferredWiredInternet { node: String },
     #[cfg(feature = "datom")]
     #[error("datom: {0:?}")]
     Datom(datom_codec::Error),

@@ -49,9 +49,13 @@ pub(crate) trait NodeGraph {
     /// Refuses duplicate, misplaced, or non-canonical router USB power policy.
     fn validate_router_usb_parent_power_on(&self) -> Result<(), Error>;
 
+    /// Refuses duplicate or unsafe preferred wired interface declarations.
+    fn validate_preferred_wired_internet(&self) -> Result<(), Error>;
+
     fn valid_lower_hex_word(value: &str) -> bool;
     fn valid_pci_controller_address(value: &str) -> bool;
     fn valid_usb_serial_number(value: &str) -> bool;
+    fn valid_linux_interface_name(value: &str) -> bool;
 
     /// Refuses a cluster naming more than one tailnet controller.
     fn validate_tailnet_controller(&self) -> Result<(), Error>;
@@ -175,6 +179,25 @@ impl NodeGraph for NodeDefinitions {
         Ok(())
     }
 
+    fn validate_preferred_wired_internet(&self) -> Result<(), Error> {
+        for (name, node) in self {
+            let mut interfaces =
+                node.capabilities
+                    .iter()
+                    .filter_map(|capability| match capability {
+                        NodeCapability::PreferredWiredInternet(interface) => Some(interface),
+                        _ => None,
+                    });
+            let Some(interface) = interfaces.next() else {
+                continue;
+            };
+            if interfaces.next().is_some() || !Self::valid_linux_interface_name(interface) {
+                return Err(Error::InvalidPreferredWiredInternet { node: name.clone() });
+            }
+        }
+        Ok(())
+    }
+
     fn valid_lower_hex_word(value: &str) -> bool {
         value.len() == 4
             && value
@@ -199,6 +222,15 @@ impl NodeGraph for NodeDefinitions {
             && value
                 .bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+    }
+
+    fn valid_linux_interface_name(value: &str) -> bool {
+        !value.is_empty()
+            && value.len() <= 15
+            && !matches!(value, "." | "..")
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'))
     }
 
     fn validate_machines(&self) -> Result<(), Error> {
